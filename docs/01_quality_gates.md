@@ -31,8 +31,7 @@
 - Build:
   - `dotnet build`
 - Test:
-  - Jelenleg nincs külön teszt projekt (`*Test*.csproj`) a `backend/` alatt.
-  - Ha később lesz, akkor: `dotnet test`
+  - `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 
 ### Frontend (Angular)
 
@@ -47,7 +46,7 @@
 - **Mindig** (bármilyen BE változásnál):
   - `dotnet build`
 - **Ha van teszt**:
-  - `dotnet test`
+  - `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 
 ### Full-stack / szerződés érzékeny változás
 
@@ -144,3 +143,15 @@ Ezek már **dependency / projekt struktúra** változások, ezért nem “refakt
 - PR leírásban minimum:
   - Mit változtatott / mit nem (no behavior change?)
   - Gate-ek: melyek futottak és zöldek
+
+## GitHub branch protection (enterprise enforce checklist)
+
+Ajánlott a GitHub repo beállításaiban (`Settings → Branches`) a default branch-re:
+
+- **Require a pull request before merging**
+- **Require status checks to pass before merging**
+  - `CI` (workflow)
+  - `CodeQL` (workflow)
+- **Require conversation resolution before merging**
+
+Ez biztosítja, hogy a dokumentált quality gate-ek ténylegesen ki is legyenek kényszerítve.
