@@ -4,7 +4,7 @@ import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { buildIncidentBundleImpl } from './upgrade/upgrade-incident-bundle-builder';
-import { buildCurlSnippetsText } from './upgrade/upgrade-curl-snippets';
+import { buildAuditCurlByTraceId, buildCurlSnippetsText } from './upgrade/upgrade-curl-snippets';
 import { curlSnippetsTextImpl } from './upgrade/upgrade-curl-snippets-actions';
 import type {
   AuditLogItem,
@@ -1066,13 +1066,13 @@ export class UpgradePageComponent implements OnInit, OnDestroy {
   }
 
   copyAuditCurlByTraceId(traceId: string) {
-    const t = (traceId ?? '').trim();
-    if (!t) return;
-    const clientTrace = (this.clientTraceId ?? '').trim();
-    const headerArg = clientTrace ? ` -H 'X-Trace-Id: ${clientTrace}'` : '';
-    const take = this.auditTake || 50;
-    const url = `http://localhost:5002/api/admin/audit?take=${encodeURIComponent(String(take))}&traceId=${encodeURIComponent(t)}`;
-    void this.copyText(`curl -sS "${url}"${headerArg}`);
+    const curl = buildAuditCurlByTraceId({
+      take: this.auditTake || 50,
+      traceId,
+      clientTraceId: this.clientTraceId ?? '',
+    });
+    if (!curl) return;
+    void this.copyText(curl);
   }
 
   copyAuditDetails(detailsJson: string | null) {
