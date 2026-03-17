@@ -17,6 +17,7 @@ Drift-proof observability egy greenfield lowcode platformban.
   - **Incident bundle**: JSON diagnosztika (status/queue/run/audit + timeDiagnostics + curl snippetek):
     - vágólapra másolás
     - letöltés `.json` fájlba (nagy payloadnál megerősítés)
+    - no behavior change refaktor: `copyIncidentBundle()` delegál a shared helperre (`buildIncidentBundleImpl`) a duplikált összeállítás kiváltására (PR: `refactor/upgrade-incident-bundle-wiring`)
   - **Refresh all** gomb (status/observability/queue/audit + run; ha nincs kiválasztott run, akkor `latest` töltődik, nem silent módon).
   - **Polling auto-stop**: csak `pending/running` state esetén pollol, terminal state-nél megáll.
   - Batch C hardening (loading/error konzisztencia):

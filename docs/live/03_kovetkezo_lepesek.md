@@ -46,6 +46,7 @@
   - ✅ Kész: export/bundle builder-ek első szelete kiszervezve (`pages/upgrade/upgrade-export-builders.ts`).
   - ✅ Kész: HTTP helper-ek kiszervezve (`pages/upgrade/upgrade-api.ts`).
   - ✅ Kész: incident bundle builder kiszervezve (`pages/upgrade/upgrade-incident-bundle.ts`).
+  - ✅ Kész (PR): komponens `copyIncidentBundle()` delegálás a shared helperre (`buildIncidentBundleImpl`) – PR: `refactor/upgrade-incident-bundle-wiring`.
   - ✅ Kész: debug pack serialize helper kiszervezve (`pages/upgrade/upgrade-debug-pack.ts`).
   - ✅ Kész: UI utilok (download/format/badge/shortId) kiszervezve (`pages/upgrade/upgrade-ui-utils.ts`).
   - ✅ Kész: curl snippet builder-ek kiszervezve (`pages/upgrade/upgrade-curl-snippets.ts`).
