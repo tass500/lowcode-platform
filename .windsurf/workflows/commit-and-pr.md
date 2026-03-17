@@ -6,7 +6,32 @@ description: Commit javaslat + PR-branch flow (protected master)
 
 - Protected `master` miatt közvetlen push nincs; minden változás PR-on keresztül megy.
 - Cascade (én) minden jól körülhatárolt milestone végén automatikusan ad egy "Proposed commit" blokkot.
+- Cascade (én) milestone-oknál automatikusan ad egy "Proposed PR" blokkot is (mikor érdemes PR-t nyitni + javasolt cím/leírás).
 - Te lefuttatod a parancsokat (commit/push/PR).
+
+# Mikor nyiss PR-t? (cadence)
+
+- PR-t érdemes nyitni, amikor van egy jól körülhatárolt, review-olható egység (milestone).
+- Tipikus ritmus: **milestone-onként 1 PR** (vagy ha a diff túl nagy, akkor 2 kisebb PR ugyanazon témán belül).
+- Ha a branch már pusholva van GitHubra, a PR-t bármikor meg lehet nyitni (akár Draft-ként), és utána a commitok ugyanabba a PR-ba kerülnek.
+
+# "Proposed PR" sablon (amit Cascade használ)
+
+Amikor úgy látom, hogy a változás már egyben review-olható, adok egy blokkot ilyen formában:
+
+```text
+Proposed PR
+- base: master
+- head: <branch-nev>
+- title: <rovid-cim>
+- summary:
+  - <1-3 bullet a változásokról>
+- notes:
+  - no behavior change
+  - checks: várd meg a zöld CI/CodeQL-t
+PR létrehozás:
+- GitHub UI: https://github.com/tass500/lowcode-platform/pull/new/<branch-nev>
+```
 
 # Standard flow (minden változásnál)
 
@@ -44,6 +69,7 @@ git push -u origin <branch-nev>
 ```
 
 - GitHub UI-ban: "Compare & pull request" → töltsd ki → Create PR.
+- Alternatíva: közvetlen link: `https://github.com/tass500/lowcode-platform/pull/new/<branch-nev>`
 - Várd meg, hogy az összes required check zöld legyen.
 - Merge (squash/merge policy szerint).
 
