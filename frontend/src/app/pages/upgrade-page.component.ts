@@ -4,7 +4,7 @@ import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { buildIncidentBundleImpl } from './upgrade/upgrade-incident-bundle-builder';
-import { buildAuditCurlByTraceId, buildCurlSnippetsText } from './upgrade/upgrade-curl-snippets';
+import { buildAuditCurlByTraceId, buildClientTraceHeaderArg, buildCurlSnippetsText } from './upgrade/upgrade-curl-snippets';
 import { curlSnippetsTextImpl } from './upgrade/upgrade-curl-snippets-actions';
 import { copyCurlSnippetsImpl } from './upgrade/upgrade-curl-snippets-copy-runner';
 import { copyCurlSnippetsWiringImpl } from './upgrade/upgrade-small-actions';
@@ -494,9 +494,9 @@ export class UpgradePageComponent implements OnInit, OnDestroy {
   }
 
   copyClientTraceHeaderArg() {
-    const t = (this.clientTraceId ?? '').trim();
-    if (!t) return;
-    void this.copyText(`-H 'X-Trace-Id: ${t}'`);
+    const header = buildClientTraceHeaderArg(this.clientTraceId ?? '');
+    if (!header) return;
+    void this.copyText(header);
   }
 
   private ticketHeaderTextUnified(args: {
@@ -518,7 +518,7 @@ export class UpgradePageComponent implements OnInit, OnDestroy {
     const daysOutOfSupportRaw = args.status?.daysOutOfSupport ?? args.observability?.daysOutOfSupport;
     const daysOutOfSupport = daysOutOfSupportRaw === 0 || !!daysOutOfSupportRaw ? String(daysOutOfSupportRaw) : '';
 
-    const headerArg = clientTraceId ? `-H 'X-Trace-Id: ${clientTraceId}'` : '';
+    const headerArg = buildClientTraceHeaderArg(clientTraceId);
 
     const parts: string[] = [];
     parts.push('=== UPGRADE DEBUG HEADER ===');
@@ -628,9 +628,7 @@ export class UpgradePageComponent implements OnInit, OnDestroy {
   }
 
   private clientTraceHeaderArg(): string {
-    const t = (this.clientTraceId ?? '').trim();
-    if (!t) return '';
-    return `-H 'X-Trace-Id: ${t}'`;
+    return buildClientTraceHeaderArg(this.clientTraceId ?? '');
   }
 
   private requestOptions(): { headers: HttpHeaders } | undefined {
