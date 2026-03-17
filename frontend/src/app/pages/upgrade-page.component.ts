@@ -7,8 +7,10 @@ import { buildIncidentBundleImpl } from './upgrade/upgrade-incident-bundle-build
 import { buildAuditCurlByTraceId, buildClientTraceHeaderArg, buildCurlSnippetsText } from './upgrade/upgrade-curl-snippets';
 import { curlSnippetsTextImpl } from './upgrade/upgrade-curl-snippets-actions';
 import { copyCurlSnippetsImpl } from './upgrade/upgrade-curl-snippets-copy-runner';
+import { copyAuditCurlByTraceIdImpl, copyAuditDetailsImpl, copyAuditTraceIdImpl } from './upgrade/upgrade-audit-copy-actions';
 import { copyCurlSnippetsWiringImpl } from './upgrade/upgrade-small-actions';
 import { copyTicketHeaderImpl } from './upgrade/upgrade-preview-text-actions';
+import { copyRunIdImpl, copyTraceIdImpl } from './upgrade/upgrade-simple-copy-runner';
 import type {
   AuditLogItem,
   InstallationStatus,
@@ -1037,15 +1039,17 @@ export class UpgradePageComponent implements OnInit, OnDestroy {
   }
 
   copyRunId() {
-    const id = (this.runId ?? '').trim();
-    if (!id) return;
-    void this.copyText(id);
+    void copyRunIdImpl({
+      runId: this.runId ?? '',
+      copyText: (t: string) => this.copyText(t),
+    });
   }
 
   copyTraceId() {
-    const t = (this.run?.traceId ?? '').trim();
-    if (!t) return;
-    void this.copyText(t);
+    void copyTraceIdImpl({
+      traceId: this.run?.traceId ?? '',
+      copyText: (t: string) => this.copyText(t),
+    });
   }
 
   private curlSnippetsText(): string {
@@ -1068,25 +1072,29 @@ export class UpgradePageComponent implements OnInit, OnDestroy {
   }
 
   copyAuditTraceId(traceId: string) {
-    const t = (traceId ?? '').trim();
-    if (!t) return;
-    void this.copyText(t);
+    copyAuditTraceIdImpl({
+      traceId,
+      copyText: (t: string) => this.copyText(t),
+    });
   }
 
   copyAuditCurlByTraceId(traceId: string) {
-    const curl = buildAuditCurlByTraceId({
-      take: this.auditTake || 50,
+    copyAuditCurlByTraceIdImpl({
       traceId,
-      clientTraceId: this.clientTraceId ?? '',
+      buildAuditCurlByTraceId: (t: string) => buildAuditCurlByTraceId({
+        take: this.auditTake || 50,
+        traceId: t,
+        clientTraceId: this.clientTraceId ?? '',
+      }),
+      copyText: (t: string) => this.copyText(t),
     });
-    if (!curl) return;
-    void this.copyText(curl);
   }
 
   copyAuditDetails(detailsJson: string | null) {
-    const t = (detailsJson ?? '').trim();
-    if (!t) return;
-    void this.copyText(t);
+    copyAuditDetailsImpl({
+      detailsJson,
+      copyText: (t: string) => this.copyText(t),
+    });
   }
 
   async copyIncidentBundle() {
