@@ -6,6 +6,9 @@ import { firstValueFrom } from 'rxjs';
 import { buildIncidentBundleImpl } from './upgrade/upgrade-incident-bundle-builder';
 import { buildAuditCurlByTraceId, buildCurlSnippetsText } from './upgrade/upgrade-curl-snippets';
 import { curlSnippetsTextImpl } from './upgrade/upgrade-curl-snippets-actions';
+import { copyCurlSnippetsImpl } from './upgrade/upgrade-curl-snippets-copy-runner';
+import { copyCurlSnippetsWiringImpl } from './upgrade/upgrade-small-actions';
+import { copyTicketHeaderImpl } from './upgrade/upgrade-preview-text-actions';
 import type {
   AuditLogItem,
   InstallationStatus,
@@ -542,8 +545,11 @@ export class UpgradePageComponent implements OnInit, OnDestroy {
   }
 
   copyTicketHeader() {
-    if (!this.run) return;
-    void this.copyText(this.ticketHeaderPreview());
+    copyTicketHeaderImpl({
+      hasRun: !!this.run,
+      ticketHeaderPreviewText: () => this.ticketHeaderPreview(),
+      copyText: (text: string) => this.copyText(text),
+    });
   }
 
   private shortTicketHeaderText(args: {
@@ -1054,9 +1060,13 @@ export class UpgradePageComponent implements OnInit, OnDestroy {
   }
 
   copyCurlSnippets() {
-    const t = this.curlSnippetsText();
-    if (!t) return;
-    void this.copyText(t);
+    copyCurlSnippetsWiringImpl({
+      buildCurlSnippetsText: () => this.curlSnippetsText(),
+      copyCurlSnippets: async ({ text }: { text: string }) => copyCurlSnippetsImpl({
+        text,
+        copyText: (t: string) => this.copyText(t),
+      }),
+    });
   }
 
   copyAuditTraceId(traceId: string) {
