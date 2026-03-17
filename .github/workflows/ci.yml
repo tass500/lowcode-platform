@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  backend-build:
+    name: Backend - build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore backend/LowCodePlatform.Backend.csproj
+
+      - name: Build
+        run: dotnet build backend/LowCodePlatform.Backend.csproj -c Release --no-restore
+
+  backend-test:
+    name: Backend - test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj
+
+      - name: Test
+        run: dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj -c Release --no-restore
+
+  frontend-quality:
+    name: Frontend - lint + build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+        working-directory: frontend
+
+      - name: Lint
+        run: npm run lint
+        working-directory: frontend
+
+      - name: Build
+        run: npm run build
+        working-directory: frontend

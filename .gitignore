@@ -1,0 +1,23 @@
+# .NET
+**/bin/
+**/obj/
+
+# SQLite dev db (if created locally)
+**/*.db
+**/*.db-shm
+**/*.db-wal
+
+# Node / Angular
+**/node_modules/
+frontend/dist/
+
+backend/*.db
+backend/*.db-*
+
+# Logs
+**/*.log
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
