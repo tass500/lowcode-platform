@@ -3,108 +3,19 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
-
-type InstallationStatus = {
-  serverTimeUtc?: string;
-  installationId: string;
-  currentVersion: string;
-  supportedVersion: string;
-  releaseDateUtc?: string;
-  upgradeWindowDays?: number;
-  enforcementState: 'ok' | 'warn' | 'soft_block' | 'hard_block';
-  daysOutOfSupport: number;
-};
-
-type ServerTimedResponse<T> = {
-  serverTimeUtc?: string;
-  items: T[];
-};
-
-type ServerTimedSingleResponse<T> = {
-  serverTimeUtc?: string;
-} & T;
-
-type StartUpgradeResponse = {
-  serverTimeUtc?: string;
-  upgradeRunId: string;
-};
-
-type UpgradeRunStep = {
-  stepKey: string;
-  state: string;
-  attempt: number;
-  nextRetryAtUtc: string | null;
-  lastErrorCode: string | null;
-  lastErrorMessage: string | null;
-  startedAtUtc: string | null;
-  finishedAtUtc: string | null;
-};
-
-type UpgradeRun = {
-  upgradeRunId: string;
-  installationId: string;
-  targetVersion: string;
-  state: string;
-  startedAtUtc: string | null;
-  finishedAtUtc: string | null;
-  errorCode: string | null;
-  errorMessage: string | null;
-  traceId: string;
-  steps: UpgradeRunStep[];
-};
-
-type RecentUpgradeRun = {
-  upgradeRunId: string;
-  targetVersion: string;
-  state: string;
-  startedAtUtc: string | null;
-  finishedAtUtc: string | null;
-  traceId: string;
-};
-
-type QueueUpgradeRun = {
-  upgradeRunId: string;
-  targetVersion: string;
-  state: string;
-  startedAtUtc: string | null;
-  traceId: string;
-};
-
-type AuditLogItem = {
-  auditLogId: string;
-  timestampUtc: string;
-  actor: string;
-  action: string;
-  target: string;
-  traceId: string;
-  detailsJson: string | null;
-};
-
-type ObservabilityActiveRun = {
-  upgradeRunId: string;
-  targetVersion: string;
-  state: string;
-  startedAtUtc: string | null;
-  traceId: string;
-};
-
-type ObservabilityLastAudit = {
-  auditLogId: string;
-  timestampUtc: string;
-  actor: string;
-  action: string;
-  target: string;
-  traceId: string;
-};
-
-type ObservabilitySnapshot = {
-  serverTimeUtc?: string;
-  installationId: string;
-  enforcementState: string;
-  daysOutOfSupport: number;
-  activeRuns: ObservabilityActiveRun[];
-  lastAudit: ObservabilityLastAudit | null;
-};
+import { buildIncidentBundleImpl } from './upgrade/upgrade-incident-bundle-builder';
+import type {
+  AuditLogItem,
+  InstallationStatus,
+  ObservabilitySnapshot,
+  QueueUpgradeRun,
+  RecentUpgradeRun,
+  ServerTimedResponse,
+  ServerTimedSingleResponse,
+  StartUpgradeResponse,
+  UpgradeRun,
+  UpgradeRunStep,
+} from './upgrade/upgrade-types';
 
 @Component({
   selector: 'app-upgrade-page',
@@ -1196,95 +1107,40 @@ export class UpgradePageComponent implements OnInit, OnDestroy {
 
     try {
       const opts = this.requestOptions();
-      const take = this.auditTake || 50;
-      const clientTrace = (this.clientTraceId ?? '').trim();
-
-      const headerArg = clientTrace ? ` -H 'X-Trace-Id: ${clientTrace}'` : '';
-      const curl = {
-        status: `curl -sS http://localhost:5002/api/admin/installation/status${headerArg}`,
-        queue: `curl -sS http://localhost:5002/api/admin/upgrade-runs/queue${headerArg}`,
-        recent: `curl -sS "http://localhost:5002/api/admin/upgrade-runs/recent?take=10"${headerArg}`,
-        latest: `curl -sS http://localhost:5002/api/admin/upgrade-runs/latest${headerArg}`,
-        observability: `curl -sS http://localhost:5002/api/admin/observability${headerArg}`,
-        runGet: (id: string) => `curl -sS http://localhost:5002/api/admin/upgrade-runs/${id}${headerArg}`,
-        runRetry: (id: string) => `curl -sS -X POST http://localhost:5002/api/admin/upgrade-runs/${id}/retry -H 'Content-Type: application/json'${headerArg} -d '{}'`,
-        runCancel: (id: string) => `curl -sS -X POST http://localhost:5002/api/admin/upgrade-runs/${id}/cancel -H 'Content-Type: application/json'${headerArg} -d '{}'`,
-        auditUpgrade: `curl -sS "http://localhost:5002/api/admin/audit?take=${encodeURIComponent(String(take))}&actionContains=${encodeURIComponent('upgrade_')}"${headerArg}`,
-        auditTrace: (t: string) => `curl -sS "http://localhost:5002/api/admin/audit?take=${encodeURIComponent(String(take))}&traceId=${encodeURIComponent(t)}"${headerArg}`,
-      };
-
-      const statusReq = firstValueFrom(this.http.get<InstallationStatus>('/api/admin/installation/status', opts));
-      const queueReq = firstValueFrom(this.http.get<ServerTimedResponse<QueueUpgradeRun>>('/api/admin/upgrade-runs/queue', opts));
-      const observabilityReq = firstValueFrom(this.http.get<ObservabilitySnapshot>('/api/admin/observability', opts));
-
-      let runReq: Promise<UpgradeRun | null> = Promise.resolve(null);
       const runId = (this.runId ?? '').trim();
-      if (runId)
-        runReq = firstValueFrom(this.http.get<ServerTimedSingleResponse<UpgradeRun>>(`/api/admin/upgrade-runs/${runId}`, opts));
 
-      const run = await runReq;
-      const trace = (run?.traceId ?? '').trim();
+      const capturedAtUtc = new Date(this.clientNowMs()).toISOString();
 
-      const auditUrl = trace
-        ? `/api/admin/audit?take=${encodeURIComponent(String(take))}&traceId=${encodeURIComponent(trace)}`
-        : `/api/admin/audit?take=${encodeURIComponent(String(take))}&actionContains=${encodeURIComponent('upgrade_')}`;
-      const auditReq = firstValueFrom(this.http.get<ServerTimedResponse<AuditLogItem>>(auditUrl, opts));
-
-      const [status, queue, observability, audit] = await Promise.all([statusReq, queueReq, observabilityReq, auditReq]);
-
-      const payload = {
-        clientTraceId: clientTrace || null,
-        selectedRunId: runId || null,
-        selectedRunTraceId: trace || null,
-        capturedAtUtc: new Date(this.clientNowMs()).toISOString(),
-        timeDiagnostics: {
-          simulatedClientDriftMinutes: this.simulatedClientDriftMinutes,
-          lastServerTimeUtcApplied: this.lastServerTimeUtcApplied || null,
-          lastServerTimeUtcSource: this.lastServerTimeUtcSource || null,
-          serverNowOffsetMs: this.serverNowOffsetMs,
-          clockDriftWarning: this.clockDriftWarning || null,
+      const output = await buildIncidentBundleImpl({
+        get: {
+          auditTake: this.auditTake || 50,
+          clientTraceId: (this.clientTraceId ?? '').trim(),
+          runId,
         },
-        status,
-        queue,
-        observability,
-        run,
-        audit,
-        curlSnippets: {
-          status: curl.status,
-          queue: curl.queue,
-          recent: curl.recent,
-          latest: curl.latest,
-          observability: curl.observability,
-          run: runId ? {
-            get: curl.runGet(runId),
-            retry: curl.runRetry(runId),
-            cancel: curl.runCancel(runId),
-          } : null,
-          audit: trace ? {
-            byTraceId: curl.auditTrace(trace),
-            byUpgradeAction: curl.auditUpgrade,
-          } : {
-            byUpgradeAction: curl.auditUpgrade,
-          }
+        time: {
+          capturedAtUtc,
+          timeDiagnostics: {
+            simulatedClientDriftMinutes: this.simulatedClientDriftMinutes,
+            lastServerTimeUtcApplied: this.lastServerTimeUtcApplied || null,
+            lastServerTimeUtcSource: this.lastServerTimeUtcSource || null,
+            serverNowOffsetMs: this.serverNowOffsetMs,
+            clockDriftWarning: this.clockDriftWarning || null,
+          },
+        },
+        http: {
+          fetchRun: (id: string) => firstValueFrom(this.http.get<ServerTimedSingleResponse<UpgradeRun>>(`/api/admin/upgrade-runs/${id}`, opts)),
+          fetchStatus: () => firstValueFrom(this.http.get<InstallationStatus>('/api/admin/installation/status', opts)),
+          fetchQueue: () => firstValueFrom(this.http.get<ServerTimedResponse<QueueUpgradeRun>>('/api/admin/upgrade-runs/queue', opts)),
+          fetchObservability: () => firstValueFrom(this.http.get<ObservabilitySnapshot>('/api/admin/observability', opts)),
+          fetchAudit: (auditUrl: string) => firstValueFrom(this.http.get<ServerTimedResponse<AuditLogItem>>(auditUrl, opts)),
+        },
+        build: {
+          auditPanelSnapshot: () => undefined,
+          headerTextUnified: (a: any) => this.ticketHeaderTextUnified(a as any),
         }
-      };
-
-      const header = this.ticketHeaderTextUnified({
-        runId,
-        run,
-        status,
-        observability,
-        clientTraceId: clientTrace,
       });
-      const text = [
-        header,
-        '',
-        '=== INCIDENT BUNDLE (paste into ticket) ===',
-        JSON.stringify(payload, null, 2),
-        ''
-      ].join('\n');
 
-      await this.copyText(text);
+      await this.copyText(output.text);
     } catch (e: any) {
       this.setCopyStatus(e?.message ? `Bundle failed: ${e.message}` : 'Bundle failed.');
     } finally {
