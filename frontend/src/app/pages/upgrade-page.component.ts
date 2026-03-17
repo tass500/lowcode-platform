@@ -4,6 +4,8 @@ import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { buildIncidentBundleImpl } from './upgrade/upgrade-incident-bundle-builder';
+import { buildCurlSnippetsText } from './upgrade/upgrade-curl-snippets';
+import { curlSnippetsTextImpl } from './upgrade/upgrade-curl-snippets-actions';
 import type {
   AuditLogItem,
   InstallationStatus,
@@ -1043,33 +1045,12 @@ export class UpgradePageComponent implements OnInit, OnDestroy {
   }
 
   private curlSnippetsText(): string {
-    const id = (this.runId ?? '').trim();
-    if (!id) return '';
-    const t = (this.run?.traceId ?? '').trim();
-    const clientTrace = (this.clientTraceId ?? '').trim();
-    const headerArg = clientTrace ? ` -H 'X-Trace-Id: ${clientTrace}'` : '';
-
-    const lines: string[] = [];
-    lines.push(`# Run ${id}`);
-    lines.push(`curl -sS http://localhost:5002/api/admin/upgrade-runs/${id}${headerArg}`);
-    lines.push(`curl -sS -X POST http://localhost:5002/api/admin/upgrade-runs/${id}/retry -H 'Content-Type: application/json'${headerArg} -d '{}'`);
-    lines.push(`curl -sS -X POST http://localhost:5002/api/admin/upgrade-runs/${id}/cancel -H 'Content-Type: application/json'${headerArg} -d '{}'`);
-    lines.push('');
-    lines.push('# Status / observability');
-    lines.push(`curl -sS http://localhost:5002/api/admin/installation/status${headerArg}`);
-    lines.push(`curl -sS http://localhost:5002/api/admin/observability${headerArg}`);
-    lines.push('');
-    lines.push('# Queue / recent');
-    lines.push(`curl -sS http://localhost:5002/api/admin/upgrade-runs/queue${headerArg}`);
-    lines.push(`curl -sS "http://localhost:5002/api/admin/upgrade-runs/recent?take=10"${headerArg}`);
-    lines.push(`curl -sS http://localhost:5002/api/admin/upgrade-runs/latest${headerArg}`);
-    lines.push('');
-    lines.push('# Audit');
-    lines.push(`curl -sS "http://localhost:5002/api/admin/audit?take=50&actionContains=upgrade_"${headerArg}`);
-    if (t)
-      lines.push(`curl -sS "http://localhost:5002/api/admin/audit?take=50&traceId=${t}"${headerArg}`);
-
-    return lines.join('\n');
+    return curlSnippetsTextImpl({
+      runId: this.runId,
+      traceId: this.run?.traceId,
+      clientTraceId: this.clientTraceId,
+      buildCurlSnippetsText,
+    });
   }
 
   copyCurlSnippets() {
