@@ -4,6 +4,13 @@ import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { buildIncidentBundleImpl } from './upgrade/upgrade-incident-bundle-builder';
+import { buildAuditCurlByTraceId, buildClientTraceHeaderArg, buildCurlSnippetsText } from './upgrade/upgrade-curl-snippets';
+import { curlSnippetsTextImpl } from './upgrade/upgrade-curl-snippets-actions';
+import { copyCurlSnippetsImpl } from './upgrade/upgrade-curl-snippets-copy-runner';
+import { copyAuditCurlByTraceIdImpl, copyAuditDetailsImpl, copyAuditTraceIdImpl } from './upgrade/upgrade-audit-copy-actions';
+import { copyCurlSnippetsWiringImpl } from './upgrade/upgrade-small-actions';
+import { copyTicketHeaderImpl } from './upgrade/upgrade-preview-text-actions';
+import { copyRunIdImpl, copyTraceIdImpl } from './upgrade/upgrade-simple-copy-runner';
 import type {
   AuditLogItem,
   InstallationStatus,
@@ -489,9 +496,9 @@ export class UpgradePageComponent implements OnInit, OnDestroy {
   }
 
   copyClientTraceHeaderArg() {
-    const t = (this.clientTraceId ?? '').trim();
-    if (!t) return;
-    void this.copyText(`-H 'X-Trace-Id: ${t}'`);
+    const header = buildClientTraceHeaderArg(this.clientTraceId ?? '');
+    if (!header) return;
+    void this.copyText(header);
   }
 
   private ticketHeaderTextUnified(args: {
@@ -513,7 +520,7 @@ export class UpgradePageComponent implements OnInit, OnDestroy {
     const daysOutOfSupportRaw = args.status?.daysOutOfSupport ?? args.observability?.daysOutOfSupport;
     const daysOutOfSupport = daysOutOfSupportRaw === 0 || !!daysOutOfSupportRaw ? String(daysOutOfSupportRaw) : '';
 
-    const headerArg = clientTraceId ? `-H 'X-Trace-Id: ${clientTraceId}'` : '';
+    const headerArg = buildClientTraceHeaderArg(clientTraceId);
 
     const parts: string[] = [];
     parts.push('=== UPGRADE DEBUG HEADER ===');
@@ -540,8 +547,11 @@ export class UpgradePageComponent implements OnInit, OnDestroy {
   }
 
   copyTicketHeader() {
-    if (!this.run) return;
-    void this.copyText(this.ticketHeaderPreview());
+    copyTicketHeaderImpl({
+      hasRun: !!this.run,
+      ticketHeaderPreviewText: () => this.ticketHeaderPreview(),
+      copyText: (text: string) => this.copyText(text),
+    });
   }
 
   private shortTicketHeaderText(args: {
@@ -620,9 +630,7 @@ export class UpgradePageComponent implements OnInit, OnDestroy {
   }
 
   private clientTraceHeaderArg(): string {
-    const t = (this.clientTraceId ?? '').trim();
-    if (!t) return '';
-    return `-H 'X-Trace-Id: ${t}'`;
+    return buildClientTraceHeaderArg(this.clientTraceId ?? '');
   }
 
   private requestOptions(): { headers: HttpHeaders } | undefined {
@@ -1031,73 +1039,62 @@ export class UpgradePageComponent implements OnInit, OnDestroy {
   }
 
   copyRunId() {
-    const id = (this.runId ?? '').trim();
-    if (!id) return;
-    void this.copyText(id);
+    void copyRunIdImpl({
+      runId: this.runId ?? '',
+      copyText: (t: string) => this.copyText(t),
+    });
   }
 
   copyTraceId() {
-    const t = (this.run?.traceId ?? '').trim();
-    if (!t) return;
-    void this.copyText(t);
+    void copyTraceIdImpl({
+      traceId: this.run?.traceId ?? '',
+      copyText: (t: string) => this.copyText(t),
+    });
   }
 
   private curlSnippetsText(): string {
-    const id = (this.runId ?? '').trim();
-    if (!id) return '';
-    const t = (this.run?.traceId ?? '').trim();
-    const clientTrace = (this.clientTraceId ?? '').trim();
-    const headerArg = clientTrace ? ` -H 'X-Trace-Id: ${clientTrace}'` : '';
-
-    const lines: string[] = [];
-    lines.push(`# Run ${id}`);
-    lines.push(`curl -sS http://localhost:5002/api/admin/upgrade-runs/${id}${headerArg}`);
-    lines.push(`curl -sS -X POST http://localhost:5002/api/admin/upgrade-runs/${id}/retry -H 'Content-Type: application/json'${headerArg} -d '{}'`);
-    lines.push(`curl -sS -X POST http://localhost:5002/api/admin/upgrade-runs/${id}/cancel -H 'Content-Type: application/json'${headerArg} -d '{}'`);
-    lines.push('');
-    lines.push('# Status / observability');
-    lines.push(`curl -sS http://localhost:5002/api/admin/installation/status${headerArg}`);
-    lines.push(`curl -sS http://localhost:5002/api/admin/observability${headerArg}`);
-    lines.push('');
-    lines.push('# Queue / recent');
-    lines.push(`curl -sS http://localhost:5002/api/admin/upgrade-runs/queue${headerArg}`);
-    lines.push(`curl -sS "http://localhost:5002/api/admin/upgrade-runs/recent?take=10"${headerArg}`);
-    lines.push(`curl -sS http://localhost:5002/api/admin/upgrade-runs/latest${headerArg}`);
-    lines.push('');
-    lines.push('# Audit');
-    lines.push(`curl -sS "http://localhost:5002/api/admin/audit?take=50&actionContains=upgrade_"${headerArg}`);
-    if (t)
-      lines.push(`curl -sS "http://localhost:5002/api/admin/audit?take=50&traceId=${t}"${headerArg}`);
-
-    return lines.join('\n');
+    return curlSnippetsTextImpl({
+      runId: this.runId,
+      traceId: this.run?.traceId,
+      clientTraceId: this.clientTraceId,
+      buildCurlSnippetsText,
+    });
   }
 
   copyCurlSnippets() {
-    const t = this.curlSnippetsText();
-    if (!t) return;
-    void this.copyText(t);
+    copyCurlSnippetsWiringImpl({
+      buildCurlSnippetsText: () => this.curlSnippetsText(),
+      copyCurlSnippets: async ({ text }: { text: string }) => copyCurlSnippetsImpl({
+        text,
+        copyText: (t: string) => this.copyText(t),
+      }),
+    });
   }
 
   copyAuditTraceId(traceId: string) {
-    const t = (traceId ?? '').trim();
-    if (!t) return;
-    void this.copyText(t);
+    copyAuditTraceIdImpl({
+      traceId,
+      copyText: (t: string) => this.copyText(t),
+    });
   }
 
   copyAuditCurlByTraceId(traceId: string) {
-    const t = (traceId ?? '').trim();
-    if (!t) return;
-    const clientTrace = (this.clientTraceId ?? '').trim();
-    const headerArg = clientTrace ? ` -H 'X-Trace-Id: ${clientTrace}'` : '';
-    const take = this.auditTake || 50;
-    const url = `http://localhost:5002/api/admin/audit?take=${encodeURIComponent(String(take))}&traceId=${encodeURIComponent(t)}`;
-    void this.copyText(`curl -sS "${url}"${headerArg}`);
+    copyAuditCurlByTraceIdImpl({
+      traceId,
+      buildAuditCurlByTraceId: (t: string) => buildAuditCurlByTraceId({
+        take: this.auditTake || 50,
+        traceId: t,
+        clientTraceId: this.clientTraceId ?? '',
+      }),
+      copyText: (t: string) => this.copyText(t),
+    });
   }
 
   copyAuditDetails(detailsJson: string | null) {
-    const t = (detailsJson ?? '').trim();
-    if (!t) return;
-    void this.copyText(t);
+    copyAuditDetailsImpl({
+      detailsJson,
+      copyText: (t: string) => this.copyText(t),
+    });
   }
 
   async copyIncidentBundle() {
