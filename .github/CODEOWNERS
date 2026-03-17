@@ -1,0 +1,14 @@
+# Default code owners
+* @tass500
+
+# Frontend
+/frontend/ @tass500
+
+# Backend
+/backend/ @tass500
+
+# CI / GitHub metadata
+/.github/ @tass500
+
+# Docs
+/docs/ @tass500
