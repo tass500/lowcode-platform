@@ -33,11 +33,13 @@ type WorkflowDefinitionDetailsDto = {
           <button type="button" (click)="applyTemplate('noop')">No-op</button>
           <button type="button" (click)="applyTemplate('delay250')">Delay 250ms</button>
           <button type="button" (click)="applyTemplate('delay3')">3x Delay</button>
+          <button type="button" (click)="applyTemplate('set')">Set (seed output)</button>
           <button type="button" (click)="applyTemplate('require')">Require (guard)</button>
           <button type="button" (click)="applyTemplate('domainEcho')">Domain: echo</button>
           <button type="button" (click)="applyTemplate('domainCreateRecord')">Domain: create record</button>
           <button type="button" (click)="applyTemplate('domainUpdateRecord')">Domain: update record</button>
           <button type="button" (click)="applyTemplate('domainUpsertRecord')">Domain: upsert record</button>
+          <button type="button" (click)="applyTemplate('setAndUpdateById')">Set + updateById (context var)</button>
         </div>
         <div style="margin-top: 6px; color:#444;">These templates only use step types currently supported by the engine: <code>noop</code> and <code>delay</code>.</div>
       </section>
@@ -68,7 +70,19 @@ export class LowCodeWorkflowNewPageComponent {
     definitionJson: new FormControl('{"steps":[{"type":"noop"},{"type":"delay","ms":250}]}' , { nonNullable: true, validators: [Validators.required] }),
   });
 
-  applyTemplate(kind: 'noop' | 'delay250' | 'delay3' | 'require' | 'domainEcho' | 'domainCreateRecord' | 'domainUpdateRecord' | 'domainUpsertRecord'): void {
+  applyTemplate(
+    kind:
+      | 'noop'
+      | 'delay250'
+      | 'delay3'
+      | 'set'
+      | 'require'
+      | 'domainEcho'
+      | 'domainCreateRecord'
+      | 'domainUpdateRecord'
+      | 'domainUpsertRecord'
+      | 'setAndUpdateById'
+  ): void {
     const templates: Record<typeof kind, { name: string; json: string }> = {
       noop: {
         name: 'wf-noop',
@@ -81,6 +95,10 @@ export class LowCodeWorkflowNewPageComponent {
       delay3: {
         name: 'wf-3x-delay',
         json: '{"steps":[{"type":"delay","ms":100},{"type":"delay","ms":200},{"type":"delay","ms":300}]}',
+      },
+      set: {
+        name: 'wf-set-seed',
+        json: '{"steps":[{"type":"set","output":{"recordId":"<RECORD_ID_GUID>","note":"seeded value"}},{"type":"noop"}]}',
       },
       require: {
         name: 'wf-require-guard',
@@ -101,6 +119,10 @@ export class LowCodeWorkflowNewPageComponent {
       domainUpsertRecord: {
         name: 'wf-domain-upsert-record',
         json: '{"steps":[{"type":"domainCommand","command":"entityRecord.upsertByEntityName","entityName":"Company","uniqueKey":"externalId","uniqueValue":"c-1","data":{"externalId":"c-1","name":"Acme Upsert","status":"active"}}]}',
+      },
+      setAndUpdateById: {
+        name: 'wf-set-update-by-id',
+        json: '{"steps":[{"type":"set","output":{"recordId":"<RECORD_ID_GUID>"}},{"type":"domainCommand","command":"entityRecord.updateById","recordId":"${000.recordId}","data":{"name":"Acme Updated","status":"inactive"}}]}',
       },
     };
 
