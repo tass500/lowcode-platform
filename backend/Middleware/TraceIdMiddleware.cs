@@ -6,10 +6,12 @@ public sealed class TraceIdMiddleware
     public const string TraceIdHeaderName = "X-Trace-Id";
 
     private readonly RequestDelegate _next;
+    private readonly ILogger<TraceIdMiddleware> _logger;
 
-    public TraceIdMiddleware(RequestDelegate next)
+    public TraceIdMiddleware(RequestDelegate next, ILogger<TraceIdMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
 
     public async Task Invoke(HttpContext ctx)
@@ -21,7 +23,10 @@ public sealed class TraceIdMiddleware
         ctx.Items[TraceIdItemKey] = traceId;
         ctx.Response.Headers[TraceIdHeaderName] = traceId;
 
-        await _next(ctx);
+        using (_logger.BeginScope(new Dictionary<string, object?> { ["TraceId"] = traceId }))
+        {
+            await _next(ctx);
+        }
     }
 
     public static string GetTraceId(HttpContext ctx)

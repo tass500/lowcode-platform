@@ -3,6 +3,7 @@ using LowCodePlatform.Backend.Data;
 using LowCodePlatform.Backend.Middleware;
 using LowCodePlatform.Backend.Models;
 using LowCodePlatform.Backend.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,7 @@ namespace LowCodePlatform.Backend.Controllers;
 [ApiController]
 [Route("api/admin/observability")]
 [NoStoreNoCache]
+[Authorize(Policy = "admin")]
 public sealed class AdminObservabilityController : ControllerBase
 {
     private readonly PlatformDbContext _db;

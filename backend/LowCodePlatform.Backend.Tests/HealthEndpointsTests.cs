@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -11,21 +12,22 @@ public sealed class HealthEndpointsTests
 {
     private sealed class TestAppFactory : WebApplicationFactory<Program>
     {
-        protected override IHost CreateHost(IHostBuilder builder)
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-            builder.UseEnvironment("Development");
+            builder.UseEnvironment("Testing");
 
             builder.ConfigureAppConfiguration(cfg =>
             {
-                var dbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-{Guid.NewGuid():N}.db");
+                var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+                var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-{Guid.NewGuid():N}.db");
 
                 cfg.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["ConnectionStrings:Platform"] = $"Data Source={dbPath}",
+                    ["ConnectionStrings:Management"] = $"Data Source={mgmtDbPath}",
+                    ["Tenancy:DefaultTenantSlug"] = "default",
+                    ["Tenancy:DefaultTenantConnectionString"] = $"Data Source={tenantDbPath}",
                 });
             });
-
-            return base.CreateHost(builder);
         }
     }
 

@@ -1,6 +1,7 @@
 using LowCodePlatform.Backend.Contracts;
 using LowCodePlatform.Backend.Middleware;
 using LowCodePlatform.Backend.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,7 @@ namespace LowCodePlatform.Backend.Controllers;
 [ApiController]
 [Route("api/admin/audit")]
 [NoStoreNoCache]
+[Authorize(Policy = "admin")]
 public sealed class AdminAuditController : ControllerBase
 {
     private readonly Data.PlatformDbContext _db;
