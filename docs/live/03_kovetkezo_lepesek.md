@@ -41,6 +41,15 @@
 ## Következő konkrét lépések (ajánlott)
 - ✅ Kész: Batch C sweep: Start/Retry/Cancel/DevFail flow-k stale state resetjeinek egységesítése (loading/error/info).
 - ✅ Kész: Batch C sweep: audit export / incident bundle UI state (loading/error) konzisztencia ellenőrzés.
+- Következő (arch/infra): home-lab “cloud-like” telepítés előkészítése Raspberry Pi 5-re.
+  - k3s single-node + Helm (GitOps-lite; később opcionális ArgoCD/Flux)
+  - multi-arch container image build (linux/arm64 elsődlegesen)
+  - upgrade stratégia: immutable image tag + Helm upgrade/rollback; Upgrade UI monitor/diagnosztika szerepben
+  - minimal ops baseline: ingress + (szükség esetén) TLS + DB backup (CronJob) + alap monitoring/log
+- Következő (backend): DB-agnosztikus irány enterprise felé.
+  - dev környezetben jelenleg: SQLite (ha így van bekötve)
+  - cél provider: PostgreSQL + SQL Server
+  - megoldás: provider-specifikus EF Core migrations (külön migrations assembly Postgres/SQL Server)
 - Refaktor (WIP): upgrade-page további bontása kisebb helper/service egységekre (no behavior change).
   - ✅ Kész: type definíciók kiszervezése (`pages/upgrade/upgrade-types.ts`).
   - ✅ Kész: export/bundle builder-ek első szelete kiszervezve (`pages/upgrade/upgrade-export-builders.ts`).
@@ -133,7 +142,705 @@
   - ✅ Kész: time utils mini wiring delegálók (parseDateUtc/serverNowMs/serverNowDate) konszolidálva helperbe (`pages/upgrade/upgrade-component-wiring-utils-actions.ts`), no behavior change.
   - ✅ Kész: audit export run (copy/download) wiring kiszervezve helperbe (`pages/upgrade/upgrade-audit-export-runner.ts`), no behavior change.
   - ✅ Kész: audit load (seq/watchdog/timeout/state) wiring kiszervezve helperbe (`pages/upgrade/upgrade-audit-load-runner.ts`), no behavior change.
+---
 
+# Iterációs roadmap (látható haladás)
+
+## Cél
+Az iterációk célja, hogy **minden kör végén kipróbálható (demo-zható) funkció** legyen, miközben a platform “enterprise baseline” (hibakezelés, trace, tenancy, health, security) **folyamatosan erősödik**.
+
+## Működési mód
+- **WIP=1**: egyszerre egy aktív iteráció.
+- Minden iteráció végén:
+  - **zöld tesztek**
+  - **demo lépések** (curl / Swagger / UI)
+  - **DoD checklist** kipipálva
+
+## Frontend stratégia (low-code demó, builder nélkül)
+- Frontendet építünk már most (auth + tenant switch + workflow CRUD + run monitor + entity defs).
+- Vizuális workflow: először read-only **viewer**.
+- Drag&drop szerkesztő csak később, amikor a step modell + validációk stabilak (elkerülendő a korai UI lock-in-t).
+
+## Guardrail: párhuzamos munkaszálak (WIP=1 megtartása)
+- Az ops/admin jellegű **upgrade-page** karbantartás külön “track”, jelenleg **parkoltatva**.
+- Csak bugfix/kompatibilitási javítás mehet bele, amíg a fő fókusz a low-code frontend demó.
+
+## Credit-aware iteráció sizing (költséghatékony fejlesztés)
+- A fejlesztési mód figyelembe veszi, hogy **1 kérdés–válasz = 1 credit**.
+- Ennek megfelelően az iterációk célja, hogy **egy körben** (minél kevesebb chat-fordulóval) **a lehető legtöbb, még biztonságosan vállalható** feladat elkészüljön.
+- Biztonsági korlátok (ne csomagoljuk össze ugyanabba a körbe):
+  - **auth/security** változtatás + **adatmodell törő** változás + **nagy refaktor** egyszerre
+  - több „ismeretlen kockázatú” függőség (külső IdP, Kubernetes, storage) egy lépésben
+- Vállalási szabály (enterprise): csak olyan csomagot teszünk egy iterációba, ami a végén:
+  - **futtatható**
+  - **zöld tesztekkel** zár
+  - **demo-lépésekkel** dokumentált
+  - és ha közben kockázat nő, az iteráció **szétvágható** (de alapértelmezés a batching).
+
+## Enterprise baseline (folyamatos)
+- Standard JSON error response ([ErrorResponse](cci:2://file:///home/zoli/lowcode-platform/backend/Contracts/ErrorResponse.cs:4:0-10:2)) + globális exception middleware.
+- Trace ID propagáció (`X-Trace-Id`) + log scope.
+- K8s kompatibilis health endpointok (`/health/live`, `/health/ready`).
+- Multi-tenant alapok (tenant feloldás + per-tenant DB + migrations).
+- Admin endpoint védelem (minimum: API key), később RBAC.
+
+## Iterációk
+
+### Iteráció 0 — Platform alapok (kész)
+**Deliverables**
+- Egységes hibakezelés + traceId.
+- Health endpointok.
+- Tenant DB migrációk + admin migráció endpoint.
+- Tenant DB secretRef feloldás (dev config resolver).
+- Admin API key védelem + access log.
+- Tenant provisioning endpoint (create tenant + azonnali migráció).
+
+**Demo**
+- `GET /health/live`
+- `GET /health/ready`
+- `POST /api/admin/tenants` (tenant provisioning + azonnali migráció)
+- `POST /api/admin/tenants/migrate`
+
+### Iteráció 1 — “Workflow minimum” (látható low-code első szelet)
+**Cél**: legyen minimális workflow CRUD, hogy már “van mit építeni” érzés legyen.
+
+**Deliverables (backend)**
+- `WorkflowDefinition` entitás + migrations (tenant DB-ben).
+- API:
+  - `POST /api/workflows` (create)
+  - `GET /api/workflows` (list)
+  - `GET /api/workflows/{id}` (details)
+  - `PUT /api/workflows/{id}` (update)
+  - `DELETE /api/workflows/{id}` (delete)
+
+**Definition of Done**
+- Input validáció + standard error response.
+- Audit log: create/update/delete események.
+- Multi-tenant izoláció (minden tenant a saját DB-jében).
+- Legalább 2-3 integrációs teszt (CRUD happy path + tenant izoláció).
+
+**Demo**
+- ✅ Kész: backend CRUD + migrations + integrációs tesztek.
+- Swaggerből vagy curl-lel: workflow létrehozás, listázás, update.
+
+```bash
+# Tenant provisioning (csak egyszer / ha még nincs):
+curl -sS -X POST http://localhost:5000/api/admin/tenants \
+  -H 'Content-Type: application/json' \
+  -H 'X-Admin-Api-Key: <ADMIN_API_KEY>' \
+  -d '{"slug":"t1","connectionStringSecretRef":"t1"}'
+
+# Tenant secret mapping (dev): appsettings.Development.json
+# Tenancy:Secrets:t1 = "Data Source=tenant-t1.db"
+
+# Workflow create (tenant host alapján):
+curl -sS -X POST http://t1.localhost:5000/api/workflows \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"wf1","definitionJson":"{\\"steps\\":[]}"}'
+
+# Workflow list:
+curl -sS http://t1.localhost:5000/api/workflows
+
+# Workflow get:
+curl -sS http://t1.localhost:5000/api/workflows/<WORKFLOW_ID>
+
+# Workflow update:
+curl -sS -X PUT http://t1.localhost:5000/api/workflows/<WORKFLOW_ID> \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"wf1-updated","definitionJson":"{\\"steps\\":[{\\"type\\":\\"noop\\"}]}"}'
+
+# Workflow delete:
+curl -sS -X DELETE http://t1.localhost:5000/api/workflows/<WORKFLOW_ID>
+```
+
+### Iteráció 19 — “Run details trace timeline + deep-link”
+**Cél**: a futás részleteinek (run details) valódi trace nézetté alakítása: lépések szűrése, config megjelenítés, gyors navigáció.
+
+**Backend**
+- Run details DTO bővült: `WorkflowStepRunDto.StepConfigJson` visszaadása.
+
+**Frontend**
+- Run details oldal (`/lowcode/runs/:runId`):
+  - step lista szűrhető `state` / `type` / `search` alapján
+  - state színezés
+  - step config megnyitható (read-only textarea, pretty-print JSON)
+- Workflow details `Runs` tab:
+  - `Open latest` link a legfrissebb runra
+
+**Demo (frontend)**
+
+```bash
+# Backend:
+dotnet run --project backend/LowCodePlatform.Backend.csproj
+
+# Frontend:
+npm start --prefix frontend
+
+# UI flow:
+# 1) http://localhost:4200/lowcode/workflows -> Open egy workflowt
+# 2) Runs tab -> Open latest
+# 3) Run details -> filter + Config kibontás
+```
+
+### Iteráció 20 — “Domain commands v2: entityRecord.updateById”
+**Cél**: domainCommand képességek bővítése egy alap (de hasznos) módosító művelettel: meglévő entity record frissítése azonosító alapján.
+
+**Backend**
+- Új domain command: `entityRecord.updateById`
+  - Kötelező: `recordId` (GUID string)
+  - Opcionális: `data` (JSON object vagy string; ha nincs megadva, `{}` lesz)
+  - Művelet: a rekord `DataJson` mezője felülíródik, `UpdatedAtUtc` frissül
+- Új hibakódok:
+  - `entity_record_id_missing`
+  - `entity_record_id_invalid`
+  - `entity_record_not_found`
+  - `entity_record_data_invalid`
+- Új integrációs teszt: create + update flow
+
+**Frontend**
+- Új “executable template” a workflow create oldalon:
+  - `Domain: update record` (a `recordId` helyére GUID-ot kell írni)
+
+**Példa definition JSON**
+
+```json
+{
+  "steps": [
+    {
+      "type": "domainCommand",
+      "command": "entityRecord.updateById",
+      "recordId": "<RECORD_ID_GUID>",
+      "data": {
+        "name": "Acme Updated",
+        "status": "inactive"
+      }
+    }
+  ]
+}
+```
+
+### Iteráció 18 — “domainCommand step scaffold (echo + entityRecord.createByEntityName)”
+**Cél**: új workflow step típus, ami domain parancsokat hív. Ez a híd a későbbi modulok felé (DDD jellegű parancsok).
+
+**Backend**
+- Új step típus: `domainCommand`
+- `command` támogatás:
+  - `echo` (demó; no-op)
+  - `entityRecord.createByEntityName` (entity name alapján entity record létrehozása)
+
+**Példa definition JSON**
+
+```json
+{
+  "steps": [
+    {
+      "type": "domainCommand",
+      "command": "entityRecord.createByEntityName",
+      "entityName": "Company",
+      "data": { "name": "Acme Ltd", "status": "active" }
+    }
+  ]
+}
+```
+
+**Frontend**
+- Új workflow template-ek a `/lowcode/workflows/new` oldalon:
+  - `Domain: echo`
+  - `Domain: create record`
+
+**Demo (end-to-end)**
+
+```bash
+# Backend:
+dotnet run --project backend/LowCodePlatform.Backend.csproj
+
+# Frontend:
+npm start --prefix frontend
+
+# UI flow:
+# 1) http://localhost:4200/lowcode/auth
+# 2) http://localhost:4200/lowcode/workflows/new -> Domain: create record -> Create
+# 3) Workflow details -> Start run -> Runs tabon succeeded
+# 4) http://localhost:4200/lowcode/entities -> megjelenik a Company entity (ha korábban nem volt)
+# 5) Company -> Records -> látszik a létrejött record
+```
+
+### Iteráció 17 — “Run trace UX + executable workflow templates”
+**Cél**: futások áttekintése (trace, error) és kényelmes demó workflowk egy kattintásból.
+
+**Deliverables**
+- Frontend:
+  - Workflow details `Runs` tab bővítés:
+    - traceId + error mezők megjelenítése
+    - futás állapot színezése
+    - polling amíg van `running` run (2s)
+    - `Start run` után automatikus átállás `Runs` tabra
+  - Workflow létrehozásnál “Templates (executable)” gombok (`noop`, `delay`).
+
+**Demo (frontend)**
+
+```bash
+# Backend:
+dotnet run --project backend/LowCodePlatform.Backend.csproj
+
+# Frontend:
+npm start --prefix frontend
+
+# UI flow:
+# 1) http://localhost:4200/lowcode/auth  (tenant + token)
+# 2) http://localhost:4200/lowcode/workflows/new
+#    - válassz egy template-et (pl. Delay 250ms)
+#    - Create
+# 3) Workflow details -> Start run
+# 4) Automatikusan átvált Runs tabra
+#    - traceId + error látszik
+#    - futás alatt polling (2s)
+```
+
+### Iteráció 16 — “Entity records dedicated page”
+**Cél**: runtime entity records külön oldalon (áttekinthető lista + create/update/delete), nem csak az entity details alján.
+
+**Deliverables**
+- Frontend:
+  - `GET /lowcode/entities/:id/records` oldal records listával és JSON szerkesztéssel.
+  - Link az entity details oldalról a records oldalra.
+- Backend: nincs új endpoint (a meglévő `/api/entities/{entityId}/records` CRUD-ra épít).
+
+**Demo (frontend)**
+
+```bash
+# Backend:
+dotnet run --project backend/LowCodePlatform.Backend.csproj
+
+# Frontend:
+npm start --prefix frontend
+
+# UI flow:
+# 1) http://localhost:4200/lowcode/auth  (tenant + token)
+# 2) http://localhost:4200/lowcode/entities -> Open
+# 3) Entity details -> Records link
+# 4) Create record + edit/save/delete
+```
+
+### Iteráció 15 — “Tenant UX v1 (Admin / Tenants)”
+**Cél**: demózható tenant provisioning és tenant adatbázis migráció UI-ból.
+
+**Deliverables**
+- Backend:
+  - `GET /api/admin/tenants` (lista)
+  - `POST /api/admin/tenants` (create + migrate)
+  - `POST /api/admin/tenants/migrate` (migrate all)
+- Frontend:
+  - `Admin / Tenants` oldal: lista + create + migrate.
+
+**Demo (frontend)**
+
+```bash
+# Backend:
+dotnet run --project backend/LowCodePlatform.Backend.csproj
+
+# Frontend:
+npm start --prefix frontend
+
+# UI flow:
+# 1) http://localhost:4200/lowcode/auth
+#    - Roles: admin
+#    - Mint dev token
+# 2) http://localhost:4200/lowcode/admin/tenants
+#    - Refresh
+#    - Create tenant (slug + secretRef vagy connectionString)
+#    - Migrate all tenant DBs
+```
+
+### Iteráció 14 — “Workflow run history UI”
+**Cél**: workflow details oldalon látszódjanak a korábbi futások (run history), és egy kattintással megnyitható legyen a run details.
+
+**Deliverables**
+- Backend: `GET /api/workflows/{workflowDefinitionId}/runs` (lista).
+- Frontend: Workflow details oldalon `Runs` tab (lista + link `run details` oldalra).
+
+**Demo (frontend)**
+
+```bash
+# Backend:
+dotnet run --project backend/LowCodePlatform.Backend.csproj
+
+# Frontend:
+npm start --prefix frontend
+
+# UI flow:
+# 1) http://localhost:4200/lowcode/auth  (tenant + token)
+# 2) http://localhost:4200/lowcode/workflows -> Open
+# 3) Start run (hogy legyen futás)
+# 4) Workflow details -> Runs tab
+# 5) Open egy run-t -> run details
+```
+
+### Iteráció 13 — “Runtime entity records (Vendor instances)”
+**Cél**: ne csak definíciókat lehessen kezelni, hanem tényleges entitás példányokat (adat rekordok) is.
+
+**Deliverables**
+- Backend: `EntityRecord` tárolás + CRUD endpointok `DataJson` payload-dal.
+- Frontend: Entity details oldalon records lista + JSON szerkesztés + create/update/delete.
+
+**Demo (frontend)**
+
+```bash
+# Backend:
+dotnet run --project backend/LowCodePlatform.Backend.csproj
+
+# Frontend:
+npm start --prefix frontend
+
+# UI flow:
+# 1) http://localhost:4200/lowcode/auth  (tenant + token)
+# 2) http://localhost:4200/lowcode/entities -> Open (pl. Vendor)
+# 3) Records szekció:
+#    - New record JSON -> Add record
+#    - record sorban JSON edit -> Save
+#    - Delete
+```
+
+### Iteráció 2 — “Workflow futtatás minimum”
+**Cél**: egy workflow példány futtatható legyen (engine skeleton), hogy látszódjon a runtime.
+
+**Deliverables**
+- `WorkflowRun` + `WorkflowStepRun` táblák.
+- API:
+  - `POST /api/workflows/{id}/runs` (start)
+  - `GET /api/workflows/runs/{runId}` (status)
+- Minimális engine: 1–2 step típus (pl. `noop`, `delay`, `http-request` stub).
+
+**DoD**
+- Idempotencia (pl. client request id opcionális) vagy legalább “dupla start” kezelés.
+- Observability: run state lekérdezhető, auditált.
+
+**Demo**
+- ✅ Kész: run táblák + start/status endpointok + minimál engine (`noop`, `delay`) + integrációs teszt.
+
+```bash
+# Workflow create (példa definíció: noop + delay):
+WF_ID=$(curl -sS -X POST http://t1.localhost:5000/api/workflows \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"wf-run-demo","definitionJson":"{\\"steps\\":[{\\"type\\":\\"noop\\"},{\\"type\\":\\"delay\\",\\"ms\\":50}]}"}' \
+  | sed -n 's/.*"workflowDefinitionId"\s*:\s*"\([^"]*\)".*/\1/p')
+
+echo "WF_ID=$WF_ID"
+
+# Run start:
+RUN_ID=$(curl -sS -X POST http://t1.localhost:5000/api/workflows/$WF_ID/runs \
+  | sed -n 's/.*"workflowRunId"\s*:\s*"\([^"]*\)".*/\1/p')
+
+echo "RUN_ID=$RUN_ID"
+
+# Run status/details:
+curl -sS http://t1.localhost:5000/api/workflows/runs/$RUN_ID
+```
+
+### Iteráció 3 — “Data model minimum”
+**Cél**: per-tenant adatmodell definíció és első CRUD API generálás alapja.
+
+**Deliverables**
+- `EntityDefinition`/`FieldDefinition` (tenant DB-ben) + minimál CRUD.
+- Validációs szabályok (field name, type, required, maxLength).
+
+**Demo**
+- ✅ Kész: entitás + mező definíciók tenant DB-ben (migrations) + CRUD API + integrációs tesztek + tenant izoláció.
+
+```bash
+# Entity create:
+ENTITY_ID=$(curl -sS -X POST http://t1.localhost:5000/api/entities \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Customer"}' \
+  | sed -n 's/.*"entityDefinitionId"\s*:\s*"\([^"]*\)".*/\1/p')
+
+echo "ENTITY_ID=$ENTITY_ID"
+
+# Entity list:
+curl -sS http://t1.localhost:5000/api/entities
+
+# Entity get:
+curl -sS http://t1.localhost:5000/api/entities/$ENTITY_ID
+
+# Field create:
+FIELD_ID=$(curl -sS -X POST http://t1.localhost:5000/api/entities/$ENTITY_ID/fields \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"email","fieldType":"string","isRequired":true,"maxLength":320}' \
+  | sed -n 's/.*"fieldDefinitionId"\s*:\s*"\([^"]*\)".*/\1/p')
+
+echo "FIELD_ID=$FIELD_ID"
+
+# Field update:
+curl -sS -X PUT http://t1.localhost:5000/api/entities/$ENTITY_ID/fields/$FIELD_ID \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"email","fieldType":"string","isRequired":true,"maxLength":512}'
+
+# Field delete:
+curl -sS -X DELETE http://t1.localhost:5000/api/entities/$ENTITY_ID/fields/$FIELD_ID
+
+# Entity delete:
+curl -sS -X DELETE http://t1.localhost:5000/api/entities/$ENTITY_ID
+```
+
+### Iteráció 4 — “Auth/RBAC baseline”
+**Cél**: admin + runtime végpontokhoz jogosultsági alapok.
+
+**Deliverables**
+- API key helyett (vagy mellé) JWT skeleton.
+- Role-based guard (admin vs. tenant user).
+
+**Demo**
+- ✅ Kész: JWT bearer auth + `tenant_user` policy a tenant runtime endpointokra.
+- ✅ Kész: Dev/Testing token-mint endpoint (`POST /api/auth/dev-token`) demohoz + integrációs tesztekhez.
+
+```bash
+# Dev/Testing token mint (12h, csak dev/testing):
+TOKEN=$(curl -sS -X POST http://localhost:5000/api/auth/dev-token \
+  -H 'Content-Type: application/json' \
+  -d '{"subject":"demo-user","tenantSlug":"t1","roles":[]}' \
+  | sed -n 's/.*"accessToken"\s*:\s*"\([^"]*\)".*/\1/p')
+
+echo "TOKEN=${TOKEN:0:20}..."
+
+# Authenticated call (példa: workflow list):
+curl -sS http://t1.localhost:5000/api/workflows \
+  -H "Authorization: Bearer $TOKEN"
+
+# Entity create (auth required):
+curl -sS -X POST http://t1.localhost:5000/api/entities \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"name":"Customer"}'
+```
+
+### Iteráció 5 — “Auth hardening + tenant izoláció”
+**Cél**: multi-tenant biztonság erősítése: token ne legyen újrahasznosítható más tenant ellen, és admin auth legyen kompatibilis átmenettel.
+
+**Deliverables**
+- Tenant claim enforcement: ha a token tartalmaz `tenant` claim-et, akkor egyeznie kell a feloldott tenanttal (különben 403).
+- Admin auth hardening: `/api/admin/*` elérhető **JWT `admin` role**-lal vagy meglévő `X-Admin-Api-Key`-vel.
+- Swagger: Bearer auth scheme a kényelmes manuális demóhoz.
+
+**Demo**
+
+```bash
+# 1) Token t1 tenant claim-mel:
+T1_TOKEN=$(curl -sS -X POST http://localhost:5000/api/auth/dev-token \
+  -H 'Content-Type: application/json' \
+  -d '{"subject":"demo-user","tenantSlug":"t1","roles":[]}' \
+  | sed -n 's/.*"accessToken"\s*:\s*"\([^"]*\)".*/\1/p')
+
+# 2) Ugyanazzal a tokennel t2 tenant ellen hívás => 403 tenant_mismatch:
+curl -sS -i http://t2.localhost:5000/api/workflows \
+  -H "Authorization: Bearer $T1_TOKEN"
+
+# 3) Admin token (role=admin), amivel /api/admin/* mehet API key nélkül (dev/testing):
+ADMIN_TOKEN=$(curl -sS -X POST http://localhost:5000/api/auth/dev-token \
+  -H 'Content-Type: application/json' \
+  -d '{"subject":"demo-admin","tenantSlug":"t1","roles":["admin"]}' \
+  | sed -n 's/.*"accessToken"\s*:\s*"\([^"]*\)".*/\1/p')
+
+# Példa admin endpoint (ha van ilyen):
+curl -sS -i http://localhost:5000/api/admin/tenants \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+### Iteráció 6 — “Tenant claim required + admin policy”
+**Cél**: runtime tenant végpontoknál a tenant scope legyen kötelező, az admin végpontok pedig RBAC policy alapján legyenek védve.
+
+**Deliverables**
+- `tenant_user` policy: `tenant` claim **kötelező** (tenant runtime API-k csak tenant-scoped tokenekkel hívhatók).
+- `/api/admin/*` controllerek: `[Authorize(Policy = "admin")]`.
+
+**Demo**
+
+```bash
+# 1) Token tenant claim nélkül => tenant runtime endpoint 403 (tenant_user policy miatt):
+NO_TENANT_TOKEN=$(curl -sS -X POST http://localhost:5000/api/auth/dev-token \
+  -H 'Content-Type: application/json' \
+  -d '{"subject":"demo-user","tenantSlug":null,"roles":[]}' \
+  | sed -n 's/.*"accessToken"\s*:\s*"\([^"]*\)".*/\1/p')
+
+curl -sS -i http://t1.localhost:5000/api/workflows \
+  -H "Authorization: Bearer $NO_TENANT_TOKEN"
+
+# 2) Admin endpoint: admin role token kell (vagy X-Admin-Api-Key), pl. tenant provisioning:
+ADMIN_TOKEN=$(curl -sS -X POST http://localhost:5000/api/auth/dev-token \
+  -H 'Content-Type: application/json' \
+  -d '{"subject":"demo-admin","tenantSlug":"t1","roles":["admin"]}' \
+  | sed -n 's/.*"accessToken"\s*:\s*"\([^"]*\)".*/\1/p')
+
+curl -sS -i http://localhost:5000/api/admin/tenants \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"slug":"t3","connectionStringSecretRef":"t3"}'
+```
+
+### Iteráció 7 — “Admin fallback switch + Swagger tenancy UX”
+**Cél**: admin auth kivezethető legyen API key-ről JWT-re, és a Swaggerben egyértelmű legyen a tenant routing.
+
+**Deliverables**
+- `Admin:AllowApiKeyFallback` config:
+  - ha `false`, akkor `/api/admin/*` csak **admin JWT**-vel (API key fallback letiltva).
+  - ha nincs megadva, akkor **Development/Testing** alatt engedett, más környezetben ajánlott tiltani.
+- Swagger (Development): minden műveletnél megjelenik az opcionális `X-Tenant-Id` header, és leírás jelzi, hogy prodban host-based tenancy az ajánlott.
+
+**Demo**
+
+```bash
+# 1) Swagger tenancy: nyisd meg tenant hosttal
+xdg-open http://t1.localhost:5002/swagger
+
+# 2) Admin API key fallback tiltása (példa env var):
+export Admin__AllowApiKeyFallback=false
+
+# 3) Admin tokennel hívás (role=admin):
+ADMIN_TOKEN=$(curl -sS -X POST http://localhost:5002/api/auth/dev-token \
+  -H 'Content-Type: application/json' \
+  -d '{"subject":"demo-admin","tenantSlug":"t1","roles":["admin"]}' \
+  | sed -n 's/.*"accessToken"\s*:\s*"\([^"]*\)".*/\1/p')
+
+curl -sS -i http://localhost:5002/api/admin/tenants \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+### Iteráció 8 — “Low-code frontend shell”
+**Cél**: legyen egy egyszerű, de stabil frontend váz, amin keresztül a low-code motor demózható.
+
+**Deliverables**
+- Navigáció (upgrade + low-code oldalak) + alap layout.
+- Tenant választó (dev: `X-Tenant-Id` headerrel) + token tárolás.
+- Dev-token UI (`/api/auth/dev-token`) + “Paste token” lehetőség.
+- Workflows list UI (read-only list) a backend `GET /api/workflows` alapján.
+
+**Demo (frontend)**
+
+```bash
+# 1) Backend indítás (külön terminál):
+dotnet run --project backend/LowCodePlatform.Backend.csproj
+
+# 2) Frontend indítás (külön terminál):
+npm start --prefix frontend
+
+# 3) Nyisd meg:
+# - http://localhost:4200/lowcode/auth
+# - add meg a tenant slugot (pl. t1)
+# - Mint dev token (vagy Paste token)
+#
+# 4) Ezután a listák:
+# - http://localhost:4200/lowcode/workflows
+# - http://localhost:4200/lowcode/entities
+```
+
+### Iteráció 9 — “Workflows CRUD UI + JSON editor”
+**Cél**: workflow létrehozás/szerkesztés JSON definícióval (vizuális builder nélkül).
+
+**Deliverables**
+- Workflows: create/update/delete UI.
+- Details oldal + JSON editor + alap validáció/hibák.
+
+**Demo (frontend)**
+
+```bash
+# Backend:
+dotnet run --project backend/LowCodePlatform.Backend.csproj
+
+# Frontend:
+npm start --prefix frontend
+
+# UI flow:
+# 1) http://localhost:4200/lowcode/auth  (tenant + token)
+# 2) http://localhost:4200/lowcode/workflows -> New
+# 3) Add name + definition JSON -> Create
+# 4) Workflow details oldalon:
+#    - módosíts name/definitionJson -> Save
+#    - Start run (Iteráció 10)
+#    - Delete (törlés után visszadob a listára)
+```
+
+### Iteráció 10 — “Workflow runs UI (start + monitor)”
+**Cél**: látszódjon a motor futása a frontendben.
+
+**Deliverables**
+- Run indítás workflow detailsből.
+- Run details + step state lista + traceId.
+- Polling: csak `pending/running` állapotban.
+
+**Demo (frontend)**
+
+```bash
+# Backend:
+dotnet run --project backend/LowCodePlatform.Backend.csproj
+
+# Frontend:
+npm start --prefix frontend
+
+# UI flow:
+# 1) http://localhost:4200/lowcode/auth  (tenant + token)
+# 2) http://localhost:4200/lowcode/workflows  -> Open
+# 3) Workflow details oldalon: Start run
+# 4) Átirányít a run details oldalra (polling), ahol látszik:
+#    - state
+#    - traceId
+#    - steps (pending/running/succeeded/failed)
+```
+
+### Iteráció 11 — “Entity definitions UI (Vendor domain slice)”
+**Cél**: DDD-szerű slice demó: `Vendor` entitás és mezők kezelése.
+
+**Deliverables**
+- EntityDefinition + FieldDefinition CRUD UI.
+- Demo entity: `Vendor` (name/taxNumber/riskScore/status).
+
+**Demo (frontend)**
+
+```bash
+# Backend:
+dotnet run --project backend/LowCodePlatform.Backend.csproj
+
+# Frontend:
+npm start --prefix frontend
+
+# UI flow:
+# 1) http://localhost:4200/lowcode/auth  (tenant + token)
+# 2) http://localhost:4200/lowcode/entities -> New
+# 3) Create: name=Vendor
+# 4) Entity details oldalon add field-ek:
+#    - name: string required maxLength 200
+#    - taxNumber: string required maxLength 64
+#    - riskScore: number optional
+#    - status: string required maxLength 32
+# 5) Field sorokban Save/Delete műveletek
+```
+
+### Iteráció 12 — “Workflow viewer (read-only vizualizáció)”
+**Cél**: wow faktor vizuális megjelenítéssel, de még szerkesztés nélkül.
+
+**Deliverables**
+- Read-only workflow viewer (steps → graph/layout minimal).
+- JSON és viewer nézet közti váltás.
+
+**Demo (frontend)**
+
+```bash
+# Backend:
+dotnet run --project backend/LowCodePlatform.Backend.csproj
+
+# Frontend:
+npm start --prefix frontend
+
+# UI flow:
+# 1) http://localhost:4200/lowcode/auth  (tenant + token)
+# 2) http://localhost:4200/lowcode/workflows -> New (ha nincs még workflow)
+# 3) Workflow details oldalon:
+#    - Viewer: steps vizuális (kártyák + nyilak)
+#    - JSON: nyers definitionJson szerkeszthető
+```
+
+---
+
+## Következő aktív iteráció
+- **Iteráció 8 — Low-code frontend shell**
 ## Rövid smoke checklist (ha valami furcsaság van)
 - **Swagger**
   - Schemas/Models alatt minden admin DTO-ban látszik-e `serverTimeUtc` + `items`.

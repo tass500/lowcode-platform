@@ -41,6 +41,7 @@ Az alábbi policy-k **normatívak**; fejlesztésnél ezekhez kell igazodni. A r�
 | Idempotencia + retry policy | D025 | Idempotency-key és retry/backoff szabályok: 4xx vs 5xx osztályozás, végállapotok, deduplikáció | `00_vizio.md`, `04_fejlesztesi_playbook.md` |
 | Audit + retention minimum | D026 | Kötelező audit események + adat-életciklus/archív invariánsok (read-only, immutability) | `00_vizio.md`, `04_fejlesztesi_playbook.md` |
 | Definition versioning + breaking change policy | D027 | Screen/workflow/datasource definíciók semver + compat szabályok; deprecate/publish/promote rend | `00_vizio.md`, `05_roadmap_greenfield_enterprise.md` |
+| DB schema evolution (migrations + tenant migrator) | D028 | Core séma verziózott migrációkkal; tenant DB-k migrációja kontrolláltan, monitorozható módon | `00_vizio.md` |
 
 ## 1) Döntés sablon
 
@@ -915,6 +916,40 @@ A screen/workflow/datasource definíciók a platform “futtatható szerződése
   - Promote/rollback és marketplace kompatibilitás kezelhető.
 - Negatív / trade-off:
   - Verzió és compat check implementációs overhead.
+
+---
+
+## D028 - DB schema evolution: EF migrations + tenant migrator + teszt guardrail
+
+- Dátum: 2026-03-18
+- Státusz: Accepted
+- Érintett terület: DB, operations, multi-tenant, upgrade
+
+### Kontextus
+
+DB per tenant modellnél (D002) a séma evolúciója csak akkor tartható enterprise szinten, ha a változások verziózottak, determinisztikusan alkalmazhatók és monitorozhatók. A “schema-first” elv (D023) a definíciók és integrációs kontraktok mellett megköveteli, hogy a perzisztens adat is kontrollált migrációs folyamatban változzon, különben schema drift és támogatási kockázat halmozódik.
+
+### Döntés
+
+- A core perzisztens séma változásai verziózott migrációk formájában kerülnek a repo-ba.
+- A DB upgrade során:
+  - a control plane (management DB) migrációja fut le,
+  - majd tenant DB-k migrációja kontrolláltan, monitorozható módon (tenant migrator futtatás).
+- A migrációk futtatása pipeline-olható és reprodukálható (CI/CD és üzemeltetés).
+- Tesztekben az automatikus startup migráció/seed nem fut (determinista teszt környezet), a teszt explicit kontrollálja az adatbázis életciklust.
+
+### Következmények
+
+- Pozitív:
+  - Determinisztikus upgrade és rollback tervezhetőség (D009/D011).
+  - Kevesebb schema drift és support kockázat DB per tenant mellett.
+  - Reprodukálható CI/CD és üzemeltetési folyamat.
+- Negatív / trade-off:
+  - Migrations kezelés és tenant-szintű futtatás extra üzemeltetési munka.
+  - DB vendor-specifikus eltérések kezelése külön szabványt igényelhet.
+- Nyitott kérdések / későbbi feladat:
+  - SecretRef/Vault/K8s secrets irány tenant connection stringekhez.
+  - Migrációk monitorozása és batch/parallelizálás szabályai max ~100 tenant esetén.
 
 ---
 

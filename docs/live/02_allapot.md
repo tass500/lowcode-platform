@@ -45,11 +45,32 @@ Drift-proof observability egy greenfield lowcode platformban.
   - Runbook: `docs/runbooks/upgrade_v0.md` frissítve failure triage + on-call checklist résszel (UI eszközök: client trace id, curl snippets, incident bundle, debug pack, audit URL/export).
 
 ## Nyitott / következő nagy döntések
-- Kell-e további “enterprise” csiszolás a debug/incident flow-ra:
-  - egységesebb ticket header formátum
-  - audit paging / export
-  - incident bundle bővítések (pl. extra kontextus)
+ - Kell-e további “enterprise” csiszolás a debug/incident flow-ra:
+   - egységesebb ticket header formátum
+   - audit paging / export
+   - incident bundle bővítések (pl. extra kontextus)
+
+ - Frontend irány a low-code motor demóhoz (döntés):
+   - Most: frontend építése (tenant switch + auth + workflow CRUD + run monitor + entity defs).
+   - Vizuális workflow: először read-only **viewer** (wow + megértés).
+   - Később: read-write drag&drop builder, amikor stabil a step modell + validáció + verziózás.
+
+ - Upgrade-page (ops/admin UI) munkaszál státusz (guardrail):
+   - Állapot: **parkoltatva** (működő, de nem ez a következő demo fókusz).
+   - Szabály: csak **bugfix** / kompatibilitási javítás (backend contract változás esetén) kerülhet bele.
+   - Minimum egészség-ellenőrzés (ha hozzányúlunk): status/observability/queue/audit betölt + run details nem ürül transient hiba miatt.
+
+ - Cél deployment/üzemeltetés (home-lab “cloud-like”, RPi5):
+   - 1× Raspberry Pi 5 + 256 GB NVMe SSD
+   - k3s single-node + Helm (GitOps-lite; később opcionális ArgoCD/Flux)
+   - Upgrade stratégia: immutable image tag + Helm upgrade/rollback; az Upgrade UI monitor/diagnosztika szerepben
+   - Minimal ops baseline: ingress + (szükség esetén) TLS + backup (CronJob) + alap monitoring/log
+
+ - DB-agnosztikus irány (enterprise felé):
+   - Támogatott provider cél: PostgreSQL + SQL Server
+   - Ajánlott megoldás: provider-specifikus EF Core migrations (külön migrations assembly Postgres/SQL Server)
+   - Jelenlegi fejlesztői alap (ha így van bekötve): SQLite
 
 ## Portok
-- Backend: `http://localhost:5002`
-- Frontend: `http://localhost:4200`
+ - Backend: `http://localhost:5002`
+ - Frontend: `http://localhost:4200`
