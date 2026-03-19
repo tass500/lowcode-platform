@@ -448,6 +448,34 @@ npm start --prefix frontend
   - `Set (seed output)`
   - `Set + updateById (${...})`
 
+### Iteráció 26 — “Domain command: entityRecord.deleteById”
+**Cél**: entity record törlése GUID alapján domain command step-ből.
+
+**Backend**
+- Új domain command: `entityRecord.deleteById`
+  - Kötelező field: `recordId` (string GUID)
+- Hibakódok (a meglévő mintát követve):
+  - `entity_record_id_missing`
+  - `entity_record_id_invalid`
+  - `entity_record_not_found`
+
+**Példa definition JSON**
+
+```json
+{
+  "steps": [
+    {
+      "type": "domainCommand",
+      "command": "entityRecord.deleteById",
+      "recordId": "<RECORD_ID_GUID>"
+    }
+  ]
+}
+```
+
+**Frontend**
+- Új executable template: `Domain: delete record`.
+
 ### Iteráció 18 — “domainCommand step scaffold (echo + entityRecord.createByEntityName)”
 **Cél**: új workflow step típus, ami domain parancsokat hív. Ez a híd a későbbi modulok felé (DDD jellegű parancsok).
 
