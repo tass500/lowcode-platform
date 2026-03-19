@@ -1,5 +1,23 @@
 # Következő lépések (élő)
 
+## Workflow engine iterációs roadmap (kontextusvesztés-álló)
+
+**ACTIVE: Iteráció 28 — `merge` step + stabilizálás + PR**
+
+- Iteráció 28 (ACTIVE): `merge` step (shallow merge), integrációs tesztek, frontend executable template, live docs; commit + push + PR.
+- Iteráció 29: `foreach` step (control flow) + tesztek + frontend template + live docs.
+- Iteráció 30: `switch` / `when` jellegű branch step (alap elágazás) + tesztek + template.
+- Iteráció 31: retry/backoff policy step-szinten (konfigurálható) + tesztek.
+- Iteráció 32: step timeout / cancellation hardening + tesztek.
+- Iteráció 33: context var UX/validációk (jobb hibák + UI megjelenítés) + tesztek.
+
+**Ha itt folytatod kontextusvesztés után (minichecklist)**
+
+- Branch: `feat/iter-28-merge-step`
+- Status: `git status` → staged / unstaged változások
+- Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
+- Következő teendő (Iteráció 28): commit slice (backend+tests / frontend / docs) → push → PR nyitás
+
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.
 - Ezt a fájlt és a `docs/02_allapot.md`-t **minden lezárt milestone után** frissítjük.
@@ -518,6 +536,46 @@ npm start --prefix frontend
 
 **Frontend**
 - Új executable template: `Map (projection)`.
+
+### Iteráció 28 — “Context combine: merge step”
+**Cél**: több JSON objektum összevonása (shallow merge) egyetlen `OutputJson`-ba, majd ezt felhasználni későbbi step-ekben `${...}`-al.
+
+**Backend**
+- Új step típus: `merge`
+  - Kötelező field: `sources` (array)
+  - `sources` elemek:
+    - string: context path (pl. `001`), ami egy JSON object-re mutat
+    - inline object: közvetlenül megadott JSON object
+  - Merge szabály: **jobbról felülír** (a későbbi source kulcsai felülírják a korábbiakat)
+- Hibakódok:
+  - `merge_config_missing`
+  - `merge_sources_missing`
+  - `merge_source_invalid`
+  - `merge_source_not_found`
+
+**Példa definition JSON (inline + context merge)**
+
+```json
+{
+  "steps": [
+    {
+      "type": "set",
+      "output": { "a": 1, "b": 2 }
+    },
+    {
+      "type": "merge",
+      "sources": [
+        { "b": 99, "c": 3 },
+        "000"
+      ]
+    },
+    { "type": "noop" }
+  ]
+}
+```
+
+**Frontend**
+- Új executable template: `Merge (combine objects)`.
 
 ### Iteráció 18 — “domainCommand step scaffold (echo + entityRecord.createByEntityName)”
 **Cél**: új workflow step típus, ami domain parancsokat hív. Ez a híd a későbbi modulok felé (DDD jellegű parancsok).
