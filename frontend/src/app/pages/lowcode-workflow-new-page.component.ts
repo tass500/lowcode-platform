@@ -38,6 +38,7 @@ type WorkflowDefinitionDetailsDto = {
           <button type="button" (click)="applyTemplate('domainEcho')">Domain: echo</button>
           <button type="button" (click)="applyTemplate('domainCreateRecord')">Domain: create record</button>
           <button type="button" (click)="applyTemplate('domainUpdateRecord')">Domain: update record</button>
+          <button type="button" (click)="applyTemplate('domainDeleteRecord')">Domain: delete record</button>
           <button type="button" (click)="applyTemplate('domainUpsertRecord')">Domain: upsert record</button>
           <button type="button" (click)="applyTemplate('setAndUpdateById')">Set + updateById (context var)</button>
         </div>
@@ -80,6 +81,7 @@ export class LowCodeWorkflowNewPageComponent {
       | 'domainEcho'
       | 'domainCreateRecord'
       | 'domainUpdateRecord'
+      | 'domainDeleteRecord'
       | 'domainUpsertRecord'
       | 'setAndUpdateById'
   ): void {
@@ -115,6 +117,10 @@ export class LowCodeWorkflowNewPageComponent {
       domainUpdateRecord: {
         name: 'wf-domain-update-record',
         json: '{"steps":[{"type":"domainCommand","command":"entityRecord.updateById","recordId":"<RECORD_ID_GUID>","data":{"name":"Acme Updated","status":"inactive"}}]}',
+      },
+      domainDeleteRecord: {
+        name: 'wf-domain-delete-record',
+        json: '{"steps":[{"type":"domainCommand","command":"entityRecord.deleteById","recordId":"<RECORD_ID_GUID>"}]}',
       },
       domainUpsertRecord: {
         name: 'wf-domain-upsert-record',

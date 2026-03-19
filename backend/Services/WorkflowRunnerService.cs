@@ -482,6 +482,10 @@ public sealed class WorkflowRunnerService
                 await ExecuteUpdateRecordByIdAsync(root, step, ct);
                 return;
 
+            case "entityrecord.deletebyid":
+                await ExecuteDeleteRecordByIdAsync(root, step, ct);
+                return;
+
             case "entityrecord.upsertbyentityname":
                 await ExecuteUpsertRecordByEntityNameAsync(root, step, ct);
                 return;
@@ -605,6 +609,45 @@ public sealed class WorkflowRunnerService
         record.DataJson = dataJson;
         record.UpdatedAtUtc = DateTime.UtcNow;
 
+        step.OutputJson = $"{{\"entityRecordId\":\"{record.EntityRecordId}\"}}";
+    }
+
+    private async Task ExecuteDeleteRecordByIdAsync(JsonElement root, WorkflowStepRun step, CancellationToken ct)
+    {
+        if (!root.TryGetProperty("recordId", out var idEl))
+        {
+            step.LastErrorCode = "entity_record_id_missing";
+            step.LastErrorMessage = "entityRecord.deleteById requires 'recordId'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        Guid recordId;
+        if (idEl.ValueKind == JsonValueKind.String)
+        {
+            var raw = (idEl.GetString() ?? string.Empty).Trim();
+            if (!Guid.TryParse(raw, out recordId))
+            {
+                step.LastErrorCode = "entity_record_id_invalid";
+                step.LastErrorMessage = "entityRecord.deleteById requires a valid GUID 'recordId'.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+        }
+        else
+        {
+            step.LastErrorCode = "entity_record_id_invalid";
+            step.LastErrorMessage = "entityRecord.deleteById requires a string GUID 'recordId'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        var record = await _db.EntityRecords.FirstOrDefaultAsync(x => x.EntityRecordId == recordId, ct);
+        if (record is null)
+        {
+            step.LastErrorCode = "entity_record_not_found";
+            step.LastErrorMessage = "Record not found.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        _db.EntityRecords.Remove(record);
         step.OutputJson = $"{{\"entityRecordId\":\"{record.EntityRecordId}\"}}";
     }
 
