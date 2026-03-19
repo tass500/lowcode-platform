@@ -34,6 +34,7 @@ type WorkflowDefinitionDetailsDto = {
           <button type="button" (click)="applyTemplate('delay250')">Delay 250ms</button>
           <button type="button" (click)="applyTemplate('delay3')">3x Delay</button>
           <button type="button" (click)="applyTemplate('set')">Set (seed output)</button>
+          <button type="button" (click)="applyTemplate('map')">Map (projection)</button>
           <button type="button" (click)="applyTemplate('require')">Require (guard)</button>
           <button type="button" (click)="applyTemplate('domainEcho')">Domain: echo</button>
           <button type="button" (click)="applyTemplate('domainCreateRecord')">Domain: create record</button>
@@ -77,6 +78,7 @@ export class LowCodeWorkflowNewPageComponent {
       | 'delay250'
       | 'delay3'
       | 'set'
+      | 'map'
       | 'require'
       | 'domainEcho'
       | 'domainCreateRecord'
@@ -101,6 +103,10 @@ export class LowCodeWorkflowNewPageComponent {
       set: {
         name: 'wf-set-seed',
         json: '{"steps":[{"type":"set","output":{"recordId":"<RECORD_ID_GUID>","note":"seeded value"}},{"type":"noop"}]}',
+      },
+      map: {
+        name: 'wf-map-projection',
+        json: '{"steps":[{"type":"domainCommand","command":"entityRecord.createByEntityName","entityName":"Company","data":{"name":"Acme Ltd","status":"active"}},{"type":"map","mappings":{"recordId":"000.entityRecordId"}},{"type":"noop"}]}',
       },
       require: {
         name: 'wf-require-guard',

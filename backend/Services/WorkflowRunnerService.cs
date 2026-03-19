@@ -135,6 +135,57 @@ public sealed class WorkflowRunnerService
         throw new InvalidOperationException(step.LastErrorMessage);
     }
 
+    private static void ExecuteMapAsync(WorkflowStepRun step, JsonObject context)
+    {
+        if (string.IsNullOrWhiteSpace(step.StepConfigJson))
+        {
+            step.LastErrorCode = "map_config_missing";
+            step.LastErrorMessage = "map step requires a JSON config.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        using var doc = JsonDocument.Parse(step.StepConfigJson);
+        var root = doc.RootElement;
+
+        if (!root.TryGetProperty("mappings", out var mappingsEl) || mappingsEl.ValueKind != JsonValueKind.Object)
+        {
+            step.LastErrorCode = "map_mappings_missing";
+            step.LastErrorMessage = "map step requires an object 'mappings'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        var output = new JsonObject();
+        foreach (var prop in mappingsEl.EnumerateObject())
+        {
+            if (prop.Value.ValueKind != JsonValueKind.String)
+            {
+                step.LastErrorCode = "map_mapping_invalid";
+                step.LastErrorMessage = "map step 'mappings' values must be strings (context paths).";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            var path = (prop.Value.GetString() ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                step.LastErrorCode = "map_mapping_invalid";
+                step.LastErrorMessage = "map step 'mappings' values must be non-empty strings (context paths).";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            var resolved = ResolveContextPath(context, path);
+            if (resolved is null)
+            {
+                step.LastErrorCode = "map_source_not_found";
+                step.LastErrorMessage = $"Context path not found for mapping '{prop.Name}': '{path}'.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            output[prop.Name] = resolved.DeepClone();
+        }
+
+        step.OutputJson = output.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
+    }
+
     private static void InterpolateStepConfigJson(WorkflowStepRun step, JsonObject context)
     {
         if (string.IsNullOrWhiteSpace(step.StepConfigJson))
@@ -402,6 +453,12 @@ public sealed class WorkflowRunnerService
                 case "set":
                 {
                     ExecuteSetAsync(step);
+                    break;
+                }
+
+                case "map":
+                {
+                    ExecuteMapAsync(step, context);
                     break;
                 }
 
