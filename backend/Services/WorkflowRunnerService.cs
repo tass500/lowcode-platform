@@ -74,6 +74,67 @@ public sealed class WorkflowRunnerService
         }
     }
 
+    private static void ExecuteSetAsync(WorkflowStepRun step)
+    {
+        if (string.IsNullOrWhiteSpace(step.StepConfigJson))
+        {
+            step.LastErrorCode = "set_config_missing";
+            step.LastErrorMessage = "set step requires a JSON config.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        using var doc = JsonDocument.Parse(step.StepConfigJson);
+        var root = doc.RootElement;
+
+        if (root.TryGetProperty("output", out var outputEl))
+        {
+            step.OutputJson = outputEl.GetRawText();
+            return;
+        }
+
+        if (root.TryGetProperty("outputJson", out var outputJsonEl))
+        {
+            if (outputJsonEl.ValueKind != JsonValueKind.String)
+            {
+                step.LastErrorCode = "set_output_json_invalid";
+                step.LastErrorMessage = "set step field 'outputJson' must be a string when provided.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            var raw = (outputJsonEl.GetString() ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                step.LastErrorCode = "set_output_missing";
+                step.LastErrorMessage = "set step requires 'output' or non-empty 'outputJson'.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            try
+            {
+                var node = JsonNode.Parse(raw);
+                if (node is null)
+                {
+                    step.LastErrorCode = "set_output_json_invalid";
+                    step.LastErrorMessage = "set step field 'outputJson' must contain valid JSON.";
+                    throw new InvalidOperationException(step.LastErrorMessage);
+                }
+
+                step.OutputJson = node.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
+                return;
+            }
+            catch
+            {
+                step.LastErrorCode = "set_output_json_invalid";
+                step.LastErrorMessage = "set step field 'outputJson' must contain valid JSON.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+        }
+
+        step.LastErrorCode = "set_output_missing";
+        step.LastErrorMessage = "set step requires 'output' or 'outputJson'.";
+        throw new InvalidOperationException(step.LastErrorMessage);
+    }
+
     private static void InterpolateStepConfigJson(WorkflowStepRun step, JsonObject context)
     {
         if (string.IsNullOrWhiteSpace(step.StepConfigJson))
@@ -335,6 +396,12 @@ public sealed class WorkflowRunnerService
                     }
 
                     await Task.Delay(ms, ct);
+                    break;
+                }
+
+                case "set":
+                {
+                    ExecuteSetAsync(step);
                     break;
                 }
 
