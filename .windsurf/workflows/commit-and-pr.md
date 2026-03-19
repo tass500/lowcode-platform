@@ -1,5 +1,6 @@
 ---
 description: Commit javaslat + PR-branch flow (protected master)
+auto_execution_mode: 3
 ---
 
 # Cél
@@ -8,6 +9,7 @@ description: Commit javaslat + PR-branch flow (protected master)
 - Cascade (én) minden jól körülhatárolt milestone végén automatikusan ad egy "Proposed commit" blokkot.
 - Cascade (én) milestone-oknál automatikusan ad egy "Proposed PR" blokkot is (mikor érdemes PR-t nyitni + javasolt cím/leírás).
 - Te lefuttatod a parancsokat (commit/push/PR).
+- Milestone/iteráció lezárásakor mindig frissítjük a live dokumentumokat: `docs/live/03_kovetkezo_lepesek.md`.
 
 # Mikor nyiss PR-t? (cadence)
 
@@ -51,7 +53,12 @@ Ajánlott branch név minták:
 - `refactor/<tema>`
 - `docs/<tema>`
 
-2. **Változtatások után (Cascade javaslata alapján) commit**
+2. **Változtatások után: live docs frissítés (minden iteráció végén kötelező)**
+
+- Frissítsd a `docs/live/03_kovetkezo_lepesek.md` fájlt az adott iteráció deliverables + demo/példa JSON alapján.
+- Ha külön branch/PR kell (pl. már merge-ölve volt a feature PR), csinálj `docs/<tema>` vagy `chore/<tema>` branch-et.
+
+3. **Commit (Cascade javaslata alapján)**
 
 ```bash
 git status
@@ -62,7 +69,7 @@ git add <fajlok...>
 git commit -m "<uzenet>"
 ```
 
-3. **Push branch + PR**
+4. **Push branch + PR**
 
 ```bash
 git push -u origin <branch-nev>
@@ -73,7 +80,7 @@ git push -u origin <branch-nev>
 - Várd meg, hogy az összes required check zöld legyen.
 - Merge (squash/merge policy szerint).
 
-4. **PR merge után takarítás**
+5. **PR merge után takarítás**
 
 ```bash
 git switch master

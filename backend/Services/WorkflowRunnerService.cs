@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using LowCodePlatform.Backend.Data;
 using LowCodePlatform.Backend.Models;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +9,8 @@ namespace LowCodePlatform.Backend.Services;
 
 public sealed class WorkflowRunnerService
 {
+    private static readonly Regex ContextVarRegex = new(@"\$\{([^}]+)\}", RegexOptions.Compiled);
+
     private readonly PlatformDbContext _db;
 
     public WorkflowRunnerService(PlatformDbContext db)
@@ -69,6 +72,111 @@ public sealed class WorkflowRunnerService
                 throw new InvalidOperationException(step.LastErrorMessage);
             }
         }
+    }
+
+    private static void InterpolateStepConfigJson(WorkflowStepRun step, JsonObject context)
+    {
+        if (string.IsNullOrWhiteSpace(step.StepConfigJson))
+            return;
+
+        JsonNode? root;
+        try
+        {
+            root = JsonNode.Parse(step.StepConfigJson);
+        }
+        catch
+        {
+            step.LastErrorCode = "context_var_config_invalid";
+            step.LastErrorMessage = "Failed to parse step config JSON for context variable interpolation.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        if (root is null)
+            return;
+
+        var rewritten = RewriteNode(root, context, step);
+        step.StepConfigJson = rewritten.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
+    }
+
+    private static JsonNode RewriteNode(JsonNode node, JsonObject context, WorkflowStepRun step)
+    {
+        if (node is JsonObject obj)
+        {
+            foreach (var kv in obj.ToList())
+            {
+                if (kv.Value is null)
+                    continue;
+                obj[kv.Key] = RewriteNode(kv.Value, context, step);
+            }
+            return obj;
+        }
+
+        if (node is JsonArray arr)
+        {
+            for (var i = 0; i < arr.Count; i += 1)
+            {
+                if (arr[i] is null)
+                    continue;
+                arr[i] = RewriteNode(arr[i]!, context, step);
+            }
+            return arr;
+        }
+
+        if (node is JsonValue val)
+        {
+            string? s;
+            try
+            {
+                s = val.GetValue<string?>();
+            }
+            catch
+            {
+                return node;
+            }
+
+            if (string.IsNullOrEmpty(s))
+                return node;
+
+            var trimmed = s.Trim();
+            var exact = ContextVarRegex.Match(trimmed);
+            if (exact.Success && exact.Index == 0 && exact.Length == trimmed.Length)
+            {
+                var path = exact.Groups[1].Value.Trim();
+                var resolved = ResolveContextPath(context, path);
+                if (resolved is null)
+                {
+                    step.LastErrorCode = "context_var_not_found";
+                    step.LastErrorMessage = $"Context variable not found: '{path}'.";
+                    throw new InvalidOperationException(step.LastErrorMessage);
+                }
+
+                return resolved.DeepClone();
+            }
+
+            if (!ContextVarRegex.IsMatch(s))
+                return node;
+
+            var replaced = ContextVarRegex.Replace(s, m =>
+            {
+                var path = m.Groups[1].Value.Trim();
+                var resolved = ResolveContextPath(context, path);
+                if (resolved is null)
+                {
+                    step.LastErrorCode = "context_var_not_found";
+                    step.LastErrorMessage = $"Context variable not found: '{path}'.";
+                    throw new InvalidOperationException(step.LastErrorMessage);
+                }
+
+                if (resolved is JsonValue jv)
+                    return jv.ToJsonString().Trim('"');
+
+                return resolved.ToJsonString();
+            });
+
+            return JsonValue.Create(replaced) ?? node;
+        }
+
+        return node;
     }
 
     private static JsonNode? ResolveContextPath(JsonObject context, string path)
@@ -212,6 +320,8 @@ public sealed class WorkflowRunnerService
 
         try
         {
+            InterpolateStepConfigJson(step, context);
+
             switch (step.StepType.ToLowerInvariant())
             {
                 case "delay":
