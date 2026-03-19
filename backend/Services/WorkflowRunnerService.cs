@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using LowCodePlatform.Backend.Data;
 using LowCodePlatform.Backend.Models;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,90 @@ public sealed class WorkflowRunnerService
         _db = db;
     }
 
+    private static void ExecuteRequireAsync(WorkflowStepRun step, JsonObject context)
+    {
+        if (string.IsNullOrWhiteSpace(step.StepConfigJson))
+        {
+            step.LastErrorCode = "require_config_missing";
+            step.LastErrorMessage = "require step requires a JSON config.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        using var doc = JsonDocument.Parse(step.StepConfigJson);
+        var root = doc.RootElement;
+
+        if (!root.TryGetProperty("path", out var pathEl) || pathEl.ValueKind != JsonValueKind.String)
+        {
+            step.LastErrorCode = "require_path_missing";
+            step.LastErrorMessage = "require step requires a string 'path'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        var path = (pathEl.GetString() ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            step.LastErrorCode = "require_path_missing";
+            step.LastErrorMessage = "require step requires a non-empty 'path'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        var value = ResolveContextPath(context, path);
+        if (value is null)
+        {
+            step.LastErrorCode = "require_failed";
+            step.LastErrorMessage = $"Required path not found: '{path}'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        if (root.TryGetProperty("equals", out var equalsEl))
+        {
+            if (equalsEl.ValueKind != JsonValueKind.String)
+            {
+                step.LastErrorCode = "require_equals_invalid";
+                step.LastErrorMessage = "require step field 'equals' must be a string when provided.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            var expected = equalsEl.GetString() ?? string.Empty;
+            var actual = value is JsonValue jv ? jv.ToJsonString().Trim('"') : value.ToJsonString();
+
+            if (!string.Equals(actual, expected, StringComparison.Ordinal))
+            {
+                step.LastErrorCode = "require_failed";
+                step.LastErrorMessage = $"Required path '{path}' did not equal expected value.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+        }
+    }
+
+    private static JsonNode? ResolveContextPath(JsonObject context, string path)
+    {
+        JsonNode? current = context;
+        foreach (var part in path.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (current is JsonObject obj)
+            {
+                if (!obj.TryGetPropertyValue(part, out current))
+                    return null;
+                continue;
+            }
+
+            if (current is JsonArray arr)
+            {
+                if (!int.TryParse(part, out var idx))
+                    return null;
+                if (idx < 0 || idx >= arr.Count)
+                    return null;
+                current = arr[idx];
+                continue;
+            }
+
+            return null;
+        }
+
+        return current;
+    }
+
     public async Task<WorkflowRun> StartAsync(WorkflowDefinition wf, string traceId, CancellationToken ct)
     {
         var run = new WorkflowRun
@@ -27,13 +112,27 @@ public sealed class WorkflowRunnerService
 
         run.Steps = BuildSteps(wf);
 
+        var context = new JsonObject();
+
         _db.WorkflowRuns.Add(run);
         await _db.SaveChangesAsync(ct);
 
         foreach (var step in run.Steps.OrderBy(x => x.StepKey))
         {
-            await ExecuteStepAsync(run, step, ct);
+            await ExecuteStepAsync(run, step, context, ct);
             await _db.SaveChangesAsync(ct);
+
+            if (step.State == WorkflowStepRunStates.Succeeded && !string.IsNullOrWhiteSpace(step.OutputJson))
+            {
+                try
+                {
+                    context[step.StepKey] = JsonNode.Parse(step.OutputJson);
+                }
+                catch
+                {
+                    // ignore invalid output json; step succeeded but context won't have it
+                }
+            }
 
             if (step.State == WorkflowStepRunStates.Failed)
             {
@@ -102,7 +201,7 @@ public sealed class WorkflowRunnerService
         return steps;
     }
 
-    private async Task ExecuteStepAsync(WorkflowRun run, WorkflowStepRun step, CancellationToken ct)
+    private async Task ExecuteStepAsync(WorkflowRun run, WorkflowStepRun step, JsonObject context, CancellationToken ct)
     {
         step.Attempt += 1;
         step.State = WorkflowStepRunStates.Running;
@@ -126,6 +225,12 @@ public sealed class WorkflowRunnerService
                     }
 
                     await Task.Delay(ms, ct);
+                    break;
+                }
+
+                case "require":
+                {
+                    ExecuteRequireAsync(step, context);
                     break;
                 }
 

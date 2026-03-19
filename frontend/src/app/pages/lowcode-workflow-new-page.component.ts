@@ -33,6 +33,7 @@ type WorkflowDefinitionDetailsDto = {
           <button type="button" (click)="applyTemplate('noop')">No-op</button>
           <button type="button" (click)="applyTemplate('delay250')">Delay 250ms</button>
           <button type="button" (click)="applyTemplate('delay3')">3x Delay</button>
+          <button type="button" (click)="applyTemplate('require')">Require (guard)</button>
           <button type="button" (click)="applyTemplate('domainEcho')">Domain: echo</button>
           <button type="button" (click)="applyTemplate('domainCreateRecord')">Domain: create record</button>
           <button type="button" (click)="applyTemplate('domainUpdateRecord')">Domain: update record</button>
@@ -66,7 +67,7 @@ export class LowCodeWorkflowNewPageComponent {
     definitionJson: new FormControl('{"steps":[{"type":"noop"},{"type":"delay","ms":250}]}' , { nonNullable: true, validators: [Validators.required] }),
   });
 
-  applyTemplate(kind: 'noop' | 'delay250' | 'delay3' | 'domainEcho' | 'domainCreateRecord' | 'domainUpdateRecord'): void {
+  applyTemplate(kind: 'noop' | 'delay250' | 'delay3' | 'require' | 'domainEcho' | 'domainCreateRecord' | 'domainUpdateRecord'): void {
     const templates: Record<typeof kind, { name: string; json: string }> = {
       noop: {
         name: 'wf-noop',
@@ -79,6 +80,10 @@ export class LowCodeWorkflowNewPageComponent {
       delay3: {
         name: 'wf-3x-delay',
         json: '{"steps":[{"type":"delay","ms":100},{"type":"delay","ms":200},{"type":"delay","ms":300}]}',
+      },
+      require: {
+        name: 'wf-require-guard',
+        json: '{"steps":[{"type":"domainCommand","command":"entityRecord.createByEntityName","entityName":"Company","data":{"name":"Acme Ltd","status":"active"}},{"type":"require","path":"000.entityRecordId"},{"type":"noop"}]}',
       },
       domainEcho: {
         name: 'wf-domain-echo',
