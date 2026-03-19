@@ -305,6 +305,10 @@ public sealed class WorkflowRunnerService
                 await ExecuteUpdateRecordByIdAsync(root, step, ct);
                 return;
 
+            case "entityrecord.upsertbyentityname":
+                await ExecuteUpsertRecordByEntityNameAsync(root, step, ct);
+                return;
+
             default:
                 step.LastErrorCode = "domain_command_unknown";
                 step.LastErrorMessage = $"Unknown domain command: '{command}'.";
@@ -425,5 +429,153 @@ public sealed class WorkflowRunnerService
         record.UpdatedAtUtc = DateTime.UtcNow;
 
         step.OutputJson = $"{{\"entityRecordId\":\"{record.EntityRecordId}\"}}";
+    }
+
+    private async Task ExecuteUpsertRecordByEntityNameAsync(JsonElement root, WorkflowStepRun step, CancellationToken ct)
+    {
+        if (!root.TryGetProperty("entityName", out var nameEl) || nameEl.ValueKind != JsonValueKind.String)
+        {
+            step.LastErrorCode = "entity_name_missing";
+            step.LastErrorMessage = "entityRecord.upsertByEntityName requires a string 'entityName'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        var entityName = (nameEl.GetString() ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(entityName))
+        {
+            step.LastErrorCode = "entity_name_missing";
+            step.LastErrorMessage = "entityRecord.upsertByEntityName requires a non-empty 'entityName'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        if (!root.TryGetProperty("uniqueKey", out var uniqueKeyEl) || uniqueKeyEl.ValueKind != JsonValueKind.String)
+        {
+            step.LastErrorCode = "entity_record_unique_key_missing";
+            step.LastErrorMessage = "entityRecord.upsertByEntityName requires a string 'uniqueKey'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        var uniqueKey = (uniqueKeyEl.GetString() ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(uniqueKey))
+        {
+            step.LastErrorCode = "entity_record_unique_key_missing";
+            step.LastErrorMessage = "entityRecord.upsertByEntityName requires a non-empty 'uniqueKey'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        var dataJson = "{}";
+        JsonElement? dataObj = null;
+        if (root.TryGetProperty("data", out var dataEl))
+        {
+            if (dataEl.ValueKind == JsonValueKind.Object)
+            {
+                dataJson = dataEl.GetRawText();
+                dataObj = dataEl;
+            }
+            else if (dataEl.ValueKind == JsonValueKind.String)
+            {
+                dataJson = dataEl.GetString() ?? "{}";
+            }
+            else
+            {
+                step.LastErrorCode = "entity_record_data_invalid";
+                step.LastErrorMessage = "entityRecord.upsertByEntityName requires 'data' to be an object or string.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(dataJson))
+            dataJson = "{}";
+
+        string? uniqueValue = null;
+        if (root.TryGetProperty("uniqueValue", out var uniqueValueEl))
+        {
+            if (uniqueValueEl.ValueKind != JsonValueKind.String)
+            {
+                step.LastErrorCode = "entity_record_unique_value_invalid";
+                step.LastErrorMessage = "entityRecord.upsertByEntityName field 'uniqueValue' must be a string when provided.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            uniqueValue = (uniqueValueEl.GetString() ?? string.Empty).Trim();
+        }
+
+        if (string.IsNullOrWhiteSpace(uniqueValue) && dataObj.HasValue)
+        {
+            if (dataObj.Value.TryGetProperty(uniqueKey, out var inDataEl) && inDataEl.ValueKind == JsonValueKind.String)
+                uniqueValue = (inDataEl.GetString() ?? string.Empty).Trim();
+        }
+
+        if (string.IsNullOrWhiteSpace(uniqueValue))
+        {
+            step.LastErrorCode = "entity_record_unique_value_missing";
+            step.LastErrorMessage = "entityRecord.upsertByEntityName requires a non-empty uniqueValue (either explicit or via data[uniqueKey]).";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        var entity = await _db.EntityDefinitions.FirstOrDefaultAsync(x => x.Name == entityName, ct);
+        if (entity is null)
+        {
+            entity = new EntityDefinition
+            {
+                EntityDefinitionId = Guid.NewGuid(),
+                Name = entityName,
+                CreatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow,
+            };
+            _db.EntityDefinitions.Add(entity);
+        }
+
+        // NOTE: naive upsert implementation - scans records and parses JSON. Good enough for now; can be optimized later.
+        var records = await _db.EntityRecords
+            .Where(x => x.EntityDefinitionId == entity.EntityDefinitionId)
+            .ToListAsync(ct);
+
+        EntityRecord? existing = null;
+        foreach (var r in records)
+        {
+            if (string.IsNullOrWhiteSpace(r.DataJson))
+                continue;
+
+            try
+            {
+                using var doc = JsonDocument.Parse(r.DataJson);
+                if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                    continue;
+
+                if (doc.RootElement.TryGetProperty(uniqueKey, out var v) && v.ValueKind == JsonValueKind.String)
+                {
+                    var candidate = (v.GetString() ?? string.Empty).Trim();
+                    if (string.Equals(candidate, uniqueValue, StringComparison.Ordinal))
+                    {
+                        existing = r;
+                        break;
+                    }
+                }
+            }
+            catch
+            {
+                // ignore invalid record json
+            }
+        }
+
+        if (existing is null)
+        {
+            var record = new EntityRecord
+            {
+                EntityRecordId = Guid.NewGuid(),
+                EntityDefinitionId = entity.EntityDefinitionId,
+                DataJson = dataJson,
+                CreatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow,
+            };
+            _db.EntityRecords.Add(record);
+            step.OutputJson = $"{{\"action\":\"created\",\"entityDefinitionId\":\"{entity.EntityDefinitionId}\",\"entityRecordId\":\"{record.EntityRecordId}\"}}";
+            return;
+        }
+
+        existing.DataJson = dataJson;
+        existing.UpdatedAtUtc = DateTime.UtcNow;
+        step.OutputJson = $"{{\"action\":\"updated\",\"entityDefinitionId\":\"{entity.EntityDefinitionId}\",\"entityRecordId\":\"{existing.EntityRecordId}\"}}";
     }
 }
