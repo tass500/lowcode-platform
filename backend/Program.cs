@@ -1,26 +1,123 @@
 using LowCodePlatform.Backend.Data;
 using LowCodePlatform.Backend.Middleware;
 using LowCodePlatform.Backend.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Diagnostics;
+using Microsoft.Data.Sqlite;
+using LowCodePlatform.Backend.Swagger;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(o =>
+{
+    o.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "LowCodePlatform Backend API",
+        Version = "v1",
+        Description = "Tenant routing: prefer host-based tenancy (e.g. http://t1.localhost:PORT). In Development you can also use the X-Tenant-Id header.",
+    });
 
-var cs = builder.Configuration.GetConnectionString("Platform")
-         ?? builder.Configuration["ConnectionStrings:Platform"]
-         ?? "Data Source=platform.db";
+    if (builder.Environment.IsDevelopment())
+        o.OperationFilter<AddTenantHeaderOperationFilter>();
 
-builder.Services.AddDbContext<PlatformDbContext>(o => o.UseSqlite(cs));
+    o.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme.",
+    });
+
+    o.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer",
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =>
+    {
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
+                builder.Configuration["Auth:Jwt:SigningKey"] ?? "dev-insecure-signing-key-change-me")),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromMinutes(2),
+        };
+    });
+
+builder.Services.AddAuthorization(o =>
+{
+    o.AddPolicy("tenant_user", p => p
+        .RequireAuthenticatedUser()
+        .RequireClaim("tenant"));
+    o.AddPolicy("admin", p => p.RequireRole("admin"));
+});
+
+builder.Services.AddDbContext<ManagementDbContext>((sp, o) =>
+{
+    var cfg = sp.GetRequiredService<IConfiguration>();
+    var managementCs = cfg.GetConnectionString("Management")
+                       ?? cfg["ConnectionStrings:Management"]
+                       ?? "Data Source=management.db";
+    o.UseSqlite(managementCs);
+});
+
+builder.Services.AddScoped<TenantContext>();
+builder.Services.AddScoped<TenantRegistryService>();
+builder.Services.AddScoped<TenantDbConnectionStringProvider>();
+builder.Services.AddScoped<TenantMigrationService>();
+builder.Services.AddSingleton<ITenantSecretResolver, ConfigurationTenantSecretResolver>();
+
+var isEfDesignTime = string.Equals(Environment.GetEnvironmentVariable("LCP_EF_DESIGN_TIME"), "1", StringComparison.OrdinalIgnoreCase)
+                     || Process.GetCurrentProcess().ProcessName.Contains("dotnet-ef", StringComparison.OrdinalIgnoreCase)
+                     || Environment.GetCommandLineArgs().Any(a => a.Contains("dotnet-ef", StringComparison.OrdinalIgnoreCase));
+
+if (isEfDesignTime)
+{
+    var designTimeTenantCs = builder.Configuration["Tenancy:DesignTimeTenantConnectionString"]
+                             ?? "Data Source=tenant-default.db";
+
+    builder.Services.AddDbContext<PlatformDbContext>(o => o.UseSqlite(designTimeTenantCs));
+}
+else
+{
+    builder.Services.AddDbContext<PlatformDbContext>((sp, o) =>
+    {
+        var tenantCs = sp.GetRequiredService<TenantDbConnectionStringProvider>().Get();
+        o.UseSqlite(tenantCs);
+    });
+}
 
 builder.Services.AddScoped<AuditService>();
 builder.Services.AddScoped<InstallationService>();
+builder.Services.AddScoped<WorkflowRunnerService>();
 builder.Services.AddSingleton<VersionEnforcementService>();
 builder.Services.AddSingleton<DevUpgradeFaults>();
 
-builder.Services.AddHostedService<UpgradeOrchestratorHostedService>();
+if (!builder.Environment.IsEnvironment("Testing") && !isEfDesignTime)
+    builder.Services.AddHostedService<UpgradeOrchestratorHostedService>();
 
 var app = builder.Build();
 
@@ -35,19 +132,180 @@ if (!app.Environment.IsDevelopment())
 
 app.UseMiddleware<TraceIdMiddleware>();
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+app.UseAuthentication();
+
+app.UseMiddleware<AdminApiKeyMiddleware>();
+
+app.UseMiddleware<TenantResolutionMiddleware>();
+
+app.UseMiddleware<TenantClaimEnforcementMiddleware>();
+
+app.UseAuthorization();
+
+app.UseMiddleware<AccessLogMiddleware>();
+
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 
+app.MapGet("/health/live", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/health/ready", async (ManagementDbContext db) =>
+{
+    var ok = await db.Database.CanConnectAsync();
+    return ok ? Results.Ok(new { status = "ok" }) : Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable);
+});
+
 app.MapControllers();
 
-using (var scope = app.Services.CreateScope())
+static bool IsEfDesignTime()
+    => (Process.GetCurrentProcess().ProcessName.Contains("dotnet-ef", StringComparison.OrdinalIgnoreCase))
+       || Environment.GetCommandLineArgs().Any(a => a.Contains("dotnet-ef", StringComparison.OrdinalIgnoreCase))
+       || Environment.GetCommandLineArgs().Any(a => string.Equals(a, "ef", StringComparison.OrdinalIgnoreCase));
+
+static bool ShouldSkipStartupMigrationsAndSeeding()
+    => string.Equals(Environment.GetEnvironmentVariable("LCP_SKIP_STARTUP_SEED"), "1", StringComparison.OrdinalIgnoreCase);
+
+if (!app.Environment.IsEnvironment("Testing") && !IsEfDesignTime() && !ShouldSkipStartupMigrationsAndSeeding())
 {
-    var db = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    using var scope = app.Services.CreateScope();
+
+    var managementDb = scope.ServiceProvider.GetRequiredService<ManagementDbContext>();
+    try
+    {
+        await managementDb.Database.MigrateAsync();
+    }
+    catch (Microsoft.Data.Sqlite.SqliteException ex)
+        when ((app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
+              && ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+    {
+        // Dev/Test safety valve: tolerate stale SQLite DBs created outside migrations history.
+        // Prod should fail-fast to avoid running with an unknown schema state.
+        await RepairStaleManagementSqliteSchemaAsync(managementDb, CancellationToken.None);
+    }
+
+    var defaultTenantSlug = builder.Configuration["Tenancy:DefaultTenantSlug"]
+                            ?? "default";
+    var defaultTenantSecretRef = builder.Configuration["Tenancy:DefaultTenantConnectionStringSecretRef"]
+                                 ?? "default";
+    var defaultTenantCs = builder.Configuration["Tenancy:DefaultTenantConnectionString"]
+                          ?? "Data Source=tenant-default.db";
+
+    LowCodePlatform.Backend.Models.Tenant? existing;
+    try
+    {
+        existing = await managementDb.Tenants.FirstOrDefaultAsync(x => x.Slug == defaultTenantSlug);
+    }
+    catch (Microsoft.Data.Sqlite.SqliteException ex)
+        when ((app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
+              && ex.Message.Contains("no such column", StringComparison.OrdinalIgnoreCase)
+              && ex.Message.Contains("connection_string_secret_ref", StringComparison.OrdinalIgnoreCase))
+    {
+        // Dev/Test safety valve: tolerate stale SQLite DBs missing the newer column.
+        // Prod should fail-fast to avoid running with an unknown schema state.
+        await RepairStaleManagementSqliteSchemaAsync(managementDb, CancellationToken.None);
+        existing = await managementDb.Tenants.FirstOrDefaultAsync(x => x.Slug == defaultTenantSlug);
+    }
+
+    if (existing is null)
+    {
+        managementDb.Tenants.Add(new LowCodePlatform.Backend.Models.Tenant
+        {
+            TenantId = Guid.NewGuid(),
+            Slug = defaultTenantSlug,
+            ConnectionStringSecretRef = defaultTenantSecretRef,
+            ConnectionString = defaultTenantCs,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await managementDb.SaveChangesAsync();
+    }
+
+    var tenant = scope.ServiceProvider.GetRequiredService<TenantContext>();
+    tenant.Slug = defaultTenantSlug;
+
+    var tenantDb = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
+    try
+    {
+        await tenantDb.Database.MigrateAsync();
+    }
+    catch (Microsoft.Data.Sqlite.SqliteException ex)
+        when ((app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
+              && ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+    {
+        // Dev/Test safety valve: tolerate stale SQLite DBs created outside migrations history.
+        // Prod should fail-fast to avoid running with an unknown schema state.
+    }
+
     var inst = scope.ServiceProvider.GetRequiredService<InstallationService>();
     await inst.EnsureDefaultInstallationAsync(CancellationToken.None);
 }
 
 app.Run();
+
+static async Task RepairStaleManagementSqliteSchemaAsync(ManagementDbContext db, CancellationToken ct)
+{
+    // Best-effort, idempotent schema repair for dev/test only.
+    // This is specifically to handle old SQLite files where the "tenant" table exists
+    // but migrations history is missing, causing MigrateAsync() to fail on CREATE TABLE.
+
+    var conn = db.Database.GetDbConnection();
+    await conn.OpenAsync(ct);
+
+    var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+    await using (var cmd = conn.CreateCommand())
+    {
+        cmd.CommandText = "PRAGMA table_info('tenant');";
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+        {
+            // PRAGMA table_info columns: cid, name, type, notnull, dflt_value, pk
+            var name = reader.GetString(1);
+            existingColumns.Add(name);
+        }
+    }
+
+    if (existingColumns.Count == 0)
+        return;
+
+    if (!existingColumns.Contains("connection_string_secret_ref"))
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE tenant ADD COLUMN connection_string_secret_ref TEXT NULL;", ct);
+
+    // If the old schema has connection_string NOT NULL, make it nullable by table rebuild.
+    // SQLite doesn't support ALTER COLUMN, so we do a safe no-op if it's already nullable.
+    bool connectionStringNotNull;
+    await using (var cmd = conn.CreateCommand())
+    {
+        cmd.CommandText = "SELECT 1 FROM pragma_table_info('tenant') WHERE name='connection_string' AND \"notnull\"=1;";
+        var scalar = await cmd.ExecuteScalarAsync(ct);
+        connectionStringNotNull = scalar is not null;
+    }
+
+    if (connectionStringNotNull)
+    {
+        // Rebuild tenant table with the new nullable column definition.
+        // Keep data, preserve primary key and unique index on slug.
+        await db.Database.ExecuteSqlRawAsync(@"
+BEGIN TRANSACTION;
+CREATE TABLE IF NOT EXISTS tenant__tmp (
+    tenant_id TEXT NOT NULL CONSTRAINT PK_tenant__tmp PRIMARY KEY,
+    slug TEXT NOT NULL,
+    connection_string_secret_ref TEXT NULL,
+    connection_string TEXT NULL,
+    created_at_utc TEXT NOT NULL
+);
+INSERT INTO tenant__tmp (tenant_id, slug, connection_string_secret_ref, connection_string, created_at_utc)
+SELECT tenant_id, slug,
+       COALESCE(connection_string_secret_ref, NULL),
+       connection_string,
+       created_at_utc
+FROM tenant;
+DROP TABLE tenant;
+ALTER TABLE tenant__tmp RENAME TO tenant;
+CREATE UNIQUE INDEX IF NOT EXISTS IX_tenant_slug ON tenant(slug);
+COMMIT;
+", ct);
+    }
+}
 
 public partial class Program { }

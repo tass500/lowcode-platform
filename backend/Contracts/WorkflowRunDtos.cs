@@ -1,0 +1,38 @@
+namespace LowCodePlatform.Backend.Contracts;
+
+public sealed record WorkflowStepRunDto(
+    Guid WorkflowStepRunId,
+    string StepKey,
+    string StepType,
+    string? StepConfigJson,
+    string State,
+    int Attempt,
+    string? LastErrorCode,
+    string? LastErrorMessage,
+    DateTime? StartedAtUtc,
+    DateTime? FinishedAtUtc);
+
+public sealed record WorkflowRunDetailsDto(
+    Guid WorkflowRunId,
+    Guid WorkflowDefinitionId,
+    string State,
+    DateTime? StartedAtUtc,
+    DateTime? FinishedAtUtc,
+    string TraceId,
+    string? ErrorCode,
+    string? ErrorMessage,
+    IEnumerable<WorkflowStepRunDto> Steps);
+
+public sealed record StartWorkflowRunResponse(DateTime ServerTimeUtc, Guid WorkflowRunId);
+
+public sealed record WorkflowRunListItemDto(
+    Guid WorkflowRunId,
+    Guid WorkflowDefinitionId,
+    string State,
+    DateTime? StartedAtUtc,
+    DateTime? FinishedAtUtc,
+    string TraceId,
+    string? ErrorCode,
+    string? ErrorMessage);
+
+public sealed record WorkflowRunListResponse(DateTime ServerTimeUtc, List<WorkflowRunListItemDto> Items);
