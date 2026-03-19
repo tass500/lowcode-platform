@@ -17,6 +17,17 @@ auto_execution_mode: 3
 - Tipikus ritmus: **milestone-onként 1 PR** (vagy ha a diff túl nagy, akkor 2 kisebb PR ugyanazon témán belül).
 - Ha a branch már pusholva van GitHubra, a PR-t bármikor meg lehet nyitni (akár Draft-ként), és utána a commitok ugyanabba a PR-ba kerülnek.
 
+# Credit-alapú fejlesztés (költséghatékonyság)
+
+- Ebben a projektben a kommunikáció/iteráció **credit-alapú**: egy egyszerű kérdés-válasz (pl. "hány óra van?") és egy teljes iteráció (pl. backend+frontend+tesztek) is ugyanannyiba kerülhet.
+- Ezért a cél, hogy egy iterációban/menetben **minél több összefüggő, review-olható értéket** csomagoljunk:
+  - backend implementáció
+  - integrációs tesztek
+  - minimál UI/demo template
+  - live docs frissítés (`docs/live/03_kovetkezo_lepesek.md`)
+  - git parancsok commit/push/PR-hez
+- Ha túl kockázatos (sok ismeretlen, nagy refactor, DB migrációk összeakadása, stb.), akkor inkább kisebb szeletekben haladunk.
+
 # "Proposed PR" sablon (amit Cascade használ)
 
 Amikor úgy látom, hogy a változás már egyben review-olható, adok egy blokkot ilyen formában:

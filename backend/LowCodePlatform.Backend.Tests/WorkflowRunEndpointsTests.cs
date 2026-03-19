@@ -625,4 +625,164 @@ public sealed class WorkflowRunEndpointsTests
         Assert.Equal("failed", runPayload!["state"]?.ToString());
         Assert.Equal("context_var_not_found", runPayload["errorCode"]?.ToString());
     }
+
+    [Fact]
+    public async Task Set_step_should_seed_context_and_be_usable_via_context_vars()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        // 1) Create record
+        var createJson =
+            "{\"steps\":[{" +
+            "\"type\":\"domainCommand\",\"command\":\"entityRecord.createByEntityName\",\"entityName\":\"Company\",\"data\":{\"name\":\"Acme Ltd\",\"status\":\"active\"}}]}";
+
+        using var createWfResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-set-seed-create", definitionJson = createJson });
+        Assert.Equal(HttpStatusCode.OK, createWfResp.StatusCode);
+        var createdWf = await createWfResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(createdWf);
+        var createWfId = Guid.Parse(createdWf!["workflowDefinitionId"]!.ToString()!);
+
+        using var createRunResp = await client.PostAsync($"/api/workflows/{createWfId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, createRunResp.StatusCode);
+        var createRunPayload = await createRunResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(createRunPayload);
+        var createRunId = Guid.Parse(createRunPayload!["workflowRunId"]!.ToString()!);
+
+        using (var createRunGet = await client.GetAsync($"/api/workflows/runs/{createRunId}"))
+        {
+            Assert.Equal(HttpStatusCode.OK, createRunGet.StatusCode);
+            var createRunDetails = await createRunGet.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+            Assert.NotNull(createRunDetails);
+            Assert.Equal("succeeded", createRunDetails!["state"]?.ToString());
+        }
+
+        // Find Company entity id
+        using var entitiesResp = await client.GetAsync("/api/entities");
+        Assert.Equal(HttpStatusCode.OK, entitiesResp.StatusCode);
+        var entitiesPayload = await entitiesResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(entitiesPayload);
+        var items = Assert.IsType<JsonElement>(entitiesPayload!["items"]);
+
+        Guid? entityId = null;
+        foreach (var it in items.EnumerateArray())
+        {
+            var name = it.TryGetProperty("name", out var n) ? n.GetString() : null;
+            if (name == "Company")
+            {
+                entityId = Guid.Parse(it.GetProperty("entityDefinitionId").GetString()!);
+                break;
+            }
+        }
+        Assert.True(entityId.HasValue);
+
+        using var recordsResp = await client.GetAsync($"/api/entities/{entityId.Value}/records");
+        Assert.Equal(HttpStatusCode.OK, recordsResp.StatusCode);
+        var recordsPayload = await recordsResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(recordsPayload);
+        var recordItems = Assert.IsType<JsonElement>(recordsPayload!["items"]);
+        var first = recordItems.EnumerateArray().First();
+        var recordId = first.GetProperty("entityRecordId").GetString()!;
+
+        // 2) Update record using a 'set' step to seed recordId into context
+        var updateJson =
+            "{\"steps\":[" +
+            "{\"type\":\"set\",\"output\":{\"recordId\":\"" + recordId + "\"}}," +
+            "{\"type\":\"domainCommand\",\"command\":\"entityRecord.updateById\",\"recordId\":\"${000.recordId}\",\"data\":{\"name\":\"Acme Updated\",\"status\":\"inactive\"}}" +
+            "]}";
+
+        using var updateWfResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-set-seed-update", definitionJson = updateJson });
+        Assert.Equal(HttpStatusCode.OK, updateWfResp.StatusCode);
+        var updateWf = await updateWfResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(updateWf);
+        var updateWfId = Guid.Parse(updateWf!["workflowDefinitionId"]!.ToString()!);
+
+        using var updateRunResp = await client.PostAsync($"/api/workflows/{updateWfId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, updateRunResp.StatusCode);
+        var updateRunPayload = await updateRunResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(updateRunPayload);
+        var updateRunId = Guid.Parse(updateRunPayload!["workflowRunId"]!.ToString()!);
+
+        using (var updateRunGet = await client.GetAsync($"/api/workflows/runs/{updateRunId}"))
+        {
+            Assert.Equal(HttpStatusCode.OK, updateRunGet.StatusCode);
+            var updateRunDetails = await updateRunGet.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+            Assert.NotNull(updateRunDetails);
+            Assert.Equal("succeeded", updateRunDetails!["state"]?.ToString());
+        }
+
+        using var recordsResp2 = await client.GetAsync($"/api/entities/{entityId.Value}/records");
+        Assert.Equal(HttpStatusCode.OK, recordsResp2.StatusCode);
+        var recordsPayload2 = await recordsResp2.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(recordsPayload2);
+        var recordItems2 = Assert.IsType<JsonElement>(recordsPayload2!["items"]);
+
+        JsonElement? updated = null;
+        foreach (var it in recordItems2.EnumerateArray())
+        {
+            var idStr = it.GetProperty("entityRecordId").GetString();
+            if (idStr == recordId)
+            {
+                updated = it;
+                break;
+            }
+        }
+
+        Assert.True(updated.HasValue);
+        var dataJson = updated.Value.GetProperty("dataJson").GetString() ?? "{}";
+        using var dataDoc = JsonDocument.Parse(dataJson);
+        Assert.Equal("Acme Updated", dataDoc.RootElement.GetProperty("name").GetString());
+        Assert.Equal("inactive", dataDoc.RootElement.GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task Set_step_should_fail_when_outputJson_is_invalid_json()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        var definitionJson =
+            "{\"steps\":[" +
+            "{\"type\":\"set\",\"outputJson\":\"{not json}\"}" +
+            "]}";
+
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-set-invalid", definitionJson });
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(created);
+        var workflowId = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var startResp = await client.PostAsync($"/api/workflows/{workflowId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, startResp.StatusCode);
+        var startPayload = await startResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(startPayload);
+        var runId = Guid.Parse(startPayload!["workflowRunId"]!.ToString()!);
+
+        using var runDetailsResp = await client.GetAsync($"/api/workflows/runs/{runId}");
+        Assert.Equal(HttpStatusCode.OK, runDetailsResp.StatusCode);
+        var runPayload = await runDetailsResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(runPayload);
+        Assert.Equal("failed", runPayload!["state"]?.ToString());
+        Assert.Equal("set_output_json_invalid", runPayload["errorCode"]?.ToString());
+    }
 }
