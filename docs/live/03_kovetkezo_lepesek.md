@@ -319,6 +319,96 @@ npm start --prefix frontend
 }
 ```
 
+### Iteráció 21 — “Domain commands v3: step outputs (OutputJson) + Run details Output panel”
+**Cél**: a workflow step-eknek legyen “kimenete”, amit eltárolunk és UI-n is látszik, illetve később context-ként felhasználható.
+
+**Backend**
+- Új mező a step run-on: `WorkflowStepRun.OutputJson` (DB-ben: `workflow_step_run.output_json`).
+- Run details DTO bővült: `WorkflowStepRunDto.outputJson`.
+- Domain command outputok:
+  - `entityRecord.createByEntityName` → `{"entityDefinitionId":"...","entityRecordId":"..."}`
+  - `entityRecord.updateById` → `{"entityRecordId":"..."}`
+
+**Frontend**
+- Run details oldalon step-enként kibontás: **Output** panel (read-only JSON megjelenítés).
+
+**Megjegyzés**
+- Ez az alapja annak, hogy később “context variables” legyenek a workflow-ban (pl. guard step-ekhez).
+
+### Iteráció 22 — “Guards: require step (fail fast) + context outputs”
+**Cél**: egyszerű feltételek/guardok bevezetése a workflow-ba úgy, hogy egy lépés tudjon fail fast-olni a korábbi step outputok alapján.
+
+**Backend**
+- Új step típus: `require`
+  - Kötelező: `path` (pl. `000.entityRecordId`)
+  - Opcionális: `equals` (string)
+- A runner a sikeres step-ek `OutputJson`-jait step-key szerint contextbe rakja, és a `require` ebből olvas.
+- Hibakódok:
+  - `require_config_missing`
+  - `require_path_missing`
+  - `require_equals_invalid`
+  - `require_failed`
+
+**Példa definition JSON**
+
+```json
+{
+  "steps": [
+    {
+      "type": "domainCommand",
+      "command": "entityRecord.createByEntityName",
+      "entityName": "Company",
+      "data": { "name": "Acme Ltd", "status": "active" }
+    },
+    {
+      "type": "require",
+      "path": "000.entityRecordId"
+    },
+    { "type": "noop" }
+  ]
+}
+```
+
+**Frontend**
+- Új executable template: `Require (guard)`.
+
+### Iteráció 23 — “Domain command: entityRecord.upsertByEntityName”
+**Cél**: “create or update” egyetlen parancsból, entityName + unique kulcs alapján.
+
+**Backend**
+- Új domain command: `entityRecord.upsertByEntityName`
+  - Kötelező: `entityName` (string)
+  - Kötelező: `uniqueKey` (string)
+  - Kötelező: `uniqueValue` (string) *(vagy alternatívaként `data[uniqueKey]`)*
+  - Opcionális: `data` (object vagy string)
+- Output:
+  - `action`: `created` vagy `updated`
+  - `entityDefinitionId`, `entityRecordId`
+
+**Példa definition JSON**
+
+```json
+{
+  "steps": [
+    {
+      "type": "domainCommand",
+      "command": "entityRecord.upsertByEntityName",
+      "entityName": "Company",
+      "uniqueKey": "externalId",
+      "uniqueValue": "c-1",
+      "data": {
+        "externalId": "c-1",
+        "name": "Acme Upsert",
+        "status": "active"
+      }
+    }
+  ]
+}
+```
+
+**Frontend**
+- Új executable template: `Domain: upsert record`.
+
 ### Iteráció 18 — “domainCommand step scaffold (echo + entityRecord.createByEntityName)”
 **Cél**: új workflow step típus, ami domain parancsokat hív. Ez a híd a későbbi modulok felé (DDD jellegű parancsok).
 
