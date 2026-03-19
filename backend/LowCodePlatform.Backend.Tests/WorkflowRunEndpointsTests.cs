@@ -554,7 +554,7 @@ public sealed class WorkflowRunEndpointsTests
         {
             var ec = runPayload["errorCode"]?.ToString();
             var em = runPayload["errorMessage"]?.ToString();
-            Assert.True(false, $"Expected workflow run to succeed but was '{state}'. errorCode='{ec}' errorMessage='{em}'");
+            Assert.Fail($"Expected workflow run to succeed but was '{state}'. errorCode='{ec}' errorMessage='{em}'");
         }
 
         // Verify record data updated
@@ -940,10 +940,10 @@ public sealed class WorkflowRunEndpointsTests
             string? stepsDebug = null;
             try
             {
-                if (runPayload.TryGetValue("steps", out var stepsObj) && stepsObj is JsonElement stepsEl && stepsEl.ValueKind == JsonValueKind.Array)
+                if (runPayload.TryGetValue("steps", out var stepsObj) && stepsObj is JsonElement stepsArrEl && stepsArrEl.ValueKind == JsonValueKind.Array)
                 {
                     var lines = new List<string>();
-                    foreach (var s in stepsEl.EnumerateArray())
+                    foreach (var s in stepsArrEl.EnumerateArray())
                     {
                         var stepKey = s.TryGetProperty("stepKey", out var sk) ? sk.GetString() : null;
                         var stepType = s.TryGetProperty("stepType", out var st) ? st.GetString() : null;
@@ -1164,5 +1164,126 @@ public sealed class WorkflowRunEndpointsTests
         }
 
         Assert.Equal("merge_source_not_found", runPayload["errorCode"]?.ToString());
+    }
+
+    [Fact]
+    public async Task Foreach_step_should_iterate_array_and_expose_item_context()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        var definitionJson =
+            "{\"steps\":[" +
+            "{\"type\":\"set\",\"output\":{\"items\":[{\"n\":1},{\"n\":2}]}} ," +
+            "{\"type\":\"foreach\",\"items\":\"000.items\",\"do\":{\"type\":\"map\",\"mappings\":{\"n\":\"item.n\"}}}," +
+            "{\"type\":\"map\",\"mappings\":{\"first\":\"001.0.n\",\"second\":\"001.1.n\"}}" +
+            "]}";
+
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-foreach-items", definitionJson });
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(created);
+        var workflowId = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var startResp = await client.PostAsync($"/api/workflows/{workflowId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, startResp.StatusCode);
+        var startPayload = await startResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(startPayload);
+        var runId = Guid.Parse(startPayload!["workflowRunId"]!.ToString()!);
+
+        using var runDetailsResp = await client.GetAsync($"/api/workflows/runs/{runId}");
+        Assert.Equal(HttpStatusCode.OK, runDetailsResp.StatusCode);
+        var runPayload = await runDetailsResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(runPayload);
+        var state = runPayload!["state"]?.ToString();
+        if (!string.Equals("succeeded", state, StringComparison.OrdinalIgnoreCase))
+        {
+            var ec = runPayload["errorCode"]?.ToString();
+            var em = runPayload["errorMessage"]?.ToString();
+
+            string? stepsDebug = null;
+            try
+            {
+                if (runPayload.TryGetValue("steps", out var stepsObj) && stepsObj is JsonElement stepsArrEl && stepsArrEl.ValueKind == JsonValueKind.Array)
+                {
+                    var lines = new List<string>();
+                    foreach (var s in stepsArrEl.EnumerateArray())
+                    {
+                        var stepKey = s.TryGetProperty("stepKey", out var sk) ? sk.GetString() : null;
+                        var stepType = s.TryGetProperty("stepType", out var st) ? st.GetString() : null;
+                        var stepState = s.TryGetProperty("state", out var ss) ? ss.GetString() : null;
+                        var stepEc = s.TryGetProperty("lastErrorCode", out var sec) ? sec.GetString() : null;
+                        var stepEm = s.TryGetProperty("lastErrorMessage", out var sem) ? sem.GetString() : null;
+                        lines.Add($"stepKey={stepKey} stepType={stepType} state={stepState} lastErrorCode={stepEc} lastErrorMessage={stepEm}");
+                    }
+
+                    stepsDebug = string.Join("\n", lines);
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            Assert.Fail($"Expected workflow run to succeed but was '{state}'. errorCode='{ec}' errorMessage='{em}'\nsteps:\n{stepsDebug}");
+        }
+
+        var stepsEl = Assert.IsType<JsonElement>(runPayload["steps"]);
+        var step002 = stepsEl.EnumerateArray().First(x => x.GetProperty("stepKey").GetString() == "002");
+        var outputJson = step002.GetProperty("outputJson").GetString() ?? "{}";
+        using var doc = JsonDocument.Parse(outputJson);
+        Assert.Equal(1, doc.RootElement.GetProperty("first").GetInt32());
+        Assert.Equal(2, doc.RootElement.GetProperty("second").GetInt32());
+    }
+
+    [Fact]
+    public async Task Foreach_step_should_fail_fast_when_items_path_is_missing()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        var definitionJson =
+            "{\"steps\":[" +
+            "{\"type\":\"foreach\",\"items\":\"000.items\",\"do\":{\"type\":\"noop\"}}" +
+            "]}";
+
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-foreach-missing", definitionJson });
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(created);
+        var workflowId = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var startResp = await client.PostAsync($"/api/workflows/{workflowId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, startResp.StatusCode);
+        var startPayload = await startResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(startPayload);
+        var runId = Guid.Parse(startPayload!["workflowRunId"]!.ToString()!);
+
+        using var runDetailsResp = await client.GetAsync($"/api/workflows/runs/{runId}");
+        Assert.Equal(HttpStatusCode.OK, runDetailsResp.StatusCode);
+        var runPayload = await runDetailsResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(runPayload);
+        Assert.Equal("failed", runPayload!["state"]?.ToString());
+        Assert.Equal("foreach_items_not_found", runPayload["errorCode"]?.ToString());
     }
 }
