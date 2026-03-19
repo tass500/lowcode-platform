@@ -476,6 +476,49 @@ npm start --prefix frontend
 **Frontend**
 - Új executable template: `Domain: delete record`.
 
+### Iteráció 27 — “Context projection: map step”
+**Cél**: a workflow contextből egy új JSON objektumot (projection) előállítani és `OutputJson`-ként betenni a contextbe.
+
+**Backend**
+- Új step típus: `map`
+  - Kötelező field: `mappings` (object)
+  - `mappings` értékei: string context path-ok (pl. `000.entityRecordId`)
+- Hibakódok:
+  - `map_config_missing`
+  - `map_mappings_missing`
+  - `map_mapping_invalid`
+  - `map_source_not_found`
+
+**Példa definition JSON (create → map → update ${...})**
+
+```json
+{
+  "steps": [
+    {
+      "type": "domainCommand",
+      "command": "entityRecord.createByEntityName",
+      "entityName": "Company",
+      "data": { "name": "Acme Ltd", "status": "active" }
+    },
+    {
+      "type": "map",
+      "mappings": {
+        "recordId": "000.entityRecordId"
+      }
+    },
+    {
+      "type": "domainCommand",
+      "command": "entityRecord.updateById",
+      "recordId": "${001.recordId}",
+      "data": { "name": "Acme Updated", "status": "inactive" }
+    }
+  ]
+}
+```
+
+**Frontend**
+- Új executable template: `Map (projection)`.
+
 ### Iteráció 18 — “domainCommand step scaffold (echo + entityRecord.createByEntityName)”
 **Cél**: új workflow step típus, ami domain parancsokat hív. Ez a híd a későbbi modulok felé (DDD jellegű parancsok).
 
