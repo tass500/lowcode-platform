@@ -417,4 +417,97 @@ public sealed class WorkflowRunEndpointsTests
         Assert.Equal("failed", runPayload!["state"]?.ToString());
         Assert.Equal("require_failed", runPayload["errorCode"]?.ToString());
     }
+
+    [Fact]
+    public async Task Domain_command_should_be_able_to_upsert_entity_record_by_unique_key()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        var createJson =
+            "{\"steps\":[{" +
+            "\"type\":\"domainCommand\",\"command\":\"entityRecord.upsertByEntityName\",\"entityName\":\"Company\",\"uniqueKey\":\"externalId\",\"uniqueValue\":\"c-1\",\"data\":{\"externalId\":\"c-1\",\"name\":\"Acme\",\"status\":\"active\"}}]}";
+
+        using (var wfResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-upsert-create", definitionJson = createJson }))
+        {
+            Assert.Equal(HttpStatusCode.OK, wfResp.StatusCode);
+            var wf = await wfResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+            Assert.NotNull(wf);
+            var wfId = Guid.Parse(wf!["workflowDefinitionId"]!.ToString()!);
+
+            using var runResp = await client.PostAsync($"/api/workflows/{wfId}/runs", content: null);
+            Assert.Equal(HttpStatusCode.OK, runResp.StatusCode);
+        }
+
+        // Find Company entity id
+        using var entitiesResp = await client.GetAsync("/api/entities");
+        Assert.Equal(HttpStatusCode.OK, entitiesResp.StatusCode);
+        var entitiesPayload = await entitiesResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(entitiesPayload);
+        var items = Assert.IsType<JsonElement>(entitiesPayload!["items"]);
+
+        Guid? entityId = null;
+        foreach (var it in items.EnumerateArray())
+        {
+            var name = it.TryGetProperty("name", out var n) ? n.GetString() : null;
+            if (name == "Company")
+            {
+                entityId = Guid.Parse(it.GetProperty("entityDefinitionId").GetString()!);
+                break;
+            }
+        }
+        Assert.True(entityId.HasValue);
+
+        // Verify 1 record exists
+        using var recordsResp = await client.GetAsync($"/api/entities/{entityId.Value}/records");
+        Assert.Equal(HttpStatusCode.OK, recordsResp.StatusCode);
+        var recordsPayload = await recordsResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(recordsPayload);
+        var recordItems = Assert.IsType<JsonElement>(recordsPayload!["items"]);
+        Assert.Equal(1, recordItems.GetArrayLength());
+        var recordId = Guid.Parse(recordItems.EnumerateArray().First().GetProperty("entityRecordId").GetString()!);
+
+        var updateJson =
+            "{\"steps\":[{" +
+            "\"type\":\"domainCommand\",\"command\":\"entityRecord.upsertByEntityName\",\"entityName\":\"Company\",\"uniqueKey\":\"externalId\",\"uniqueValue\":\"c-1\",\"data\":{\"externalId\":\"c-1\",\"name\":\"Acme Updated\",\"status\":\"inactive\"}}]}";
+
+        using (var wfResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-upsert-update", definitionJson = updateJson }))
+        {
+            Assert.Equal(HttpStatusCode.OK, wfResp.StatusCode);
+            var wf = await wfResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+            Assert.NotNull(wf);
+            var wfId = Guid.Parse(wf!["workflowDefinitionId"]!.ToString()!);
+
+            using var runResp = await client.PostAsync($"/api/workflows/{wfId}/runs", content: null);
+            Assert.Equal(HttpStatusCode.OK, runResp.StatusCode);
+        }
+
+        // Verify still exactly 1 record, and it's the same id, with updated data
+        using var recordsResp2 = await client.GetAsync($"/api/entities/{entityId.Value}/records");
+        Assert.Equal(HttpStatusCode.OK, recordsResp2.StatusCode);
+        var recordsPayload2 = await recordsResp2.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(recordsPayload2);
+        var recordItems2 = Assert.IsType<JsonElement>(recordsPayload2!["items"]);
+        Assert.Equal(1, recordItems2.GetArrayLength());
+
+        var only = recordItems2.EnumerateArray().First();
+        var recordId2 = Guid.Parse(only.GetProperty("entityRecordId").GetString()!);
+        Assert.Equal(recordId, recordId2);
+
+        var dataJson = only.GetProperty("dataJson").GetString() ?? "{}";
+        using var doc = JsonDocument.Parse(dataJson);
+        Assert.Equal("Acme Updated", doc.RootElement.GetProperty("name").GetString());
+        Assert.Equal("inactive", doc.RootElement.GetProperty("status").GetString());
+        Assert.Equal("c-1", doc.RootElement.GetProperty("externalId").GetString());
+    }
 }
