@@ -25,16 +25,19 @@ public sealed class AccessLogMiddleware
         {
             sw.Stop();
 
+            var method = SanitizeForLog(ctx.Request.Method);
             var path = SanitizeForLog(ctx.Request.Path.Value);
+            var traceId = SanitizeForLog(TraceIdMiddleware.GetTraceId(ctx));
+            var tenantSlug = SanitizeForLog(tenant.Slug);
 
             _logger.LogInformation(
                 "http_request_finished method={Method} path={Path} status={StatusCode} durationMs={DurationMs} traceId={TraceId} tenant={TenantSlug}",
-                ctx.Request.Method,
+                method,
                 path,
                 ctx.Response.StatusCode,
                 sw.ElapsedMilliseconds,
-                TraceIdMiddleware.GetTraceId(ctx),
-                tenant.Slug);
+                traceId,
+                tenantSlug);
         }
     }
 
