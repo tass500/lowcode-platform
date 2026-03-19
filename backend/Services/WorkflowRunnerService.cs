@@ -186,6 +186,170 @@ public sealed class WorkflowRunnerService
         step.OutputJson = output.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
     }
 
+    private async Task ExecuteForeachAsync(WorkflowStepRun step, JsonObject context, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(step.StepConfigJson))
+        {
+            step.LastErrorCode = "foreach_config_missing";
+            step.LastErrorMessage = "foreach step requires a JSON config.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        using var doc = JsonDocument.Parse(step.StepConfigJson);
+        var root = doc.RootElement;
+
+        if (!root.TryGetProperty("items", out var itemsEl))
+        {
+            step.LastErrorCode = "foreach_items_missing";
+            step.LastErrorMessage = "foreach step requires 'items' (string context path or inline array).";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        if (!root.TryGetProperty("do", out var doEl) || doEl.ValueKind != JsonValueKind.Object)
+        {
+            step.LastErrorCode = "foreach_do_missing";
+            step.LastErrorMessage = "foreach step requires an object 'do' (a single inner step definition).";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        var asVar = "item";
+        if (root.TryGetProperty("as", out var asEl))
+        {
+            if (asEl.ValueKind != JsonValueKind.String)
+            {
+                step.LastErrorCode = "foreach_as_invalid";
+                step.LastErrorMessage = "foreach step field 'as' must be a string when provided.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            var raw = (asEl.GetString() ?? string.Empty).Trim();
+            if (!string.IsNullOrWhiteSpace(raw))
+                asVar = raw;
+        }
+
+        JsonNode? itemsNode;
+        if (itemsEl.ValueKind == JsonValueKind.String)
+        {
+            var path = (itemsEl.GetString() ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                step.LastErrorCode = "foreach_items_invalid";
+                step.LastErrorMessage = "foreach step field 'items' must be a non-empty context path string or an inline array.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            itemsNode = ResolveContextPath(context, path);
+            if (itemsNode is null)
+            {
+                step.LastErrorCode = "foreach_items_not_found";
+                step.LastErrorMessage = $"Context path not found for foreach items: '{path}'.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+        }
+        else if (itemsEl.ValueKind == JsonValueKind.Array)
+        {
+            itemsNode = JsonNode.Parse(itemsEl.GetRawText());
+        }
+        else
+        {
+            step.LastErrorCode = "foreach_items_invalid";
+            step.LastErrorMessage = "foreach step field 'items' must be a string (context path) or inline array.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        if (itemsNode is not JsonArray arr)
+        {
+            step.LastErrorCode = "foreach_items_invalid";
+            step.LastErrorMessage = "foreach step 'items' must resolve to a JSON array.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        if (!doEl.TryGetProperty("type", out var typeEl) || typeEl.ValueKind != JsonValueKind.String)
+        {
+            step.LastErrorCode = "foreach_do_type_missing";
+            step.LastErrorMessage = "foreach step 'do' must contain a string 'type'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        var innerType = (typeEl.GetString() ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(innerType))
+        {
+            step.LastErrorCode = "foreach_do_type_missing";
+            step.LastErrorMessage = "foreach step 'do' must contain a non-empty string 'type'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        context.TryGetPropertyValue("foreach", out var priorForeach);
+        context.TryGetPropertyValue(asVar, out var priorAs);
+
+        var results = new JsonArray();
+        for (var i = 0; i < arr.Count; i += 1)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var currentItem = arr[i];
+            var itemNode = currentItem is null ? null : JsonNode.Parse(currentItem.ToJsonString());
+            var foreachObj = new JsonObject
+            {
+                ["item"] = itemNode,
+                ["index"] = i,
+            };
+
+            context["foreach"] = foreachObj;
+            context[asVar] = itemNode is null ? null : JsonNode.Parse(itemNode.ToJsonString());
+
+            var innerStep = new WorkflowStepRun
+            {
+                WorkflowStepRunId = Guid.Empty,
+                WorkflowRunId = step.WorkflowRunId,
+                StepKey = $"{step.StepKey}.{i:000}",
+                StepType = innerType,
+                StepConfigJson = doEl.GetRawText(),
+                State = WorkflowStepRunStates.Pending,
+            };
+
+            try
+            {
+                InterpolateStepConfigJson(innerStep, context);
+                await ExecuteStepBodyAsync(innerStep, context, ct);
+
+                if (string.IsNullOrWhiteSpace(innerStep.OutputJson))
+                {
+                    results.Add(null);
+                }
+                else
+                {
+                    try
+                    {
+                        results.Add(JsonNode.Parse(innerStep.OutputJson));
+                    }
+                    catch
+                    {
+                        results.Add(JsonValue.Create(innerStep.OutputJson));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                step.LastErrorCode = innerStep.LastErrorCode ?? "foreach_inner_failed";
+                step.LastErrorMessage = innerStep.LastErrorMessage ?? ex.Message;
+                throw;
+            }
+        }
+
+        if (priorForeach is null)
+            context.Remove("foreach");
+        else
+            context["foreach"] = priorForeach;
+
+        if (priorAs is null)
+            context.Remove(asVar);
+        else
+            context[asVar] = priorAs;
+
+        step.OutputJson = results.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
+    }
+
     private static void ExecuteMergeAsync(WorkflowStepRun step, JsonObject context)
     {
         if (string.IsNullOrWhiteSpace(step.StepConfigJson))
@@ -510,60 +674,7 @@ public sealed class WorkflowRunnerService
         {
             InterpolateStepConfigJson(step, context);
 
-            switch (step.StepType.ToLowerInvariant())
-            {
-                case "delay":
-                {
-                    var ms = 100;
-                    if (!string.IsNullOrWhiteSpace(step.StepConfigJson))
-                    {
-                        using var doc = JsonDocument.Parse(step.StepConfigJson);
-                        if (doc.RootElement.TryGetProperty("ms", out var v) && v.TryGetInt32(out var parsed) && parsed >= 0)
-                            ms = parsed;
-                    }
-
-                    await Task.Delay(ms, ct);
-                    break;
-                }
-
-                case "set":
-                {
-                    ExecuteSetAsync(step);
-                    break;
-                }
-
-                case "map":
-                {
-                    ExecuteMapAsync(step, context);
-                    break;
-                }
-
-                case "merge":
-                {
-                    ExecuteMergeAsync(step, context);
-                    break;
-                }
-
-                case "require":
-                {
-                    ExecuteRequireAsync(step, context);
-                    break;
-                }
-
-                case "domaincommand":
-                {
-                    await ExecuteDomainCommandAsync(step, ct);
-                    break;
-                }
-
-                case "noop":
-                    break;
-
-                default:
-                    step.LastErrorCode = "workflow_step_type_not_supported";
-                    step.LastErrorMessage = $"Unsupported workflow step type: '{step.StepType}'.";
-                    throw new InvalidOperationException(step.LastErrorMessage);
-            }
+            await ExecuteStepBodyAsync(step, context, ct);
 
             step.State = WorkflowStepRunStates.Succeeded;
             step.FinishedAtUtc = DateTime.UtcNow;
@@ -577,6 +688,70 @@ public sealed class WorkflowRunnerService
 
             run.ErrorCode = step.LastErrorCode;
             run.ErrorMessage = step.LastErrorMessage;
+        }
+    }
+
+    private async Task ExecuteStepBodyAsync(WorkflowStepRun step, JsonObject context, CancellationToken ct)
+    {
+        switch (step.StepType.ToLowerInvariant())
+        {
+            case "delay":
+            {
+                var ms = 100;
+                if (!string.IsNullOrWhiteSpace(step.StepConfigJson))
+                {
+                    using var doc = JsonDocument.Parse(step.StepConfigJson);
+                    if (doc.RootElement.TryGetProperty("ms", out var v) && v.TryGetInt32(out var parsed) && parsed >= 0)
+                        ms = parsed;
+                }
+
+                await Task.Delay(ms, ct);
+                break;
+            }
+
+            case "set":
+            {
+                ExecuteSetAsync(step);
+                break;
+            }
+
+            case "map":
+            {
+                ExecuteMapAsync(step, context);
+                break;
+            }
+
+            case "merge":
+            {
+                ExecuteMergeAsync(step, context);
+                break;
+            }
+
+            case "foreach":
+            {
+                await ExecuteForeachAsync(step, context, ct);
+                break;
+            }
+
+            case "require":
+            {
+                ExecuteRequireAsync(step, context);
+                break;
+            }
+
+            case "domaincommand":
+            {
+                await ExecuteDomainCommandAsync(step, ct);
+                break;
+            }
+
+            case "noop":
+                break;
+
+            default:
+                step.LastErrorCode = "workflow_step_type_not_supported";
+                step.LastErrorMessage = $"Unsupported workflow step type: '{step.StepType}'.";
+                throw new InvalidOperationException(step.LastErrorMessage);
         }
     }
 

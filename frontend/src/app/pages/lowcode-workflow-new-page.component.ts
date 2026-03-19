@@ -36,6 +36,7 @@ type WorkflowDefinitionDetailsDto = {
           <button type="button" (click)="applyTemplate('set')">Set (seed output)</button>
           <button type="button" (click)="applyTemplate('map')">Map (projection)</button>
           <button type="button" (click)="applyTemplate('merge')">Merge (combine objects)</button>
+          <button type="button" (click)="applyTemplate('foreach')">Foreach (iterate)</button>
           <button type="button" (click)="applyTemplate('require')">Require (guard)</button>
           <button type="button" (click)="applyTemplate('domainEcho')">Domain: echo</button>
           <button type="button" (click)="applyTemplate('domainCreateRecord')">Domain: create record</button>
@@ -44,7 +45,7 @@ type WorkflowDefinitionDetailsDto = {
           <button type="button" (click)="applyTemplate('domainUpsertRecord')">Domain: upsert record</button>
           <button type="button" (click)="applyTemplate('setAndUpdateById')">Set + updateById (context var)</button>
         </div>
-        <div style="margin-top: 6px; color:#444;">These templates only use step types currently supported by the engine: <code>noop</code> and <code>delay</code>.</div>
+        <div style="margin-top: 6px; color:#444;">These templates only use step types currently supported by the engine: <code>noop</code>, <code>delay</code>, <code>set</code>, <code>map</code>, <code>merge</code>, <code>foreach</code>, <code>require</code>, <code>domainCommand</code>.</div>
       </section>
 
       <form [formGroup]="form" style="margin-top: 12px; display:flex; flex-direction: column; gap: 12px;">
@@ -81,6 +82,7 @@ export class LowCodeWorkflowNewPageComponent {
       | 'set'
       | 'map'
       | 'merge'
+      | 'foreach'
       | 'require'
       | 'domainEcho'
       | 'domainCreateRecord'
@@ -113,6 +115,10 @@ export class LowCodeWorkflowNewPageComponent {
       merge: {
         name: 'wf-merge-objects',
         json: '{"steps":[{"type":"set","output":{"a":1,"b":2}},{"type":"merge","sources":[{"b":99,"c":3},"000"]},{"type":"noop"}]}',
+      },
+      foreach: {
+        name: 'wf-foreach-items',
+        json: '{"steps":[{"type":"set","output":{"items":[{"n":1},{"n":2}]}},{"type":"foreach","items":"000.items","do":{"type":"map","mappings":{"n":"item.n"}}},{"type":"noop"}]}',
       },
       require: {
         name: 'wf-require-guard',
