@@ -409,6 +409,45 @@ npm start --prefix frontend
 **Frontend**
 - Új executable template: `Domain: upsert record`.
 
+### Iteráció 25 — “Context seeding: set step (OutputJson → context)”
+**Cél**: konstansok/változók seedelése a workflow contextbe, hogy későbbi step-ek `${...}`-al hivatkozhassanak rá.
+
+**Backend**
+- Új step típus: `set`
+  - `output` mező: tetszőleges JSON (object/array/scalar) → `OutputJson`
+  - vagy `outputJson`: string, amiben valid JSON van
+- Hibakódok:
+  - `set_config_missing`
+  - `set_output_missing`
+  - `set_output_json_invalid`
+
+**Példa definition JSON (seed + updateById)**
+
+```json
+{
+  "steps": [
+    {
+      "type": "set",
+      "output": { "recordId": "<RECORD_ID_GUID>" }
+    },
+    {
+      "type": "domainCommand",
+      "command": "entityRecord.updateById",
+      "recordId": "${000.recordId}",
+      "data": {
+        "name": "Acme Updated",
+        "status": "inactive"
+      }
+    }
+  ]
+}
+```
+
+**Frontend**
+- Új executable template-ek a `/lowcode/workflows/new` oldalon:
+  - `Set (seed output)`
+  - `Set + updateById (${...})`
+
 ### Iteráció 18 — “domainCommand step scaffold (echo + entityRecord.createByEntityName)”
 **Cél**: új workflow step típus, ami domain parancsokat hív. Ez a híd a későbbi modulok felé (DDD jellegű parancsok).
 
