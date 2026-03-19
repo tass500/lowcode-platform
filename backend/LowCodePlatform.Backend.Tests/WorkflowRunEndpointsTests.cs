@@ -785,4 +785,104 @@ public sealed class WorkflowRunEndpointsTests
         Assert.Equal("failed", runPayload!["state"]?.ToString());
         Assert.Equal("set_output_json_invalid", runPayload["errorCode"]?.ToString());
     }
+
+    [Fact]
+    public async Task Domain_command_should_be_able_to_delete_entity_record_by_id()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        // Create a record first
+        var createJson =
+            "{\"steps\":[{\"type\":\"domainCommand\",\"command\":\"entityRecord.createByEntityName\",\"entityName\":\"Company\",\"data\":{\"name\":\"Acme Ltd\",\"status\":\"active\"}}]}";
+        using var createWfResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-domain-create-for-delete", definitionJson = createJson });
+        Assert.Equal(HttpStatusCode.OK, createWfResp.StatusCode);
+        var createdWf = await createWfResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(createdWf);
+        var createWfId = Guid.Parse(createdWf!["workflowDefinitionId"]!.ToString()!);
+
+        using var createRunResp = await client.PostAsync($"/api/workflows/{createWfId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, createRunResp.StatusCode);
+        var createRunPayload = await createRunResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(createRunPayload);
+        var createRunId = Guid.Parse(createRunPayload!["workflowRunId"]!.ToString()!);
+
+        using (var createRunGet = await client.GetAsync($"/api/workflows/runs/{createRunId}"))
+        {
+            Assert.Equal(HttpStatusCode.OK, createRunGet.StatusCode);
+            var createRunDetails = await createRunGet.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+            Assert.NotNull(createRunDetails);
+            Assert.Equal("succeeded", createRunDetails!["state"]?.ToString());
+        }
+
+        // Find Company entity id
+        using var entitiesResp = await client.GetAsync("/api/entities");
+        Assert.Equal(HttpStatusCode.OK, entitiesResp.StatusCode);
+        var entitiesPayload = await entitiesResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(entitiesPayload);
+        var entitiesItems = Assert.IsType<JsonElement>(entitiesPayload!["items"]);
+
+        Guid? entityId = null;
+        foreach (var it in entitiesItems.EnumerateArray())
+        {
+            var name = it.TryGetProperty("name", out var n) ? n.GetString() : null;
+            if (name == "Company")
+            {
+                entityId = Guid.Parse(it.GetProperty("entityDefinitionId").GetString()!);
+                break;
+            }
+        }
+        Assert.True(entityId.HasValue);
+
+        // Get record id
+        using var recordsResp = await client.GetAsync($"/api/entities/{entityId.Value}/records");
+        Assert.Equal(HttpStatusCode.OK, recordsResp.StatusCode);
+        var recordsPayload = await recordsResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(recordsPayload);
+        var recordItems = Assert.IsType<JsonElement>(recordsPayload!["items"]);
+        Assert.True(recordItems.GetArrayLength() >= 1);
+        var firstRecord = recordItems.EnumerateArray().First();
+        var recordId = Guid.Parse(firstRecord.GetProperty("entityRecordId").GetString()!);
+
+        // Delete record via domainCommand
+        var deleteJson =
+            "{\"steps\":[{\"type\":\"domainCommand\",\"command\":\"entityRecord.deleteById\",\"recordId\":\"" + recordId + "\"}]}";
+        using var deleteWfResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-domain-delete", definitionJson = deleteJson });
+        Assert.Equal(HttpStatusCode.OK, deleteWfResp.StatusCode);
+        var deleteWf = await deleteWfResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(deleteWf);
+        var deleteWfId = Guid.Parse(deleteWf!["workflowDefinitionId"]!.ToString()!);
+
+        using var deleteRunResp = await client.PostAsync($"/api/workflows/{deleteWfId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, deleteRunResp.StatusCode);
+        var deleteRunPayload = await deleteRunResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(deleteRunPayload);
+        var deleteRunId = Guid.Parse(deleteRunPayload!["workflowRunId"]!.ToString()!);
+
+        using (var deleteRunGet = await client.GetAsync($"/api/workflows/runs/{deleteRunId}"))
+        {
+            Assert.Equal(HttpStatusCode.OK, deleteRunGet.StatusCode);
+            var deleteRunDetails = await deleteRunGet.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+            Assert.NotNull(deleteRunDetails);
+            Assert.Equal("succeeded", deleteRunDetails!["state"]?.ToString());
+        }
+
+        // Records list endpoint should now be empty
+        using var recordsResp2 = await client.GetAsync($"/api/entities/{entityId.Value}/records");
+        Assert.Equal(HttpStatusCode.OK, recordsResp2.StatusCode);
+        var recordsPayload2 = await recordsResp2.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(recordsPayload2);
+        var recordItems2 = Assert.IsType<JsonElement>(recordsPayload2!["items"]);
+        Assert.Equal(0, recordItems2.GetArrayLength());
+    }
 }
