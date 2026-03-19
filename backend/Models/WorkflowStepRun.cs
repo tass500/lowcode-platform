@@ -8,6 +8,7 @@ public sealed class WorkflowStepRun
     public string StepKey { get; set; } = string.Empty;
     public string StepType { get; set; } = string.Empty;
     public string? StepConfigJson { get; set; }
+    public string? OutputJson { get; set; }
 
     public string State { get; set; } = WorkflowStepRunStates.Pending;
 

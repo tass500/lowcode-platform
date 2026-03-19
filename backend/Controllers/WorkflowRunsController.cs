@@ -57,6 +57,7 @@ public sealed class WorkflowRunsController : ControllerBase
                     s.StepKey,
                     s.StepType,
                     s.StepConfigJson,
+                    s.OutputJson,
                     s.State,
                     s.Attempt,
                     s.LastErrorCode,

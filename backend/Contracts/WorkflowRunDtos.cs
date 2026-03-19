@@ -5,6 +5,7 @@ public sealed record WorkflowStepRunDto(
     string StepKey,
     string StepType,
     string? StepConfigJson,
+    string? OutputJson,
     string State,
     int Attempt,
     string? LastErrorCode,

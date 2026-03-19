@@ -9,6 +9,7 @@ type WorkflowStepRunDto = {
   stepKey: string;
   stepType: string;
   stepConfigJson?: string | null;
+  outputJson?: string | null;
   state: string;
   attempt: number;
   lastErrorCode?: string | null;
@@ -110,6 +111,7 @@ type WorkflowRunDetailsDto = {
               </td>
               <td style="border-bottom:1px solid #eee; padding: 6px; white-space: nowrap;">
                 <button type="button" (click)="toggleStepConfig(s.workflowStepRunId)">Config</button>
+                <button type="button" (click)="toggleStepOutput(s.workflowStepRunId)" [disabled]="!s.outputJson" style="margin-left: 6px;">Output</button>
               </td>
               </tr>
 
@@ -117,6 +119,13 @@ type WorkflowRunDetailsDto = {
                 <td colspan="6" style="border-bottom:1px solid #eee; padding: 6px;">
                   <div style="color:#444; margin-bottom: 6px;"><b>Step config</b></div>
                   <textarea [value]="formatJsonMaybe(s.stepConfigJson)" rows="8" style="width: 100%; font-family: monospace;" readonly></textarea>
+                </td>
+              </tr>
+
+              <tr *ngIf="expandedOutputIds[s.workflowStepRunId]">
+                <td colspan="6" style="border-bottom:1px solid #eee; padding: 6px;">
+                  <div style="color:#444; margin-bottom: 6px;"><b>Step output</b></div>
+                  <textarea [value]="formatJsonMaybe(s.outputJson)" rows="6" style="width: 100%; font-family: monospace;" readonly></textarea>
                 </td>
               </tr>
             </ng-container>
@@ -144,6 +153,7 @@ export class LowCodeRunDetailsPageComponent implements OnInit, OnDestroy {
   textFilter = '';
 
   expandedStepIds: Record<string, boolean> = {};
+  expandedOutputIds: Record<string, boolean> = {};
 
   get filteredSteps(): WorkflowStepRunDto[] {
     const steps = this.run?.steps ?? [];
@@ -158,7 +168,8 @@ export class LowCodeRunDetailsPageComponent implements OnInit, OnDestroy {
 
       const err = `${s.lastErrorCode ?? ''} ${s.lastErrorMessage ?? ''}`.toLowerCase();
       const cfg = String(s.stepConfigJson ?? '').toLowerCase();
-      return err.includes(q) || cfg.includes(q);
+      const out = String(s.outputJson ?? '').toLowerCase();
+      return err.includes(q) || cfg.includes(q) || out.includes(q);
     });
   }
 
@@ -199,6 +210,10 @@ export class LowCodeRunDetailsPageComponent implements OnInit, OnDestroy {
 
   toggleStepConfig(stepRunId: string): void {
     this.expandedStepIds[stepRunId] = !this.expandedStepIds[stepRunId];
+  }
+
+  toggleStepOutput(stepRunId: string): void {
+    this.expandedOutputIds[stepRunId] = !this.expandedOutputIds[stepRunId];
   }
 
   formatJsonMaybe(value: string | null | undefined): string {
