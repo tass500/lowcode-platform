@@ -2,10 +2,10 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 28 — `merge` step + stabilizálás + PR**
+**ACTIVE: Iteráció 29 — `foreach` step + PR**
 
-- Iteráció 28 (ACTIVE): `merge` step (shallow merge), integrációs tesztek, frontend executable template, live docs; commit + push + PR.
-- Iteráció 29: `foreach` step (control flow) + tesztek + frontend template + live docs.
+- Iteráció 28: `merge` step (shallow merge), integrációs tesztek, frontend executable template, live docs.
+- Iteráció 29 (ACTIVE): `foreach` step (control flow) + tesztek + frontend template + live docs; commit + push + PR.
 - Iteráció 30: `switch` / `when` jellegű branch step (alap elágazás) + tesztek + template.
 - Iteráció 31: retry/backoff policy step-szinten (konfigurálható) + tesztek.
 - Iteráció 32: step timeout / cancellation hardening + tesztek.
@@ -13,10 +13,10 @@
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch: `feat/iter-28-merge-step`
+- Branch: `feat/iter-29-foreach-step`
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
-- Következő teendő (Iteráció 28): commit slice (backend+tests / frontend / docs) → push → PR nyitás
+- Következő teendő (Iteráció 29): commit slice (backend+tests / frontend / docs) → push → PR nyitás
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.
@@ -576,6 +576,57 @@ npm start --prefix frontend
 
 **Frontend**
 - Új executable template: `Merge (combine objects)`.
+
+### Iteráció 29 — “Control flow: foreach step”
+**Cél**: egy JSON array elemein végigiterálni, és minden elemre lefuttatni egy belső (egyetlen) step-et úgy, hogy az elem elérhető legyen contextben.
+
+**Backend**
+- Új step típus: `foreach`
+- Kötelező field-ek:
+  - `items`:
+    - string: context path (pl. `000.items`)
+    - inline array: közvetlenül megadott JSON array
+  - `do`: egyetlen inner step definíció (object), ami **kötelezően** tartalmazza a `type` field-et
+- Opcionális:
+  - `as` (string): az aktuális elem neve a contextben (default: `item`)
+- Context változók a futás közben:
+  - `item`: az aktuális elem (vagy `as` szerinti változó)
+  - `foreach.item`: az aktuális elem
+  - `foreach.index`: 0-indexelt sorszám
+- Output: `OutputJson` egy JSON array, aminek elemei az inner step-ek `OutputJson` értékei (ha nincs, akkor `null`)
+- Hibakódok:
+  - `foreach_config_missing`
+  - `foreach_items_missing`
+  - `foreach_items_invalid`
+  - `foreach_items_not_found`
+  - `foreach_do_missing`
+  - `foreach_do_type_missing`
+  - `foreach_as_invalid`
+
+**Példa definition JSON (context array + projection)**
+
+```json
+{
+  "steps": [
+    {
+      "type": "set",
+      "output": { "items": [{ "n": 1 }, { "n": 2 }] }
+    },
+    {
+      "type": "foreach",
+      "items": "000.items",
+      "do": {
+        "type": "map",
+        "mappings": { "n": "item.n" }
+      }
+    },
+    { "type": "noop" }
+  ]
+}
+```
+
+**Frontend**
+- Új executable template: `Foreach (iterate)`.
 
 ### Iteráció 18 — “domainCommand step scaffold (echo + entityRecord.createByEntityName)”
 **Cél**: új workflow step típus, ami domain parancsokat hív. Ez a híd a későbbi modulok felé (DDD jellegű parancsok).
