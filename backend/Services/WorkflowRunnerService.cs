@@ -180,7 +180,79 @@ public sealed class WorkflowRunnerService
                 throw new InvalidOperationException(step.LastErrorMessage);
             }
 
-            output[prop.Name] = resolved.DeepClone();
+            output[prop.Name] = JsonNode.Parse(resolved.ToJsonString());
+        }
+
+        step.OutputJson = output.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
+    }
+
+    private static void ExecuteMergeAsync(WorkflowStepRun step, JsonObject context)
+    {
+        if (string.IsNullOrWhiteSpace(step.StepConfigJson))
+        {
+            step.LastErrorCode = "merge_config_missing";
+            step.LastErrorMessage = "merge step requires a JSON config.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        using var doc = JsonDocument.Parse(step.StepConfigJson);
+        var root = doc.RootElement;
+
+        if (!root.TryGetProperty("sources", out var sourcesEl) || sourcesEl.ValueKind != JsonValueKind.Array)
+        {
+            step.LastErrorCode = "merge_sources_missing";
+            step.LastErrorMessage = "merge step requires an array 'sources'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        var output = new JsonObject();
+        foreach (var srcEl in sourcesEl.EnumerateArray())
+        {
+            JsonNode? resolved;
+
+            if (srcEl.ValueKind == JsonValueKind.String)
+            {
+                var path = (srcEl.GetString() ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    step.LastErrorCode = "merge_source_invalid";
+                    step.LastErrorMessage = "merge step 'sources' items must be non-empty strings (context paths) or inline objects.";
+                    throw new InvalidOperationException(step.LastErrorMessage);
+                }
+
+                resolved = ResolveContextPath(context, path);
+                if (resolved is null)
+                {
+                    step.LastErrorCode = "merge_source_not_found";
+                    step.LastErrorMessage = $"Context path not found for merge source: '{path}'.";
+                    throw new InvalidOperationException(step.LastErrorMessage);
+                }
+            }
+            else if (srcEl.ValueKind == JsonValueKind.Object)
+            {
+                resolved = JsonNode.Parse(srcEl.GetRawText());
+            }
+            else
+            {
+                step.LastErrorCode = "merge_source_invalid";
+                step.LastErrorMessage = "merge step 'sources' items must be strings (context paths) or inline objects.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            if (resolved is not JsonObject srcObj)
+            {
+                step.LastErrorCode = "merge_source_invalid";
+                step.LastErrorMessage = "merge step sources must resolve to JSON objects.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            foreach (var kv in srcObj)
+            {
+                if (kv.Value is null)
+                    output[kv.Key] = null;
+                else
+                    output[kv.Key] = JsonNode.Parse(kv.Value.ToJsonString());
+            }
         }
 
         step.OutputJson = output.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
@@ -218,7 +290,9 @@ public sealed class WorkflowRunnerService
             {
                 if (kv.Value is null)
                     continue;
-                obj[kv.Key] = RewriteNode(kv.Value, context, step);
+                var rewritten = RewriteNode(kv.Value, context, step);
+                if (!ReferenceEquals(rewritten, kv.Value))
+                    obj[kv.Key] = rewritten;
             }
             return obj;
         }
@@ -229,7 +303,9 @@ public sealed class WorkflowRunnerService
             {
                 if (arr[i] is null)
                     continue;
-                arr[i] = RewriteNode(arr[i]!, context, step);
+                var rewritten = RewriteNode(arr[i]!, context, step);
+                if (!ReferenceEquals(rewritten, arr[i]))
+                    arr[i] = rewritten;
             }
             return arr;
         }
@@ -262,7 +338,7 @@ public sealed class WorkflowRunnerService
                     throw new InvalidOperationException(step.LastErrorMessage);
                 }
 
-                return resolved.DeepClone();
+                return JsonNode.Parse(resolved.ToJsonString()) ?? resolved;
             }
 
             if (!ContextVarRegex.IsMatch(s))
@@ -459,6 +535,12 @@ public sealed class WorkflowRunnerService
                 case "map":
                 {
                     ExecuteMapAsync(step, context);
+                    break;
+                }
+
+                case "merge":
+                {
+                    ExecuteMergeAsync(step, context);
                     break;
                 }
 

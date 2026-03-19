@@ -35,6 +35,7 @@ type WorkflowDefinitionDetailsDto = {
           <button type="button" (click)="applyTemplate('delay3')">3x Delay</button>
           <button type="button" (click)="applyTemplate('set')">Set (seed output)</button>
           <button type="button" (click)="applyTemplate('map')">Map (projection)</button>
+          <button type="button" (click)="applyTemplate('merge')">Merge (combine objects)</button>
           <button type="button" (click)="applyTemplate('require')">Require (guard)</button>
           <button type="button" (click)="applyTemplate('domainEcho')">Domain: echo</button>
           <button type="button" (click)="applyTemplate('domainCreateRecord')">Domain: create record</button>
@@ -79,6 +80,7 @@ export class LowCodeWorkflowNewPageComponent {
       | 'delay3'
       | 'set'
       | 'map'
+      | 'merge'
       | 'require'
       | 'domainEcho'
       | 'domainCreateRecord'
@@ -107,6 +109,10 @@ export class LowCodeWorkflowNewPageComponent {
       map: {
         name: 'wf-map-projection',
         json: '{"steps":[{"type":"domainCommand","command":"entityRecord.createByEntityName","entityName":"Company","data":{"name":"Acme Ltd","status":"active"}},{"type":"map","mappings":{"recordId":"000.entityRecordId"}},{"type":"noop"}]}',
+      },
+      merge: {
+        name: 'wf-merge-objects',
+        json: '{"steps":[{"type":"set","output":{"a":1,"b":2}},{"type":"merge","sources":[{"b":99,"c":3},"000"]},{"type":"noop"}]}',
       },
       require: {
         name: 'wf-require-guard',
