@@ -109,6 +109,7 @@ public sealed class WorkflowRunnerService
         step.StartedAtUtc = DateTime.UtcNow;
         step.LastErrorCode = null;
         step.LastErrorMessage = null;
+        step.OutputJson = null;
 
         try
         {
@@ -261,6 +262,7 @@ public sealed class WorkflowRunnerService
         };
 
         _db.EntityRecords.Add(record);
+        step.OutputJson = $"{{\"entityDefinitionId\":\"{entity.EntityDefinitionId}\",\"entityRecordId\":\"{record.EntityRecordId}\"}}";
         await Task.CompletedTask;
     }
 
@@ -316,5 +318,7 @@ public sealed class WorkflowRunnerService
 
         record.DataJson = dataJson;
         record.UpdatedAtUtc = DateTime.UtcNow;
+
+        step.OutputJson = $"{{\"entityRecordId\":\"{record.EntityRecordId}\"}}";
     }
 }

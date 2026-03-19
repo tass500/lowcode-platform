@@ -137,6 +137,7 @@ public sealed class PlatformDbContext : DbContext
             e.Property(x => x.StepKey).HasColumnName("step_key");
             e.Property(x => x.StepType).HasColumnName("step_type");
             e.Property(x => x.StepConfigJson).HasColumnName("step_config_json");
+            e.Property(x => x.OutputJson).HasColumnName("output_json");
             e.Property(x => x.State).HasColumnName("state");
             e.Property(x => x.Attempt).HasColumnName("attempt");
             e.Property(x => x.LastErrorCode).HasColumnName("last_error_code");
