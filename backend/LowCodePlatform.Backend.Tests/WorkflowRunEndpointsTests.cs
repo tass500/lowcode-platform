@@ -1387,4 +1387,99 @@ public sealed class WorkflowRunEndpointsTests
         using var doc = JsonDocument.Parse(outputJson);
         Assert.Equal(99, doc.RootElement.GetProperty("result").GetInt32());
     }
+
+    [Fact]
+    public async Task Step_retry_should_succeed_after_transient_failures()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        var definitionJson =
+            "{\"steps\":[" +
+            "{\"type\":\"unstable\",\"failTimes\":2,\"retry\":{\"maxAttempts\":3,\"delayMs\":0},\"output\":{\"ok\":true}}," +
+            "{\"type\":\"map\",\"mappings\":{\"ok\":\"000.ok\"}}" +
+            "]}";
+
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-retry-success", definitionJson });
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(created);
+        var workflowId = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var startResp = await client.PostAsync($"/api/workflows/{workflowId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, startResp.StatusCode);
+        var startPayload = await startResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(startPayload);
+        var runId = Guid.Parse(startPayload!["workflowRunId"]!.ToString()!);
+
+        using var runDetailsResp = await client.GetAsync($"/api/workflows/runs/{runId}");
+        Assert.Equal(HttpStatusCode.OK, runDetailsResp.StatusCode);
+        var runPayload = await runDetailsResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(runPayload);
+        Assert.Equal("succeeded", runPayload!["state"]?.ToString());
+
+        var stepsEl = Assert.IsType<JsonElement>(runPayload["steps"]);
+        var step000 = stepsEl.EnumerateArray().First(x => x.GetProperty("stepKey").GetString() == "000");
+        Assert.Equal(3, step000.GetProperty("attempt").GetInt32());
+
+        var step001 = stepsEl.EnumerateArray().First(x => x.GetProperty("stepKey").GetString() == "001");
+        var outputJson = step001.GetProperty("outputJson").GetString() ?? "{}";
+        using var doc = JsonDocument.Parse(outputJson);
+        Assert.True(doc.RootElement.GetProperty("ok").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Step_retry_should_fail_when_max_attempts_is_exhausted()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        var definitionJson =
+            "{\"steps\":[" +
+            "{\"type\":\"unstable\",\"failTimes\":5,\"retry\":{\"maxAttempts\":3,\"delayMs\":0}}" +
+            "]}";
+
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-retry-fail", definitionJson });
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(created);
+        var workflowId = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var startResp = await client.PostAsync($"/api/workflows/{workflowId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, startResp.StatusCode);
+        var startPayload = await startResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(startPayload);
+        var runId = Guid.Parse(startPayload!["workflowRunId"]!.ToString()!);
+
+        using var runDetailsResp = await client.GetAsync($"/api/workflows/runs/{runId}");
+        Assert.Equal(HttpStatusCode.OK, runDetailsResp.StatusCode);
+        var runPayload = await runDetailsResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(runPayload);
+        Assert.Equal("failed", runPayload!["state"]?.ToString());
+
+        var stepsEl = Assert.IsType<JsonElement>(runPayload["steps"]);
+        var step000 = stepsEl.EnumerateArray().First(x => x.GetProperty("stepKey").GetString() == "000");
+        Assert.Equal(3, step000.GetProperty("attempt").GetInt32());
+        Assert.Equal("unstable_failed", step000.GetProperty("lastErrorCode").GetString());
+    }
 }

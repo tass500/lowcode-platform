@@ -38,6 +38,7 @@ type WorkflowDefinitionDetailsDto = {
           <button type="button" (click)="applyTemplate('merge')">Merge (combine objects)</button>
           <button type="button" (click)="applyTemplate('foreach')">Foreach (iterate)</button>
           <button type="button" (click)="applyTemplate('switch')">Switch (branch)</button>
+          <button type="button" (click)="applyTemplate('retryUpdateById')">Retry (updateById)</button>
           <button type="button" (click)="applyTemplate('require')">Require (guard)</button>
           <button type="button" (click)="applyTemplate('domainEcho')">Domain: echo</button>
           <button type="button" (click)="applyTemplate('domainCreateRecord')">Domain: create record</button>
@@ -85,6 +86,7 @@ export class LowCodeWorkflowNewPageComponent {
       | 'merge'
       | 'foreach'
       | 'switch'
+      | 'retryUpdateById'
       | 'require'
       | 'domainEcho'
       | 'domainCreateRecord'
@@ -125,6 +127,10 @@ export class LowCodeWorkflowNewPageComponent {
       switch: {
         name: 'wf-switch-branch',
         json: '{"steps":[{"type":"set","output":{"kind":"a"}},{"type":"switch","value":"000.kind","cases":[{"when":"a","do":{"type":"set","output":{"result":1}}},{"when":"b","do":{"type":"set","output":{"result":2}}}],"default":{"type":"set","output":{"result":99}}},{"type":"noop"}]}',
+      },
+      retryUpdateById: {
+        name: 'wf-retry-update-by-id',
+        json: '{"steps":[{"type":"domainCommand","command":"entityRecord.updateById","recordId":"<RECORD_ID_GUID>","data":{"status":"active"},"retry":{"maxAttempts":5,"delayMs":200,"backoffFactor":2,"maxDelayMs":2000}},{"type":"noop"}]}',
       },
       require: {
         name: 'wf-require-guard',
