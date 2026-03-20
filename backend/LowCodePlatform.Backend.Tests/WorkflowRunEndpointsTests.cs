@@ -99,6 +99,108 @@ public sealed class WorkflowRunEndpointsTests
     }
 
     [Fact]
+    public async Task Workflow_step_timeoutMs_should_fail_step_and_run_with_timeout_error()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        var createReq = new
+        {
+            name = "wf-timeout",
+            definitionJson = "{\"steps\":[{\"type\":\"delay\",\"ms\":200,\"timeoutMs\":50}]}"
+        };
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", createReq);
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(created);
+        var wfId = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var startResp = await client.PostAsync($"/api/workflows/{wfId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, startResp.StatusCode);
+
+        var startPayload = await startResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(startPayload);
+        var runId = Guid.Parse(startPayload!["workflowRunId"]!.ToString()!);
+
+        using var getResp = await client.GetAsync($"/api/workflows/runs/{runId}");
+        Assert.Equal(HttpStatusCode.OK, getResp.StatusCode);
+
+        var details = await getResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(details);
+
+        Assert.Equal("failed", details!["state"]?.ToString());
+        Assert.Equal("workflow_step_timed_out", details!["errorCode"]?.ToString());
+    }
+
+    [Fact]
+    public async Task Workflow_run_start_cancellation_should_mark_run_canceled_in_db()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        var createReq = new
+        {
+            name = "wf-cancel",
+            definitionJson = "{\"steps\":[{\"type\":\"delay\",\"ms\":200}]}"
+        };
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", createReq);
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(created);
+        var wfId = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+        try
+        {
+            using var _ = await client.PostAsync($"/api/workflows/{wfId}/runs", content: null, cancellationToken: cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // expected: client canceled the request
+        }
+
+        await Task.Delay(150);
+
+        using var listResp = await client.GetAsync($"/api/workflows/{wfId}/runs");
+        Assert.Equal(HttpStatusCode.OK, listResp.StatusCode);
+
+        var list = await listResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(list);
+
+        var itemsJson = JsonSerializer.Serialize(list!["items"]);
+        using var doc = JsonDocument.Parse(itemsJson);
+        var itemsArr = doc.RootElement;
+        Assert.Equal(JsonValueKind.Array, itemsArr.ValueKind);
+        Assert.True(itemsArr.GetArrayLength() >= 1);
+
+        var latest = itemsArr[0];
+        Assert.Equal("canceled", latest.GetProperty("state").GetString());
+        Assert.Equal("canceled", latest.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
     public async Task Workflow_run_start_and_status_should_work()
     {
         var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
