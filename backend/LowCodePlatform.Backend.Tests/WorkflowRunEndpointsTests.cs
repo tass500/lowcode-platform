@@ -1286,4 +1286,105 @@ public sealed class WorkflowRunEndpointsTests
         Assert.Equal("failed", runPayload!["state"]?.ToString());
         Assert.Equal("foreach_items_not_found", runPayload["errorCode"]?.ToString());
     }
+
+    [Fact]
+    public async Task Switch_step_should_execute_matching_case_branch()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        var definitionJson =
+            "{\"steps\":[" +
+            "{\"type\":\"set\",\"output\":{\"kind\":\"a\"}}," +
+            "{\"type\":\"switch\",\"value\":\"000.kind\",\"cases\":[" +
+            "{\"when\":\"a\",\"do\":{\"type\":\"set\",\"output\":{\"result\":1}}}," +
+            "{\"when\":\"b\",\"do\":{\"type\":\"set\",\"output\":{\"result\":2}}}" +
+            "]}," +
+            "{\"type\":\"map\",\"mappings\":{\"result\":\"001.result\"}}" +
+            "]}";
+
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-switch-match", definitionJson });
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(created);
+        var workflowId = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var startResp = await client.PostAsync($"/api/workflows/{workflowId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, startResp.StatusCode);
+        var startPayload = await startResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(startPayload);
+        var runId = Guid.Parse(startPayload!["workflowRunId"]!.ToString()!);
+
+        using var runDetailsResp = await client.GetAsync($"/api/workflows/runs/{runId}");
+        Assert.Equal(HttpStatusCode.OK, runDetailsResp.StatusCode);
+        var runPayload = await runDetailsResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(runPayload);
+        Assert.Equal("succeeded", runPayload!["state"]?.ToString());
+
+        var stepsEl = Assert.IsType<JsonElement>(runPayload["steps"]);
+        var step002 = stepsEl.EnumerateArray().First(x => x.GetProperty("stepKey").GetString() == "002");
+        var outputJson = step002.GetProperty("outputJson").GetString() ?? "{}";
+        using var doc = JsonDocument.Parse(outputJson);
+        Assert.Equal(1, doc.RootElement.GetProperty("result").GetInt32());
+    }
+
+    [Fact]
+    public async Task Switch_step_should_execute_default_branch_when_no_case_matches()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        var definitionJson =
+            "{\"steps\":[" +
+            "{\"type\":\"set\",\"output\":{\"kind\":\"c\"}}," +
+            "{\"type\":\"switch\",\"value\":\"000.kind\",\"cases\":[" +
+            "{\"when\":\"a\",\"do\":{\"type\":\"set\",\"output\":{\"result\":1}}}" +
+            "],\"default\":{\"type\":\"set\",\"output\":{\"result\":99}}}," +
+            "{\"type\":\"map\",\"mappings\":{\"result\":\"001.result\"}}" +
+            "]}";
+
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-switch-default", definitionJson });
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(created);
+        var workflowId = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var startResp = await client.PostAsync($"/api/workflows/{workflowId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, startResp.StatusCode);
+        var startPayload = await startResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(startPayload);
+        var runId = Guid.Parse(startPayload!["workflowRunId"]!.ToString()!);
+
+        using var runDetailsResp = await client.GetAsync($"/api/workflows/runs/{runId}");
+        Assert.Equal(HttpStatusCode.OK, runDetailsResp.StatusCode);
+        var runPayload = await runDetailsResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(runPayload);
+        Assert.Equal("succeeded", runPayload!["state"]?.ToString());
+
+        var stepsEl = Assert.IsType<JsonElement>(runPayload["steps"]);
+        var step002 = stepsEl.EnumerateArray().First(x => x.GetProperty("stepKey").GetString() == "002");
+        var outputJson = step002.GetProperty("outputJson").GetString() ?? "{}";
+        using var doc = JsonDocument.Parse(outputJson);
+        Assert.Equal(99, doc.RootElement.GetProperty("result").GetInt32());
+    }
 }
