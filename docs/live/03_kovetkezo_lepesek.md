@@ -2,21 +2,21 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 31 — step-level retry/backoff + PR**
+**ACTIVE: Iteráció 32 — step timeout / cancellation hardening + PR**
 
 - Iteráció 28: `merge` step (shallow merge), integrációs tesztek, frontend executable template, live docs.
 - Iteráció 29: `foreach` step (control flow) + tesztek + frontend template + live docs.
 - Iteráció 30: `switch` / `when` jellegű branch step (alap elágazás) + tesztek + template.
-- Iteráció 31 (ACTIVE): retry/backoff policy step-szinten (konfigurálható) + tesztek; commit + push + PR.
-- Iteráció 32: step timeout / cancellation hardening + tesztek.
+- Iteráció 31: retry/backoff policy step-szinten (konfigurálható) + tesztek; commit + push + PR.
+- Iteráció 32 (ACTIVE): step timeout / cancellation hardening + tesztek.
 - Iteráció 33: context var UX/validációk (jobb hibák + UI megjelenítés) + tesztek.
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch: `feat/iter-31-retry-backoff`
+- Branch: `feat/iter-32-step-timeout-cancel`
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
-- Következő teendő (Iteráció 31): commit slice (backend+tests / frontend / docs) → push → PR nyitás
+- Következő teendő (Iteráció 32): commit slice (backend+tests / docs / frontend template ha kell) → push → PR nyitás
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.
@@ -721,6 +721,33 @@ npm start --prefix frontend
         "maxDelayMs": 2000
       }
     },
+    { "type": "noop" }
+  ]
+}
+```
+
+### Iteráció 32 — “Execution policy: step timeoutMs + cancellation hardening”
+**Cél**: step szinten konfigurálható timeout, és request megszakadás/cancel esetén se maradjon a run/step `running` állapotban.
+
+**Backend**
+- Új opcionális field step configban: `timeoutMs` (int, min 1)
+- Semantics:
+  - A step futtatása attempt-szinten timeout-olható (`timeoutMs`), retry esetén minden attempt külön timeout-ot kap
+  - Timeout esetén:
+    - step: `Failed`
+    - step `LastErrorCode`: `workflow_step_timed_out`
+    - run: `Failed` (a step hibája alapján)
+  - Request cancel / workflow cancellation esetén:
+    - step: `Canceled`
+    - step `LastErrorCode`: `canceled`
+    - run: `Canceled`
+
+**Példa definition JSON (timeout a delay stepre)**
+
+```json
+{
+  "steps": [
+    { "type": "delay", "ms": 200, "timeoutMs": 50 },
     { "type": "noop" }
   ]
 }

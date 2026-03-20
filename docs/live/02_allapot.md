@@ -21,7 +21,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `require`
     - `domainCommand`
     - `unstable`
-  - Jelenlegi fókusz (roadmap): Iteráció 31 — step-level retry/backoff
+  - Jelenlegi fókusz (roadmap): Iteráció 32 — step timeout / cancellation hardening
 
 - **Frontend (Angular)**
   - Drift-proof “now”: kliens oldali **`serverNowOffsetMs`** kalibráció `serverTimeUtc` alapján.

@@ -13,6 +13,8 @@ public sealed class WorkflowRunnerService
 
     private sealed record RetryPolicy(int MaxAttempts, int DelayMs, double BackoffFactor, int? MaxDelayMs);
 
+    private sealed record StepPolicy(RetryPolicy Retry, int? TimeoutMs);
+
     private readonly PlatformDbContext _db;
 
     public WorkflowRunnerService(PlatformDbContext db)
@@ -73,6 +75,33 @@ public sealed class WorkflowRunnerService
                 step.LastErrorMessage = $"Required path '{path}' did not equal expected value.";
                 throw new InvalidOperationException(step.LastErrorMessage);
             }
+        }
+    }
+
+    private static StepPolicy ParseStepPolicy(string? stepConfigJson)
+    {
+        var retry = ParseRetryPolicy(stepConfigJson);
+        if (string.IsNullOrWhiteSpace(stepConfigJson))
+            return new StepPolicy(Retry: retry, TimeoutMs: null);
+
+        try
+        {
+            using var doc = JsonDocument.Parse(stepConfigJson);
+            var root = doc.RootElement;
+
+            int? timeoutMs = null;
+            if (root.TryGetProperty("timeoutMs", out var timeoutEl)
+                && timeoutEl.TryGetInt32(out var parsed)
+                && parsed >= 1)
+            {
+                timeoutMs = parsed;
+            }
+
+            return new StepPolicy(Retry: retry, TimeoutMs: timeoutMs);
+        }
+        catch
+        {
+            return new StepPolicy(Retry: retry, TimeoutMs: null);
         }
     }
 
@@ -673,32 +702,72 @@ public sealed class WorkflowRunnerService
         _db.WorkflowRuns.Add(run);
         await _db.SaveChangesAsync(ct);
 
-        foreach (var step in run.Steps.OrderBy(x => x.StepKey))
+        try
         {
-            await ExecuteStepAsync(run, step, context, ct);
-            await _db.SaveChangesAsync(ct);
-
-            if (step.State == WorkflowStepRunStates.Succeeded && !string.IsNullOrWhiteSpace(step.OutputJson))
+            foreach (var step in run.Steps.OrderBy(x => x.StepKey))
             {
-                try
-                {
-                    context[step.StepKey] = JsonNode.Parse(step.OutputJson);
-                }
-                catch
-                {
-                    // ignore invalid output json; step succeeded but context won't have it
-                }
-            }
-
-            if (step.State == WorkflowStepRunStates.Failed)
-            {
-                run.State = WorkflowRunStates.Failed;
-                run.ErrorCode = step.LastErrorCode;
-                run.ErrorMessage = step.LastErrorMessage;
-                run.FinishedAtUtc = DateTime.UtcNow;
+                await ExecuteStepAsync(run, step, context, ct);
                 await _db.SaveChangesAsync(ct);
-                return run;
+
+                if (step.State == WorkflowStepRunStates.Succeeded && !string.IsNullOrWhiteSpace(step.OutputJson))
+                {
+                    try
+                    {
+                        context[step.StepKey] = JsonNode.Parse(step.OutputJson);
+                    }
+                    catch
+                    {
+                        // ignore invalid output json; step succeeded but context won't have it
+                    }
+                }
+
+                if (step.State == WorkflowStepRunStates.Failed)
+                {
+                    run.State = WorkflowRunStates.Failed;
+                    run.ErrorCode = step.LastErrorCode;
+                    run.ErrorMessage = step.LastErrorMessage;
+                    run.FinishedAtUtc = DateTime.UtcNow;
+                    await _db.SaveChangesAsync(ct);
+                    return run;
+                }
+
+                if (step.State == WorkflowStepRunStates.Canceled)
+                {
+                    run.State = WorkflowRunStates.Canceled;
+                    run.ErrorCode = step.LastErrorCode;
+                    run.ErrorMessage = step.LastErrorMessage;
+                    run.FinishedAtUtc = DateTime.UtcNow;
+                    await _db.SaveChangesAsync(ct);
+                    return run;
+                }
             }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            var now = DateTime.UtcNow;
+            run.State = WorkflowRunStates.Canceled;
+            run.ErrorCode = "canceled";
+            run.ErrorMessage = "Canceled.";
+            run.FinishedAtUtc = now;
+
+            foreach (var step in run.Steps.Where(x => x.State is WorkflowStepRunStates.Pending or WorkflowStepRunStates.Running))
+            {
+                step.State = WorkflowStepRunStates.Canceled;
+                step.FinishedAtUtc ??= now;
+                step.LastErrorCode ??= "canceled";
+                step.LastErrorMessage ??= "Canceled.";
+            }
+
+            try
+            {
+                await _db.SaveChangesAsync(CancellationToken.None);
+            }
+            catch
+            {
+                // ignore
+            }
+
+            throw;
         }
 
         run.State = WorkflowRunStates.Succeeded;
@@ -759,17 +828,17 @@ public sealed class WorkflowRunnerService
 
     private async Task ExecuteStepAsync(WorkflowRun run, WorkflowStepRun step, JsonObject context, CancellationToken ct)
     {
-        var policy = ParseRetryPolicy(step.StepConfigJson);
+        var policy = ParseStepPolicy(step.StepConfigJson);
 
         var startedAt = DateTime.UtcNow;
         step.StartedAtUtc = startedAt;
 
         Exception? lastEx = null;
-        for (var attemptNumber = 1; attemptNumber <= policy.MaxAttempts; attemptNumber += 1)
+        for (var attemptNumber = 1; attemptNumber <= policy.Retry.MaxAttempts; attemptNumber += 1)
         {
             ct.ThrowIfCancellationRequested();
 
-            var delayMs = GetRetryDelayMs(policy, attemptNumber);
+            var delayMs = GetRetryDelayMs(policy.Retry, attemptNumber);
             if (delayMs > 0)
                 await Task.Delay(delayMs, ct);
 
@@ -779,21 +848,59 @@ public sealed class WorkflowRunnerService
             step.LastErrorMessage = null;
             step.OutputJson = null;
 
+            CancellationToken attemptCt = ct;
+            CancellationTokenSource? timeoutCts = null;
+            if (policy.TimeoutMs is not null)
+            {
+                timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                timeoutCts.CancelAfter(policy.TimeoutMs.Value);
+                attemptCt = timeoutCts.Token;
+            }
+
             try
             {
                 InterpolateStepConfigJson(step, context);
 
-                await ExecuteStepBodyAsync(step, context, ct);
+                await ExecuteStepBodyAsync(step, context, attemptCt);
 
                 step.State = WorkflowStepRunStates.Succeeded;
                 step.FinishedAtUtc = DateTime.UtcNow;
+                return;
+            }
+            catch (OperationCanceledException oce)
+            {
+                lastEx = oce;
+
+                if (ct.IsCancellationRequested)
+                {
+                    step.State = WorkflowStepRunStates.Canceled;
+                    step.FinishedAtUtc = DateTime.UtcNow;
+                    step.LastErrorCode ??= "canceled";
+                    step.LastErrorMessage ??= "Canceled.";
+
+                    run.ErrorCode = step.LastErrorCode;
+                    run.ErrorMessage = step.LastErrorMessage;
+                    return;
+                }
+
+                // timeout (linked token canceled)
+                step.LastErrorCode ??= "workflow_step_timed_out";
+                step.LastErrorMessage ??= $"Step timed out after {policy.TimeoutMs} ms.";
+
+                if (attemptNumber < policy.Retry.MaxAttempts)
+                    continue;
+
+                step.State = WorkflowStepRunStates.Failed;
+                step.FinishedAtUtc = DateTime.UtcNow;
+                run.ErrorCode = step.LastErrorCode;
+                run.ErrorMessage = step.LastErrorMessage;
                 return;
             }
             catch (Exception ex)
             {
                 lastEx = ex;
 
-                if (attemptNumber < policy.MaxAttempts)
+                if (attemptNumber < policy.Retry.MaxAttempts)
                     continue;
 
                 step.State = WorkflowStepRunStates.Failed;
@@ -804,6 +911,10 @@ public sealed class WorkflowRunnerService
                 run.ErrorCode = step.LastErrorCode;
                 run.ErrorMessage = step.LastErrorMessage;
                 return;
+            }
+            finally
+            {
+                timeoutCts?.Dispose();
             }
         }
 
