@@ -733,6 +733,12 @@ public sealed class WorkflowRunnerService
                 break;
             }
 
+            case "switch":
+            {
+                await ExecuteSwitchAsync(step, context, ct);
+                break;
+            }
+
             case "require":
             {
                 ExecuteRequireAsync(step, context);
@@ -752,6 +758,156 @@ public sealed class WorkflowRunnerService
                 step.LastErrorCode = "workflow_step_type_not_supported";
                 step.LastErrorMessage = $"Unsupported workflow step type: '{step.StepType}'.";
                 throw new InvalidOperationException(step.LastErrorMessage);
+        }
+    }
+
+    private async Task ExecuteSwitchAsync(WorkflowStepRun step, JsonObject context, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(step.StepConfigJson))
+        {
+            step.LastErrorCode = "switch_config_missing";
+            step.LastErrorMessage = "switch step requires a JSON config.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        using var doc = JsonDocument.Parse(step.StepConfigJson);
+        var root = doc.RootElement;
+
+        if (!root.TryGetProperty("value", out var valueEl) || valueEl.ValueKind != JsonValueKind.String)
+        {
+            step.LastErrorCode = "switch_value_missing";
+            step.LastErrorMessage = "switch step requires a string 'value' (context path).";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        var valuePath = (valueEl.GetString() ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(valuePath))
+        {
+            step.LastErrorCode = "switch_value_missing";
+            step.LastErrorMessage = "switch step requires a non-empty string 'value' (context path).";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        var valueNode = ResolveContextPath(context, valuePath);
+        if (valueNode is null)
+        {
+            step.LastErrorCode = "switch_value_not_found";
+            step.LastErrorMessage = $"Context path not found for switch value: '{valuePath}'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        if (!root.TryGetProperty("cases", out var casesEl) || casesEl.ValueKind != JsonValueKind.Array)
+        {
+            step.LastErrorCode = "switch_cases_missing";
+            step.LastErrorMessage = "switch step requires an array 'cases'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        JsonElement? defaultDoEl = null;
+        if (root.TryGetProperty("default", out var defaultEl))
+        {
+            if (defaultEl.ValueKind != JsonValueKind.Object)
+            {
+                step.LastErrorCode = "switch_default_invalid";
+                step.LastErrorMessage = "switch step field 'default' must be an object when provided.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            defaultDoEl = defaultEl;
+        }
+
+        JsonElement? selectedDoEl = null;
+        for (var i = 0; i < casesEl.GetArrayLength(); i += 1)
+        {
+            var c = casesEl[i];
+            if (c.ValueKind != JsonValueKind.Object)
+            {
+                step.LastErrorCode = "switch_case_invalid";
+                step.LastErrorMessage = "switch step 'cases' items must be objects.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            if (!c.TryGetProperty("do", out var doEl) || doEl.ValueKind != JsonValueKind.Object)
+            {
+                step.LastErrorCode = "switch_do_missing";
+                step.LastErrorMessage = "switch step cases require an object 'do' (a single inner step definition).";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            if (!c.TryGetProperty("when", out var whenEl) && !c.TryGetProperty("equals", out whenEl))
+            {
+                step.LastErrorCode = "switch_when_missing";
+                step.LastErrorMessage = "switch step cases require a 'when' (or 'equals') field.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            JsonNode? whenNode;
+            try
+            {
+                whenNode = JsonNode.Parse(whenEl.GetRawText());
+            }
+            catch
+            {
+                step.LastErrorCode = "switch_when_invalid";
+                step.LastErrorMessage = "switch step case field 'when' must be valid JSON.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            if (JsonNode.DeepEquals(valueNode, whenNode))
+            {
+                selectedDoEl = doEl;
+                break;
+            }
+        }
+
+        if (selectedDoEl is null)
+        {
+            if (defaultDoEl is null)
+            {
+                step.LastErrorCode = "switch_no_match";
+                step.LastErrorMessage = "switch step had no matching case and no default branch.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            selectedDoEl = defaultDoEl;
+        }
+
+        if (!selectedDoEl.Value.TryGetProperty("type", out var typeEl) || typeEl.ValueKind != JsonValueKind.String)
+        {
+            step.LastErrorCode = "switch_do_type_missing";
+            step.LastErrorMessage = "switch inner step must contain a string 'type'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        var innerType = (typeEl.GetString() ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(innerType))
+        {
+            step.LastErrorCode = "switch_do_type_missing";
+            step.LastErrorMessage = "switch inner step must contain a non-empty string 'type'.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        var innerStep = new WorkflowStepRun
+        {
+            WorkflowStepRunId = Guid.Empty,
+            WorkflowRunId = step.WorkflowRunId,
+            StepKey = $"{step.StepKey}.branch",
+            StepType = innerType,
+            StepConfigJson = selectedDoEl.Value.GetRawText(),
+            State = WorkflowStepRunStates.Pending,
+        };
+
+        try
+        {
+            InterpolateStepConfigJson(innerStep, context);
+            await ExecuteStepBodyAsync(innerStep, context, ct);
+            step.OutputJson = innerStep.OutputJson;
+        }
+        catch (Exception ex)
+        {
+            step.LastErrorCode = innerStep.LastErrorCode ?? "switch_inner_failed";
+            step.LastErrorMessage = innerStep.LastErrorMessage ?? ex.Message;
+            throw;
         }
     }
 
