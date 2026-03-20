@@ -2,21 +2,21 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 29 — `foreach` step + PR**
+**ACTIVE: Iteráció 30 — `switch/when` branch step + PR**
 
 - Iteráció 28: `merge` step (shallow merge), integrációs tesztek, frontend executable template, live docs.
-- Iteráció 29 (ACTIVE): `foreach` step (control flow) + tesztek + frontend template + live docs; commit + push + PR.
-- Iteráció 30: `switch` / `when` jellegű branch step (alap elágazás) + tesztek + template.
+- Iteráció 29: `foreach` step (control flow) + tesztek + frontend template + live docs.
+- Iteráció 30 (ACTIVE): `switch` / `when` jellegű branch step (alap elágazás) + tesztek + template; commit + push + PR.
 - Iteráció 31: retry/backoff policy step-szinten (konfigurálható) + tesztek.
 - Iteráció 32: step timeout / cancellation hardening + tesztek.
 - Iteráció 33: context var UX/validációk (jobb hibák + UI megjelenítés) + tesztek.
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch: `feat/iter-29-foreach-step`
+- Branch: `feat/iter-30-switch-step`
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
-- Következő teendő (Iteráció 29): commit slice (backend+tests / frontend / docs) → push → PR nyitás
+- Következő teendő (Iteráció 30): commit slice (backend+tests / frontend / docs) → push → PR nyitás
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.
@@ -627,6 +627,67 @@ npm start --prefix frontend
 
 **Frontend**
 - Új executable template: `Foreach (iterate)`.
+
+### Iteráció 30 — “Control flow: switch/when (branching)”
+**Cél**: egyszerű elágazás egy contextből kiolvasott érték alapján, és a megfelelő branch (inner step) futtatása.
+
+**Backend**
+- Új step típus: `switch`
+- Kötelező field-ek:
+  - `value` (string): context path (pl. `000.kind`)
+  - `cases` (array): case objektumok
+    - `when` (vagy `equals`): JSON érték (string/number/bool/object/array), amihez hasonlítunk
+    - `do`: inner step definíció (object), ami **kötelezően** tartalmazza a `type` field-et
+- Opcionális:
+  - `default`: inner step definíció (object), ha nincs match
+- Kiválasztás:
+  - az első olyan case fut le, ahol `value` **JSON DeepEquals** a `when` értékkel
+- Output:
+  - `OutputJson` = a kiválasztott inner step `OutputJson`-ja
+- Hibakódok:
+  - `switch_config_missing`
+  - `switch_value_missing`
+  - `switch_value_not_found`
+  - `switch_cases_missing`
+  - `switch_default_invalid`
+  - `switch_case_invalid`
+  - `switch_do_missing`
+  - `switch_when_missing`
+  - `switch_when_invalid`
+  - `switch_no_match`
+  - `switch_do_type_missing`
+
+**Példa definition JSON (cases + default)**
+
+```json
+{
+  "steps": [
+    {
+      "type": "set",
+      "output": { "kind": "a" }
+    },
+    {
+      "type": "switch",
+      "value": "000.kind",
+      "cases": [
+        {
+          "when": "a",
+          "do": { "type": "set", "output": { "result": 1 } }
+        },
+        {
+          "when": "b",
+          "do": { "type": "set", "output": { "result": 2 } }
+        }
+      ],
+      "default": { "type": "set", "output": { "result": 99 } }
+    },
+    { "type": "noop" }
+  ]
+}
+```
+
+**Frontend**
+- Új executable template: `Switch (branch)`.
 
 ### Iteráció 18 — “domainCommand step scaffold (echo + entityRecord.createByEntityName)”
 **Cél**: új workflow step típus, ami domain parancsokat hív. Ez a híd a későbbi modulok felé (DDD jellegű parancsok).

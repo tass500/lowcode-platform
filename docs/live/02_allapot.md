@@ -9,6 +9,18 @@ Drift-proof observability egy greenfield lowcode platformban.
   - Admin response-ok **DTO-sítva** (Swagger Models/Schemas alatt látszanak a mezők).
   - Külön **observability endpoint**: `GET /api/admin/observability` (active runs + last audit + enforcement summary + `serverTimeUtc`).
 
+- **Low-code workflow engine (Backend + Frontend demo)**
+  - Támogatott workflow step-ek:
+    - `noop`
+    - `delay`
+    - `set`
+    - `map`
+    - `merge`
+    - `foreach`
+    - `require`
+    - `domainCommand`
+  - Jelenlegi fókusz (roadmap): Iteráció 30 — `switch/when` branch step
+
 - **Frontend (Angular)**
   - Drift-proof “now”: kliens oldali **`serverNowOffsetMs`** kalibráció `serverTimeUtc` alapján.
   - “Last refreshed” + “ago” kijelzés queue/audit/run panelen server-calibráltan.
