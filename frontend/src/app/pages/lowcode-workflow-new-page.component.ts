@@ -33,6 +33,7 @@ type WorkflowDefinitionDetailsDto = {
           <button type="button" (click)="applyTemplate('noop')">No-op</button>
           <button type="button" (click)="applyTemplate('delay250')">Delay 250ms</button>
           <button type="button" (click)="applyTemplate('delay3')">3x Delay</button>
+          <button type="button" (click)="applyTemplate('timeoutDelay')">Timeout (delay)</button>
           <button type="button" (click)="applyTemplate('set')">Set (seed output)</button>
           <button type="button" (click)="applyTemplate('map')">Map (projection)</button>
           <button type="button" (click)="applyTemplate('merge')">Merge (combine objects)</button>
@@ -81,6 +82,7 @@ export class LowCodeWorkflowNewPageComponent {
       | 'noop'
       | 'delay250'
       | 'delay3'
+      | 'timeoutDelay'
       | 'set'
       | 'map'
       | 'merge'
@@ -107,6 +109,10 @@ export class LowCodeWorkflowNewPageComponent {
       delay3: {
         name: 'wf-3x-delay',
         json: '{"steps":[{"type":"delay","ms":100},{"type":"delay","ms":200},{"type":"delay","ms":300}]}',
+      },
+      timeoutDelay: {
+        name: 'wf-timeout-delay',
+        json: '{"steps":[{"type":"delay","ms":200,"timeoutMs":50},{"type":"noop"}]}',
       },
       set: {
         name: 'wf-set-seed',
