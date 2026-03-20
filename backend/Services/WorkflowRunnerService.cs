@@ -11,6 +11,8 @@ public sealed class WorkflowRunnerService
 {
     private static readonly Regex ContextVarRegex = new(@"\$\{([^}]+)\}", RegexOptions.Compiled);
 
+    private sealed record RetryPolicy(int MaxAttempts, int DelayMs, double BackoffFactor, int? MaxDelayMs);
+
     private readonly PlatformDbContext _db;
 
     public WorkflowRunnerService(PlatformDbContext db)
@@ -133,6 +135,100 @@ public sealed class WorkflowRunnerService
         step.LastErrorCode = "set_output_missing";
         step.LastErrorMessage = "set step requires 'output' or 'outputJson'.";
         throw new InvalidOperationException(step.LastErrorMessage);
+    }
+
+    private static RetryPolicy ParseRetryPolicy(string? stepConfigJson)
+    {
+        if (string.IsNullOrWhiteSpace(stepConfigJson))
+            return new RetryPolicy(MaxAttempts: 1, DelayMs: 0, BackoffFactor: 1, MaxDelayMs: null);
+
+        try
+        {
+            using var doc = JsonDocument.Parse(stepConfigJson);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("retry", out var retryEl) || retryEl.ValueKind != JsonValueKind.Object)
+                return new RetryPolicy(MaxAttempts: 1, DelayMs: 0, BackoffFactor: 1, MaxDelayMs: null);
+
+            var maxAttempts = 1;
+            if (retryEl.TryGetProperty("maxAttempts", out var maxEl) && maxEl.TryGetInt32(out var parsedMax) && parsedMax >= 1)
+                maxAttempts = parsedMax;
+
+            var delayMs = 0;
+            if (retryEl.TryGetProperty("delayMs", out var delayEl) && delayEl.TryGetInt32(out var parsedDelay) && parsedDelay >= 0)
+                delayMs = parsedDelay;
+
+            var backoffFactor = 1d;
+            if (retryEl.TryGetProperty("backoffFactor", out var factorEl) && factorEl.TryGetDouble(out var parsedFactor) && parsedFactor >= 1)
+                backoffFactor = parsedFactor;
+
+            int? maxDelayMs = null;
+            if (retryEl.TryGetProperty("maxDelayMs", out var maxDelayEl) && maxDelayEl.TryGetInt32(out var parsedMaxDelay) && parsedMaxDelay >= 0)
+                maxDelayMs = parsedMaxDelay;
+
+            return new RetryPolicy(MaxAttempts: maxAttempts, DelayMs: delayMs, BackoffFactor: backoffFactor, MaxDelayMs: maxDelayMs);
+        }
+        catch
+        {
+            return new RetryPolicy(MaxAttempts: 1, DelayMs: 0, BackoffFactor: 1, MaxDelayMs: null);
+        }
+    }
+
+    private static int GetRetryDelayMs(RetryPolicy policy, int attemptNumber)
+    {
+        if (policy.MaxAttempts <= 1)
+            return 0;
+        if (policy.DelayMs <= 0)
+            return 0;
+        if (attemptNumber <= 1)
+            return 0;
+
+        var exponent = attemptNumber - 2;
+        var raw = policy.DelayMs * Math.Pow(policy.BackoffFactor, exponent);
+        var ms = raw > int.MaxValue ? int.MaxValue : (int)Math.Round(raw);
+
+        if (policy.MaxDelayMs is not null)
+            ms = Math.Min(ms, policy.MaxDelayMs.Value);
+
+        return Math.Max(0, ms);
+    }
+
+    private static void ExecuteUnstableAsync(WorkflowStepRun step)
+    {
+        if (string.IsNullOrWhiteSpace(step.StepConfigJson))
+        {
+            step.LastErrorCode = "unstable_config_missing";
+            step.LastErrorMessage = "unstable step requires a JSON config.";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        using var doc = JsonDocument.Parse(step.StepConfigJson);
+        var root = doc.RootElement;
+
+        var failTimes = 0;
+        if (root.TryGetProperty("failTimes", out var ftEl))
+        {
+            if (!ftEl.TryGetInt32(out failTimes) || failTimes < 0)
+            {
+                step.LastErrorCode = "unstable_fail_times_invalid";
+                step.LastErrorMessage = "unstable step field 'failTimes' must be a non-negative integer when provided.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+        }
+
+        if (step.Attempt <= failTimes)
+        {
+            step.LastErrorCode = "unstable_failed";
+            step.LastErrorMessage = "unstable step failed (deterministic transient).";
+            throw new InvalidOperationException(step.LastErrorMessage);
+        }
+
+        if (root.TryGetProperty("output", out var outputEl))
+        {
+            step.OutputJson = outputEl.GetRawText();
+            return;
+        }
+
+        step.OutputJson = "{\"ok\":true}";
     }
 
     private static void ExecuteMapAsync(WorkflowStepRun step, JsonObject context)
@@ -663,32 +759,61 @@ public sealed class WorkflowRunnerService
 
     private async Task ExecuteStepAsync(WorkflowRun run, WorkflowStepRun step, JsonObject context, CancellationToken ct)
     {
-        step.Attempt += 1;
-        step.State = WorkflowStepRunStates.Running;
-        step.StartedAtUtc = DateTime.UtcNow;
-        step.LastErrorCode = null;
-        step.LastErrorMessage = null;
-        step.OutputJson = null;
+        var policy = ParseRetryPolicy(step.StepConfigJson);
 
-        try
+        var startedAt = DateTime.UtcNow;
+        step.StartedAtUtc = startedAt;
+
+        Exception? lastEx = null;
+        for (var attemptNumber = 1; attemptNumber <= policy.MaxAttempts; attemptNumber += 1)
         {
-            InterpolateStepConfigJson(step, context);
+            ct.ThrowIfCancellationRequested();
 
-            await ExecuteStepBodyAsync(step, context, ct);
+            var delayMs = GetRetryDelayMs(policy, attemptNumber);
+            if (delayMs > 0)
+                await Task.Delay(delayMs, ct);
 
-            step.State = WorkflowStepRunStates.Succeeded;
-            step.FinishedAtUtc = DateTime.UtcNow;
+            step.Attempt += 1;
+            step.State = WorkflowStepRunStates.Running;
+            step.LastErrorCode = null;
+            step.LastErrorMessage = null;
+            step.OutputJson = null;
+
+            try
+            {
+                InterpolateStepConfigJson(step, context);
+
+                await ExecuteStepBodyAsync(step, context, ct);
+
+                step.State = WorkflowStepRunStates.Succeeded;
+                step.FinishedAtUtc = DateTime.UtcNow;
+                return;
+            }
+            catch (Exception ex)
+            {
+                lastEx = ex;
+
+                if (attemptNumber < policy.MaxAttempts)
+                    continue;
+
+                step.State = WorkflowStepRunStates.Failed;
+                step.FinishedAtUtc = DateTime.UtcNow;
+                step.LastErrorCode ??= "workflow_step_failed";
+                step.LastErrorMessage ??= ex.Message;
+
+                run.ErrorCode = step.LastErrorCode;
+                run.ErrorMessage = step.LastErrorMessage;
+                return;
+            }
         }
-        catch (Exception ex)
-        {
-            step.State = WorkflowStepRunStates.Failed;
-            step.FinishedAtUtc = DateTime.UtcNow;
-            step.LastErrorCode ??= "workflow_step_failed";
-            step.LastErrorMessage ??= ex.Message;
 
-            run.ErrorCode = step.LastErrorCode;
-            run.ErrorMessage = step.LastErrorMessage;
-        }
+        step.State = WorkflowStepRunStates.Failed;
+        step.FinishedAtUtc = DateTime.UtcNow;
+        step.LastErrorCode ??= "workflow_step_failed";
+        step.LastErrorMessage ??= lastEx?.Message ?? "Unknown error.";
+
+        run.ErrorCode = step.LastErrorCode;
+        run.ErrorMessage = step.LastErrorMessage;
     }
 
     private async Task ExecuteStepBodyAsync(WorkflowStepRun step, JsonObject context, CancellationToken ct)
@@ -748,6 +873,12 @@ public sealed class WorkflowRunnerService
             case "domaincommand":
             {
                 await ExecuteDomainCommandAsync(step, ct);
+                break;
+            }
+
+            case "unstable":
+            {
+                ExecuteUnstableAsync(step);
                 break;
             }
 
