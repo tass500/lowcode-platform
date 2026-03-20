@@ -17,9 +17,11 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `map`
     - `merge`
     - `foreach`
+    - `switch`
     - `require`
     - `domainCommand`
-  - Jelenlegi fókusz (roadmap): Iteráció 30 — `switch/when` branch step
+    - `unstable`
+  - Jelenlegi fókusz (roadmap): Iteráció 31 — step-level retry/backoff
 
 - **Frontend (Angular)**
   - Drift-proof “now”: kliens oldali **`serverNowOffsetMs`** kalibráció `serverTimeUtc` alapján.

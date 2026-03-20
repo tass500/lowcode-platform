@@ -2,21 +2,21 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 30 — `switch/when` branch step + PR**
+**ACTIVE: Iteráció 31 — step-level retry/backoff + PR**
 
 - Iteráció 28: `merge` step (shallow merge), integrációs tesztek, frontend executable template, live docs.
 - Iteráció 29: `foreach` step (control flow) + tesztek + frontend template + live docs.
-- Iteráció 30 (ACTIVE): `switch` / `when` jellegű branch step (alap elágazás) + tesztek + template; commit + push + PR.
-- Iteráció 31: retry/backoff policy step-szinten (konfigurálható) + tesztek.
+- Iteráció 30: `switch` / `when` jellegű branch step (alap elágazás) + tesztek + template.
+- Iteráció 31 (ACTIVE): retry/backoff policy step-szinten (konfigurálható) + tesztek; commit + push + PR.
 - Iteráció 32: step timeout / cancellation hardening + tesztek.
 - Iteráció 33: context var UX/validációk (jobb hibák + UI megjelenítés) + tesztek.
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch: `feat/iter-30-switch-step`
+- Branch: `feat/iter-31-retry-backoff`
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
-- Következő teendő (Iteráció 30): commit slice (backend+tests / frontend / docs) → push → PR nyitás
+- Következő teendő (Iteráció 31): commit slice (backend+tests / frontend / docs) → push → PR nyitás
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.
@@ -688,6 +688,43 @@ npm start --prefix frontend
 
 **Frontend**
 - Új executable template: `Switch (branch)`.
+
+### Iteráció 31 — “Execution policy: step-level retry/backoff”
+**Cél**: step szinten konfigurálható retry policy (max attempt + delay/backoff), hogy transient hibák esetén a workflow run stabilabb legyen.
+
+**Backend**
+- Retry policy a step config JSON-ban egy opcionális `retry` objektummal:
+  - `retry.maxAttempts` (int, min 1, default 1)
+  - `retry.delayMs` (int, min 0, default 0)
+  - `retry.backoffFactor` (number, min 1, default 1)
+  - `retry.maxDelayMs` (int, min 0, optional)
+- Semantics:
+  - Minden attempt előtt (a 2.-tól kezdve) várunk: `delayMs * backoffFactor^(attempt-2)` (clamp `maxDelayMs`-sel)
+  - Minden attempt újra interpolálja a step configot (`${...}`) az aktuális contextből
+  - Siker esetén a step `Succeeded`, és megyünk tovább
+  - Kimerülés esetén a step `Failed`, a run `Failed` (a step `LastErrorCode/LastErrorMessage` alapján)
+
+**Példa definition JSON (retry + backoff)**
+
+```json
+{
+  "steps": [
+    {
+      "type": "domainCommand",
+      "command": "entityRecord.updateById",
+      "recordId": "<RECORD_ID_GUID>",
+      "data": { "status": "active" },
+      "retry": {
+        "maxAttempts": 5,
+        "delayMs": 200,
+        "backoffFactor": 2,
+        "maxDelayMs": 2000
+      }
+    },
+    { "type": "noop" }
+  ]
+}
+```
 
 ### Iteráció 18 — “domainCommand step scaffold (echo + entityRecord.createByEntityName)”
 **Cél**: új workflow step típus, ami domain parancsokat hív. Ez a híd a későbbi modulok felé (DDD jellegű parancsok).
