@@ -246,6 +246,64 @@ public sealed class WorkflowRunEndpointsTests
     }
 
     [Fact]
+    public async Task Workflow_run_details_should_include_original_and_resolved_step_config()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        var definitionJson =
+            "{\"steps\":[" +
+            "{\"type\":\"set\",\"output\":{\"a\":\"hello\"}}," +
+            "{\"type\":\"noop\",\"msg\":\"${000.a}\"}" +
+            "]}";
+
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-resolved-config", definitionJson });
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(created);
+        var workflowId = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var startResp = await client.PostAsync($"/api/workflows/{workflowId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, startResp.StatusCode);
+
+        var startPayload = await startResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(startPayload);
+        var runId = Guid.Parse(startPayload!["workflowRunId"]!.ToString()!);
+
+        using var runDetailsResp = await client.GetAsync($"/api/workflows/runs/{runId}");
+        Assert.Equal(HttpStatusCode.OK, runDetailsResp.StatusCode);
+        var runPayload = await runDetailsResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(runPayload);
+
+        var stepsJson = JsonSerializer.Serialize(runPayload!["steps"]);
+        using var doc = JsonDocument.Parse(stepsJson);
+        var arr = doc.RootElement;
+        Assert.Equal(JsonValueKind.Array, arr.ValueKind);
+        Assert.True(arr.GetArrayLength() >= 2);
+
+        var step1 = arr.EnumerateArray().First(x => x.GetProperty("stepKey").GetString() == "001");
+        var original = step1.GetProperty("originalStepConfigJson").GetString();
+        var resolved = step1.GetProperty("stepConfigJson").GetString();
+
+        Assert.NotNull(original);
+        Assert.NotNull(resolved);
+        Assert.Contains("${000.a}", original);
+        Assert.DoesNotContain("${000.a}", resolved);
+        Assert.Contains("hello", resolved);
+    }
+
+    [Fact]
     public async Task Domain_command_should_be_able_to_create_entity_record()
     {
         var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
