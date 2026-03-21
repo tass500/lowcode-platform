@@ -759,23 +759,10 @@ public sealed class WorkflowRunEndpointsTests
             "]}";
 
         using var createResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-context-var-syntax-invalid", definitionJson });
-        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
-        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
-        Assert.NotNull(created);
-        var workflowId = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
-
-        using var startResp = await client.PostAsync($"/api/workflows/{workflowId}/runs", content: null);
-        Assert.Equal(HttpStatusCode.OK, startResp.StatusCode);
-        var startPayload = await startResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
-        Assert.NotNull(startPayload);
-        var runId = Guid.Parse(startPayload!["workflowRunId"]!.ToString()!);
-
-        using var runDetailsResp = await client.GetAsync($"/api/workflows/runs/{runId}");
-        Assert.Equal(HttpStatusCode.OK, runDetailsResp.StatusCode);
-        var runPayload = await runDetailsResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
-        Assert.NotNull(runPayload);
-        Assert.Equal("failed", runPayload!["state"]?.ToString());
-        Assert.Equal("context_var_syntax_invalid", runPayload["errorCode"]?.ToString());
+        Assert.Equal(HttpStatusCode.BadRequest, createResp.StatusCode);
+        var createPayload = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(createPayload);
+        Assert.Equal("context_var_syntax_invalid", createPayload!["errorCode"]?.ToString());
     }
 
     [Fact]
