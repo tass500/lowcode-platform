@@ -790,7 +790,9 @@ public sealed class WorkflowRunEndpointsTests
         Assert.NotNull(runPayload);
         Assert.Equal("failed", runPayload!["state"]?.ToString());
         Assert.Equal("context_var_not_found", runPayload["errorCode"]?.ToString());
-        Assert.Contains("000.entityRecordId", runPayload["errorMessage"]?.ToString() ?? string.Empty);
+        var msg = runPayload["errorMessage"]?.ToString() ?? string.Empty;
+        Assert.Contains("Step '001' config path '$.recordId'", msg);
+        Assert.Contains("000.entityRecordId", msg);
     }
 
     [Fact]
