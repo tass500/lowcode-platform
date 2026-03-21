@@ -79,8 +79,23 @@ type WorkflowRunListResponse = {
             <ng-container *ngIf="viewMode === 'json'">
               <label>
                 Definition JSON
-                <textarea formControlName="definitionJson" rows="14" style="width: 100%; font-family: monospace;"></textarea>
+                <textarea #definitionJsonEl formControlName="definitionJson" rows="14" style="width: 100%; font-family: monospace;"></textarea>
               </label>
+
+              <section *ngIf="contextVarSuggestions.length" style="padding: 10px 12px; border: 1px solid #eee; border-radius: 8px; background: #fafafa;">
+                <div style="font-weight: 600; margin-bottom: 6px;">Context var suggestions</div>
+                <div style="display:flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                  <button
+                    type="button"
+                    *ngFor="let s of contextVarSuggestions"
+                    (click)="insertContextVarSuggestion(definitionJsonEl, s)"
+                    style="font-family: monospace;"
+                  >
+                    {{ '${' + s + '}' }}
+                  </button>
+                </div>
+                <div style="margin-top: 6px; color:#444;">Click a suggestion to insert at cursor.</div>
+              </section>
             </ng-container>
           </form>
 
@@ -175,6 +190,56 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     definitionJson: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
   });
+
+  get contextVarSuggestions(): string[] {
+    const raw = String(this.form.controls.definitionJson.value ?? '');
+    try {
+      const parsed: any = JSON.parse(raw);
+      const steps: any[] = Array.isArray(parsed?.steps) ? parsed.steps : [];
+
+      const suggestions: string[] = [];
+      for (let i = 0; i < steps.length; i += 1) {
+        const key = String(i).padStart(3, '0');
+        suggestions.push(key);
+
+        const step = steps[i];
+        const type = String(step?.type ?? '').toLowerCase();
+
+        if (type === 'set' && step?.output && typeof step.output === 'object' && !Array.isArray(step.output)) {
+          for (const k of Object.keys(step.output)) {
+            if (!k) continue;
+            suggestions.push(`${key}.${k}`);
+          }
+        }
+
+        if (type === 'map' && step?.mappings && typeof step.mappings === 'object' && !Array.isArray(step.mappings)) {
+          for (const k of Object.keys(step.mappings)) {
+            if (!k) continue;
+            suggestions.push(`${key}.${k}`);
+          }
+        }
+      }
+
+      return Array.from(new Set(suggestions)).sort((a, b) => a.localeCompare(b));
+    } catch {
+      return [];
+    }
+  }
+
+  insertContextVarSuggestion(el: HTMLTextAreaElement, suggestion: string): void {
+    const token = `\${${suggestion}}`;
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? start;
+    const current = this.form.controls.definitionJson.value ?? '';
+    const next = current.substring(0, start) + token + current.substring(end);
+    this.form.controls.definitionJson.setValue(next);
+
+    queueMicrotask(() => {
+      el.focus();
+      const pos = start + token.length;
+      el.setSelectionRange(pos, pos);
+    });
+  }
 
   get viewerError(): string | null {
     try {
