@@ -623,7 +623,8 @@ public sealed class WorkflowRunnerService
                 if (resolved is null)
                 {
                     step.LastErrorCode = "context_var_not_found";
-                    step.LastErrorMessage = $"Context variable not found: '{path}'.";
+                    var available = string.Join(", ", context.Select(kv => kv.Key).OrderBy(x => x));
+                    step.LastErrorMessage = $"Context variable not found: '{path}'. Available top-level keys: [{available}].";
                     throw new InvalidOperationException(step.LastErrorMessage);
                 }
 
@@ -640,7 +641,8 @@ public sealed class WorkflowRunnerService
                 if (resolved is null)
                 {
                     step.LastErrorCode = "context_var_not_found";
-                    step.LastErrorMessage = $"Context variable not found: '{path}'.";
+                    var available = string.Join(", ", context.Select(kv => kv.Key).OrderBy(x => x));
+                    step.LastErrorMessage = $"Context variable not found: '{path}'. Available top-level keys: [{available}].";
                     throw new InvalidOperationException(step.LastErrorMessage);
                 }
 
