@@ -2,7 +2,7 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 37 — workflow definition schema preflight validáció (backend) + PR**
+**ACTIVE: Iteráció 39 — context var UX: hiba részletek (melyik step/config path mezőben volt a hiba) + UI megjelenítés**
 
 - Iteráció 28: `merge` step (shallow merge), integrációs tesztek, frontend executable template, live docs.
 - Iteráció 29: `foreach` step (control flow) + tesztek + frontend template + live docs.
@@ -13,19 +13,19 @@
 - Iteráció 34: context var validációk (syntax) + tesztek.
 - Iteráció 35: context var UX: szerkesztő oldali highlight + preflight validáció (create/update workflow).
 - Iteráció 36: workflow create/update preflight validáció (backend) + tesztek.
-- Iteráció 37 (ACTIVE): workflow definition “schema” validáció (minimál): `steps` array kötelező, step `type` string kötelező (create/update).
+- Iteráció 37: workflow definition “schema” validáció (minimál): `steps` array kötelező, step `type` string kötelező (create/update).
 - Iteráció 38: run details: “Resolved step config” megjelenítés (interpoláció utáni config) + toggle.
-- Iteráció 39: context var UX: hiba részletek (melyik step/config path mezőben volt a hiba) + UI megjelenítés.
+- Iteráció 39 (ACTIVE): context var UX: hiba részletek (melyik step/config path mezőben volt a hiba) + UI megjelenítés.
 - Iteráció 40: context var UX: autocomplete javaslatok (top-level keys + step output mezők) a szerkesztő oldalon (minimál).
 - Iteráció 41: workflow lint: statikus ellenőrzések (unused step outputs, obvious typos) + warning szint.
 - Iteráció 42: hardening: egységes error response detail mezők (path + code + message) a workflow validációkhoz.
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch: `feat/iter-37-workflow-schema-validation`
+- Branch: `feat/iter-39-context-var-error-details`
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
-- Következő teendő (Iteráció 37): commit slice (backend+tests / docs) → push → PR nyitás
+- Következő teendő (Iteráció 39): commit slice (backend+tests / docs) → push → PR nyitás
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.

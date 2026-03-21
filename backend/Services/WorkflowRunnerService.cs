@@ -568,11 +568,23 @@ public sealed class WorkflowRunnerService
         if (root is null)
             return;
 
-        var rewritten = RewriteNode(root, context, step);
+        var rewritten = RewriteNode(root, context, step, "$", "$");
         step.StepConfigJson = rewritten.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
     }
 
-    private static JsonNode RewriteNode(JsonNode node, JsonObject context, WorkflowStepRun step)
+    private static string FormatJsonPath(string jsonPath)
+        => string.IsNullOrWhiteSpace(jsonPath) ? "$" : jsonPath;
+
+    private static string FormatStepLocation(WorkflowStepRun step, string jsonPath)
+        => $"Step '{step.StepKey}' config path '{FormatJsonPath(jsonPath)}': ";
+
+    private static string ChildPathForProperty(string jsonPath, string propName)
+        => $"{FormatJsonPath(jsonPath)}.{propName}";
+
+    private static string ChildPathForIndex(string jsonPath, int idx)
+        => $"{FormatJsonPath(jsonPath)}[{idx}]";
+
+    private static JsonNode RewriteNode(JsonNode node, JsonObject context, WorkflowStepRun step, string jsonPath, string rootPath)
     {
         if (node is JsonObject obj)
         {
@@ -580,7 +592,7 @@ public sealed class WorkflowRunnerService
             {
                 if (kv.Value is null)
                     continue;
-                var rewritten = RewriteNode(kv.Value, context, step);
+                var rewritten = RewriteNode(kv.Value, context, step, ChildPathForProperty(jsonPath, kv.Key), rootPath);
                 if (!ReferenceEquals(rewritten, kv.Value))
                     obj[kv.Key] = rewritten;
             }
@@ -593,7 +605,7 @@ public sealed class WorkflowRunnerService
             {
                 if (arr[i] is null)
                     continue;
-                var rewritten = RewriteNode(arr[i]!, context, step);
+                var rewritten = RewriteNode(arr[i]!, context, step, ChildPathForIndex(jsonPath, i), rootPath);
                 if (!ReferenceEquals(rewritten, arr[i]))
                     arr[i] = rewritten;
             }
@@ -615,7 +627,7 @@ public sealed class WorkflowRunnerService
             if (string.IsNullOrEmpty(s))
                 return node;
 
-            ValidateContextVarSyntaxIfNeeded(s, step);
+            ValidateContextVarSyntaxIfNeeded(s, step, jsonPath);
 
             var trimmed = s.Trim();
             var exact = ContextVarRegex.Match(trimmed);
@@ -627,7 +639,7 @@ public sealed class WorkflowRunnerService
                 {
                     step.LastErrorCode = "context_var_not_found";
                     var available = string.Join(", ", context.Select(kv => kv.Key).OrderBy(x => x));
-                    step.LastErrorMessage = $"Context variable not found: '{path}'. Available top-level keys: [{available}].";
+                    step.LastErrorMessage = $"{FormatStepLocation(step, jsonPath)}Context variable not found: '{path}'. Available top-level keys: [{available}].";
                     throw new InvalidOperationException(step.LastErrorMessage);
                 }
 
@@ -645,7 +657,7 @@ public sealed class WorkflowRunnerService
                 {
                     step.LastErrorCode = "context_var_not_found";
                     var available = string.Join(", ", context.Select(kv => kv.Key).OrderBy(x => x));
-                    step.LastErrorMessage = $"Context variable not found: '{path}'. Available top-level keys: [{available}].";
+                    step.LastErrorMessage = $"{FormatStepLocation(step, jsonPath)}Context variable not found: '{path}'. Available top-level keys: [{available}].";
                     throw new InvalidOperationException(step.LastErrorMessage);
                 }
 
@@ -661,7 +673,7 @@ public sealed class WorkflowRunnerService
         return node;
     }
 
-    private static void ValidateContextVarSyntaxIfNeeded(string s, WorkflowStepRun step)
+    private static void ValidateContextVarSyntaxIfNeeded(string s, WorkflowStepRun step, string jsonPath)
     {
         if (!s.Contains("${", StringComparison.Ordinal))
             return;
@@ -677,7 +689,7 @@ public sealed class WorkflowRunnerService
             if (end < 0)
             {
                 step.LastErrorCode = "context_var_syntax_invalid";
-                step.LastErrorMessage = "Invalid context variable syntax: missing closing '}' in '${...}'.";
+                step.LastErrorMessage = $"{FormatStepLocation(step, jsonPath)}Invalid context variable syntax: missing closing '}}' in '${{...}}'.";
                 throw new InvalidOperationException(step.LastErrorMessage);
             }
 
@@ -685,7 +697,7 @@ public sealed class WorkflowRunnerService
             if (string.IsNullOrWhiteSpace(inner))
             {
                 step.LastErrorCode = "context_var_syntax_invalid";
-                step.LastErrorMessage = "Invalid context variable syntax: empty path in '${...}'.";
+                step.LastErrorMessage = $"{FormatStepLocation(step, jsonPath)}Invalid context variable syntax: empty path in '${{...}}'.";
                 throw new InvalidOperationException(step.LastErrorMessage);
             }
 
@@ -702,7 +714,7 @@ public sealed class WorkflowRunnerService
             if (string.IsNullOrWhiteSpace(inner))
             {
                 step.LastErrorCode = "context_var_syntax_invalid";
-                step.LastErrorMessage = "Invalid context variable syntax: empty path in '${...}'.";
+                step.LastErrorMessage = $"{FormatStepLocation(step, jsonPath)}Invalid context variable syntax: empty path in '${{...}}'.";
                 throw new InvalidOperationException(step.LastErrorMessage);
             }
         }
