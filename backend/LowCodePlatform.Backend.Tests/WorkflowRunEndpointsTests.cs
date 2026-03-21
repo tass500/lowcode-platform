@@ -736,6 +736,49 @@ public sealed class WorkflowRunEndpointsTests
     }
 
     [Fact]
+    public async Task Context_variable_should_fail_fast_when_syntax_is_invalid()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        var definitionJson =
+            "{\"steps\":[" +
+            "{\"type\":\"noop\"}," +
+            // Missing closing brace: ${...  (should fail as syntax invalid, not silently pass through)
+            "{\"type\":\"domainCommand\",\"command\":\"entityRecord.updateById\",\"recordId\":\"${000.entityRecordId\",\"data\":{\"name\":\"Acme Updated\"}}" +
+            "]}";
+
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-context-var-syntax-invalid", definitionJson });
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(created);
+        var workflowId = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var startResp = await client.PostAsync($"/api/workflows/{workflowId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, startResp.StatusCode);
+        var startPayload = await startResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(startPayload);
+        var runId = Guid.Parse(startPayload!["workflowRunId"]!.ToString()!);
+
+        using var runDetailsResp = await client.GetAsync($"/api/workflows/runs/{runId}");
+        Assert.Equal(HttpStatusCode.OK, runDetailsResp.StatusCode);
+        var runPayload = await runDetailsResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(runPayload);
+        Assert.Equal("failed", runPayload!["state"]?.ToString());
+        Assert.Equal("context_var_syntax_invalid", runPayload["errorCode"]?.ToString());
+    }
+
+    [Fact]
     public async Task Set_step_should_seed_context_and_be_usable_via_context_vars()
     {
         var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
