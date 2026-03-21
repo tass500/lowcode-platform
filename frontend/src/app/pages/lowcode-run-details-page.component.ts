@@ -8,6 +8,7 @@ type WorkflowStepRunDto = {
   workflowStepRunId: string;
   stepKey: string;
   stepType: string;
+  originalStepConfigJson?: string | null;
   stepConfigJson?: string | null;
   outputJson?: string | null;
   state: string;
@@ -117,12 +118,42 @@ type WorkflowRunDetailsDto = {
 
               <tr *ngIf="expandedStepIds[s.workflowStepRunId]">
                 <td colspan="6" style="border-bottom:1px solid #eee; padding: 6px;">
-                  <div style="color:#444; margin-bottom: 6px;"><b>Step config</b></div>
-                  <div *ngIf="extractContextVars(s.stepConfigJson).length" style="margin-bottom: 6px; color:#444;">
-                    <b>Context vars</b>:
-                    <span style="font-family: monospace;">{{ extractContextVars(s.stepConfigJson).join(', ') }}</span>
+                  <div style="display:flex; gap: 12px; align-items: baseline; flex-wrap: wrap; color:#444; margin-bottom: 6px;">
+                    <div><b>Step config</b></div>
+                    <label style="display:flex; gap: 6px; align-items:center;">
+                      <input type="checkbox" [checked]="!!showResolvedConfig[s.workflowStepRunId]" (change)="toggleResolvedConfig(s.workflowStepRunId)" />
+                      Show resolved
+                    </label>
                   </div>
-                  <textarea [value]="formatJsonMaybe(s.stepConfigJson)" rows="8" style="width: 100%; font-family: monospace;" readonly></textarea>
+
+                  <div *ngIf="!showResolvedConfig[s.workflowStepRunId]">
+                    <div *ngIf="extractContextVars(s.originalStepConfigJson).length" style="margin-bottom: 6px; color:#444;">
+                      <b>Context vars</b>:
+                      <span style="font-family: monospace;">{{ extractContextVars(s.originalStepConfigJson).join(', ') }}</span>
+                    </div>
+                    <textarea [value]="formatJsonMaybe(s.originalStepConfigJson ?? s.stepConfigJson)" rows="8" style="width: 100%; font-family: monospace;" readonly></textarea>
+                  </div>
+
+                  <div *ngIf="showResolvedConfig[s.workflowStepRunId]">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                      <div>
+                        <div style="color:#444; margin-bottom: 6px;"><b>Original</b></div>
+                        <div *ngIf="extractContextVars(s.originalStepConfigJson).length" style="margin-bottom: 6px; color:#444;">
+                          <b>Context vars</b>:
+                          <span style="font-family: monospace;">{{ extractContextVars(s.originalStepConfigJson).join(', ') }}</span>
+                        </div>
+                        <textarea [value]="formatJsonMaybe(s.originalStepConfigJson)" rows="8" style="width: 100%; font-family: monospace;" readonly></textarea>
+                      </div>
+                      <div>
+                        <div style="color:#444; margin-bottom: 6px;"><b>Resolved</b></div>
+                        <div *ngIf="extractContextVars(s.stepConfigJson).length" style="margin-bottom: 6px; color:#444;">
+                          <b>Context vars</b>:
+                          <span style="font-family: monospace;">{{ extractContextVars(s.stepConfigJson).join(', ') }}</span>
+                        </div>
+                        <textarea [value]="formatJsonMaybe(s.stepConfigJson)" rows="8" style="width: 100%; font-family: monospace;" readonly></textarea>
+                      </div>
+                    </div>
+                  </div>
                 </td>
               </tr>
 
@@ -158,6 +189,7 @@ export class LowCodeRunDetailsPageComponent implements OnInit, OnDestroy {
 
   expandedStepIds: Record<string, boolean> = {};
   expandedOutputIds: Record<string, boolean> = {};
+  showResolvedConfig: Record<string, boolean> = {};
 
   get filteredSteps(): WorkflowStepRunDto[] {
     const steps = this.run?.steps ?? [];
@@ -221,6 +253,10 @@ export class LowCodeRunDetailsPageComponent implements OnInit, OnDestroy {
 
   toggleStepConfig(stepRunId: string): void {
     this.expandedStepIds[stepRunId] = !this.expandedStepIds[stepRunId];
+  }
+
+  toggleResolvedConfig(stepRunId: string): void {
+    this.showResolvedConfig[stepRunId] = !this.showResolvedConfig[stepRunId];
   }
 
   toggleStepOutput(stepRunId: string): void {
