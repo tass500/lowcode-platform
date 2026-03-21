@@ -229,7 +229,7 @@ public sealed class WorkflowEndpointsTests
         await AuthenticateAsync(clientA, "ta");
         await AuthenticateAsync(clientB, "tb");
 
-        var createReq = new { name = "wf-a", definitionJson = "{}" };
+        var createReq = new { name = "wf-a", definitionJson = "{\"steps\":[]}" };
         using var createResp = await clientA.PostAsJsonAsync("/api/workflows", createReq);
         Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
 
@@ -249,5 +249,61 @@ public sealed class WorkflowEndpointsTests
         // (Full item-count assertions would require strongly typed JSON parsing.)
         Assert.True(payloadA!.ContainsKey("items"));
         Assert.True(payloadB!.ContainsKey("items"));
+    }
+
+    [Fact]
+    public async Task Workflows_create_should_fail_fast_when_definition_schema_is_invalid()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var createReq = new { name = "wf-invalid-schema", definitionJson = "{}" };
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", createReq);
+        Assert.Equal(HttpStatusCode.BadRequest, createResp.StatusCode);
+
+        var payload = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(payload);
+        Assert.Equal("workflow_definition_invalid", payload!["errorCode"]?.ToString());
+    }
+
+    [Fact]
+    public async Task Workflows_update_should_fail_fast_when_definition_schema_is_invalid()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var createReq = new { name = "wf1", definitionJson = "{\"steps\":[]}" };
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", createReq);
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(created);
+        var id = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        var updateReq = new { name = "wf1", definitionJson = "{}" };
+        using var updateResp = await client.PutAsJsonAsync($"/api/workflows/{id}", updateReq);
+        Assert.Equal(HttpStatusCode.BadRequest, updateResp.StatusCode);
+
+        var payload = await updateResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(payload);
+        Assert.Equal("workflow_definition_invalid", payload!["errorCode"]?.ToString());
     }
 }
