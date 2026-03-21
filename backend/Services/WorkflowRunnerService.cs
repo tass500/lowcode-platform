@@ -10,6 +10,7 @@ namespace LowCodePlatform.Backend.Services;
 public sealed class WorkflowRunnerService
 {
     private static readonly Regex ContextVarRegex = new(@"\$\{([^}]+)\}", RegexOptions.Compiled);
+    private static readonly Regex ContextVarAnyRegex = new(@"\$\{([^}]*)\}", RegexOptions.Compiled);
 
     private sealed record RetryPolicy(int MaxAttempts, int DelayMs, double BackoffFactor, int? MaxDelayMs);
 
@@ -614,6 +615,8 @@ public sealed class WorkflowRunnerService
             if (string.IsNullOrEmpty(s))
                 return node;
 
+            ValidateContextVarSyntaxIfNeeded(s, step);
+
             var trimmed = s.Trim();
             var exact = ContextVarRegex.Match(trimmed);
             if (exact.Success && exact.Index == 0 && exact.Length == trimmed.Length)
@@ -656,6 +659,53 @@ public sealed class WorkflowRunnerService
         }
 
         return node;
+    }
+
+    private static void ValidateContextVarSyntaxIfNeeded(string s, WorkflowStepRun step)
+    {
+        if (!s.Contains("${", StringComparison.Ordinal))
+            return;
+
+        var idx = 0;
+        while (true)
+        {
+            var start = s.IndexOf("${", idx, StringComparison.Ordinal);
+            if (start < 0)
+                break;
+
+            var end = s.IndexOf('}', start + 2);
+            if (end < 0)
+            {
+                step.LastErrorCode = "context_var_syntax_invalid";
+                step.LastErrorMessage = "Invalid context variable syntax: missing closing '}' in '${...}'.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            var inner = s.Substring(start + 2, end - (start + 2));
+            if (string.IsNullOrWhiteSpace(inner))
+            {
+                step.LastErrorCode = "context_var_syntax_invalid";
+                step.LastErrorMessage = "Invalid context variable syntax: empty path in '${...}'.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+
+            // Also reject patterns like ${ } even if other valid vars exist.
+            // (Regex-based replacement would otherwise ignore these silently.)
+            idx = end + 1;
+        }
+
+        // If there's a ${} in the string, ContextVarRegex won't match it (because it requires at least 1 char).
+        // We still want to fail fast.
+        foreach (Match m in ContextVarAnyRegex.Matches(s))
+        {
+            var inner = m.Groups[1].Value;
+            if (string.IsNullOrWhiteSpace(inner))
+            {
+                step.LastErrorCode = "context_var_syntax_invalid";
+                step.LastErrorMessage = "Invalid context variable syntax: empty path in '${...}'.";
+                throw new InvalidOperationException(step.LastErrorMessage);
+            }
+        }
     }
 
     private static JsonNode? ResolveContextPath(JsonObject context, string path)
