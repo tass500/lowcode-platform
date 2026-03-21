@@ -2,7 +2,7 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 34 — context var validációk (syntax) + PR**
+**ACTIVE: Iteráció 35 — context var UX: szerkesztő oldali highlight + preflight validáció + PR**
 
 - Iteráció 28: `merge` step (shallow merge), integrációs tesztek, frontend executable template, live docs.
 - Iteráció 29: `foreach` step (control flow) + tesztek + frontend template + live docs.
@@ -10,15 +10,15 @@
 - Iteráció 31: retry/backoff policy step-szinten (konfigurálható) + tesztek; commit + push + PR.
 - Iteráció 32: step timeout / cancellation hardening + tesztek.
 - Iteráció 33: context var UX/validációk (jobb hibák + UI megjelenítés) + tesztek.
-- Iteráció 34 (ACTIVE): context var validációk (syntax) + tesztek.
-- Iteráció 35: context var UX: szerkesztő oldali highlight + preflight validáció (create/update workflow).
+- Iteráció 34: context var validációk (syntax) + tesztek.
+- Iteráció 35 (ACTIVE): context var UX: szerkesztő oldali highlight + preflight validáció (create/update workflow).
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch: `feat/iter-34-context-var-validation`
+- Branch: `feat/iter-35-context-var-editor-ux`
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
-- Következő teendő (Iteráció 34): commit slice (backend+tests / docs) → push → PR nyitás
+- Következő teendő (Iteráció 35): commit slice (frontend / docs) → push → PR nyitás
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.

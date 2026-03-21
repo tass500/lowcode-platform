@@ -21,7 +21,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `require`
     - `domainCommand`
     - `unstable`
-  - Jelenlegi fókusz (roadmap): Iteráció 34 — context var validációk (syntax)
+  - Jelenlegi fókusz (roadmap): Iteráció 35 — context var UX (editor highlight + preflight)
 
 - **Frontend (Angular)**
   - Drift-proof “now”: kliens oldali **`serverNowOffsetMs`** kalibráció `serverTimeUtc` alapján.
