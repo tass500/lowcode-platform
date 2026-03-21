@@ -2,21 +2,21 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 32 — step timeout / cancellation hardening + PR**
+**ACTIVE: Iteráció 33 — context var UX/validációk + PR**
 
 - Iteráció 28: `merge` step (shallow merge), integrációs tesztek, frontend executable template, live docs.
 - Iteráció 29: `foreach` step (control flow) + tesztek + frontend template + live docs.
 - Iteráció 30: `switch` / `when` jellegű branch step (alap elágazás) + tesztek + template.
 - Iteráció 31: retry/backoff policy step-szinten (konfigurálható) + tesztek; commit + push + PR.
-- Iteráció 32 (ACTIVE): step timeout / cancellation hardening + tesztek.
-- Iteráció 33: context var UX/validációk (jobb hibák + UI megjelenítés) + tesztek.
+- Iteráció 32: step timeout / cancellation hardening + tesztek.
+- Iteráció 33 (ACTIVE): context var UX/validációk (jobb hibák + UI megjelenítés) + tesztek.
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch: `feat/iter-32-step-timeout-cancel`
+- Branch: `feat/iter-33-context-var-ux`
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
-- Következő teendő (Iteráció 32): commit slice (backend+tests / docs / frontend template ha kell) → push → PR nyitás
+- Következő teendő (Iteráció 33): commit slice (backend+tests / frontend / docs) → push → PR nyitás
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.
@@ -333,6 +333,28 @@ npm start --prefix frontend
         "status": "inactive"
       }
     }
+  ]
+}
+```
+
+### Iteráció 33 — “Context vars UX: jobb hibák + UI megjelenítés”
+**Cél**: a `${...}` context var hibák legyenek könnyen debugolhatók (melyik változó hiányzik, mi érhető el), és a UI segítse a hibakeresést.
+
+**Backend**
+- `context_var_not_found` hiba üzenete bővült:
+  - tartalmazza a hiányzó path-ot
+  - tartalmazza az elérhető top-level context kulcsokat (`Available top-level keys: [...]`)
+
+**Frontend**
+- Run details / Step config panel:
+  - ha a config tartalmaz `${...}` változókat, megjelenik egy `Context vars:` sor (unique + sorted list)
+
+**Példa (hibás config)**
+
+```json
+{
+  "steps": [
+    { "type": "domainCommand", "command": "entityRecord.updateById", "recordId": "${000.entityRecordId}", "data": {"name":"Acme"} }
   ]
 }
 ```

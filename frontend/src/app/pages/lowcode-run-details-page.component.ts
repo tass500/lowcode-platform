@@ -118,6 +118,10 @@ type WorkflowRunDetailsDto = {
               <tr *ngIf="expandedStepIds[s.workflowStepRunId]">
                 <td colspan="6" style="border-bottom:1px solid #eee; padding: 6px;">
                   <div style="color:#444; margin-bottom: 6px;"><b>Step config</b></div>
+                  <div *ngIf="extractContextVars(s.stepConfigJson).length" style="margin-bottom: 6px; color:#444;">
+                    <b>Context vars</b>:
+                    <span style="font-family: monospace;">{{ extractContextVars(s.stepConfigJson).join(', ') }}</span>
+                  </div>
                   <textarea [value]="formatJsonMaybe(s.stepConfigJson)" rows="8" style="width: 100%; font-family: monospace;" readonly></textarea>
                 </td>
               </tr>
@@ -171,6 +175,13 @@ export class LowCodeRunDetailsPageComponent implements OnInit, OnDestroy {
       const out = String(s.outputJson ?? '').toLowerCase();
       return err.includes(q) || cfg.includes(q) || out.includes(q);
     });
+  }
+
+  extractContextVars(value: string | null | undefined): string[] {
+    const s = String(value ?? '');
+    if (!s) return [];
+    const matches = [...s.matchAll(/\$\{([^}]+)\}/g)].map(m => String(m[1] ?? '').trim()).filter(x => !!x);
+    return Array.from(new Set(matches)).sort((a, b) => a.localeCompare(b));
   }
 
   async ngOnInit(): Promise<void> {

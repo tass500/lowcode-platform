@@ -732,6 +732,7 @@ public sealed class WorkflowRunEndpointsTests
         Assert.NotNull(runPayload);
         Assert.Equal("failed", runPayload!["state"]?.ToString());
         Assert.Equal("context_var_not_found", runPayload["errorCode"]?.ToString());
+        Assert.Contains("000.entityRecordId", runPayload["errorMessage"]?.ToString() ?? string.Empty);
     }
 
     [Fact]
