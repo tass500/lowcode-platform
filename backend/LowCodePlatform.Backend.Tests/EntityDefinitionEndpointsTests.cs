@@ -28,6 +28,8 @@ public sealed class EntityDefinitionEndpointsTests
         {
             builder.UseEnvironment("Testing");
 
+            builder.UseContentRoot(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../")));
+
             builder.ConfigureAppConfiguration(cfg =>
             {
                 cfg.AddInMemoryCollection(new Dictionary<string, string?>

@@ -21,7 +21,9 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `require`
     - `domainCommand`
     - `unstable`
-  - Jelenlegi fókusz (roadmap): Iteráció 40 — context var UX: autocomplete javaslatok (top-level keys + step output mezők)
+  - Jelenlegi fókusz (roadmap): Iteráció 41 — workflow lint (statikus warningok)
+    - unknown step type → warning
+    - context var referencia ismeretlen step key-re → warning
 
 
 - **Frontend (Angular)**

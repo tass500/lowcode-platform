@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
+using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,8 @@ public sealed class WorkflowEndpointsTests
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Testing");
+
+            builder.UseContentRoot(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../")));
 
             builder.ConfigureAppConfiguration(cfg =>
             {
@@ -305,5 +308,42 @@ public sealed class WorkflowEndpointsTests
         var payload = await updateResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
         Assert.NotNull(payload);
         Assert.Equal("workflow_definition_invalid", payload!["errorCode"]?.ToString());
+    }
+
+    [Fact]
+    public async Task Workflows_create_should_return_lint_warnings_for_unknown_step_types()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var createReq = new { name = "wf-lint-unknown-type", definitionJson = "{\"steps\":[{\"type\":\"unknownStep\"}]}" };
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", createReq);
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+
+        var json = await createResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.TryGetProperty("lintWarnings", out var warningsEl));
+        Assert.Equal(JsonValueKind.Array, warningsEl.ValueKind);
+
+        var found = false;
+        foreach (var w in warningsEl.EnumerateArray())
+        {
+            if (w.ValueKind != JsonValueKind.Object)
+                continue;
+            if (!w.TryGetProperty("code", out var codeEl) || codeEl.ValueKind != JsonValueKind.String)
+                continue;
+            if (codeEl.GetString() == "workflow_step_type_unknown")
+                found = true;
+        }
+        Assert.True(found);
     }
 }

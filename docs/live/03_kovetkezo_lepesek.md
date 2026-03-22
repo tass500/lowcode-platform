@@ -2,7 +2,7 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 40 — context var UX: autocomplete javaslatok (top-level keys + step output mezők) a szerkesztő oldalon (minimál)**
+**ACTIVE: Iteráció 41 — workflow lint: statikus ellenőrzések (warning szint)**
 
 - Iteráció 28: `merge` step (shallow merge), integrációs tesztek, frontend executable template, live docs.
 - Iteráció 29: `foreach` step (control flow) + tesztek + frontend template + live docs.
@@ -15,18 +15,17 @@
 - Iteráció 36: workflow create/update preflight validáció (backend) + tesztek.
 - Iteráció 37: workflow definition “schema” validáció (minimál): `steps` array kötelező, step `type` string kötelező (create/update).
 - Iteráció 38: run details: “Resolved step config” megjelenítés (interpoláció utáni config) + toggle.
-- Iteráció 39 (ACTIVE): context var UX: hiba részletek (melyik step/config path mezőben volt a hiba) + UI megjelenítés.
-- Iteráció 40 (ACTIVE): context var UX: autocomplete javaslatok (top-level keys + step output mezők) a szerkesztő oldalon (minimál).
+- Iteráció 39: context var UX: hiba részletek (melyik step/config path mezőben volt a hiba) + UI megjelenítés.
+- Iteráció 40: context var UX: autocomplete javaslatok (top-level keys + step output mezők) a szerkesztő oldalon (minimál).
 - Iteráció 41: workflow lint: statikus ellenőrzések (unused step outputs, obvious typos) + warning szint.
 - Iteráció 42: hardening: egységes error response detail mezők (path + code + message) a workflow validációkhoz.
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch: `feat/iter-39-context-var-error-details`
-- Branch: `feat/iter-40-context-var-autocomplete`
+- Branch: `feat/iter-41-workflow-lint`
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
-- Következő teendő (Iteráció 40): commit slice (frontend + docs) → push → PR nyitás
+- Következő teendő (Iteráció 41): commit slice (frontend + docs) → push → PR nyitás
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.

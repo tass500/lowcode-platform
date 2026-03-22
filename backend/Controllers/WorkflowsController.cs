@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace LowCodePlatform.Backend.Controllers;
 
@@ -19,12 +20,83 @@ public sealed class WorkflowsController : ControllerBase
     private readonly TenantRegistryService _tenants;
     private readonly TenantContext _tenant;
 
+    private static readonly HashSet<string> SupportedStepTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "noop",
+        "delay",
+        "set",
+        "map",
+        "merge",
+        "foreach",
+        "switch",
+        "require",
+        "domainCommand",
+        "unstable",
+    };
+
+    private static readonly Regex ContextVarRegex = new(@"\$\{(?<path>[^}]+)\}", RegexOptions.Compiled);
+
     public WorkflowsController(Data.PlatformDbContext db, AuditService audit, TenantRegistryService tenants, TenantContext tenant)
     {
         _db = db;
         _audit = audit;
         _tenants = tenants;
         _tenant = tenant;
+    }
+
+    private static List<WorkflowLintWarningDto> LintWorkflowDefinition(string definitionJson)
+    {
+        var warnings = new List<WorkflowLintWarningDto>();
+
+        // Lint runs after schema validation; keep it best-effort and never throw.
+        try
+        {
+            using var doc = JsonDocument.Parse(definitionJson);
+            if (!doc.RootElement.TryGetProperty("steps", out var stepsEl) || stepsEl.ValueKind != JsonValueKind.Array)
+                return warnings;
+
+            var stepKeys = new HashSet<string>(StringComparer.Ordinal);
+            for (var i = 0; i < stepsEl.GetArrayLength(); i += 1)
+                stepKeys.Add($"{i:000}");
+
+            foreach (var stepEl in stepsEl.EnumerateArray())
+            {
+                if (stepEl.ValueKind != JsonValueKind.Object)
+                    continue;
+
+                if (stepEl.TryGetProperty("type", out var typeEl) && typeEl.ValueKind == JsonValueKind.String)
+                {
+                    var type = (typeEl.GetString() ?? string.Empty).Trim();
+                    if (!string.IsNullOrWhiteSpace(type) && !SupportedStepTypes.Contains(type))
+                    {
+                        warnings.Add(new WorkflowLintWarningDto(
+                            Code: "workflow_step_type_unknown",
+                            Message: $"Unknown workflow step type: '{type}'."));
+                    }
+                }
+
+                foreach (var m in ContextVarRegex.Matches(stepEl.GetRawText()).Cast<Match>())
+                {
+                    var path = m.Groups["path"].Value;
+                    if (path.Length < 3)
+                        continue;
+
+                    var stepKey = path[..3];
+                    if (stepKey.All(char.IsDigit) && !stepKeys.Contains(stepKey))
+                    {
+                        warnings.Add(new WorkflowLintWarningDto(
+                            Code: "context_var_step_not_found",
+                            Message: $"Context variable references missing step '{stepKey}': '${{{path}}}'."));
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // ignore lint failures
+        }
+
+        return warnings;
     }
 
     private ObjectResult Problem(int statusCode, string errorCode, string message)
@@ -135,10 +207,12 @@ public sealed class WorkflowsController : ControllerBase
         if (wf is null)
             return Problem(StatusCodes.Status404NotFound, "workflow_not_found", "Workflow not found.");
 
+        var lintWarnings = LintWorkflowDefinition(wf.DefinitionJson);
         return Ok(new WorkflowDefinitionDetailsDto(
             wf.WorkflowDefinitionId,
             wf.Name,
             wf.DefinitionJson,
+            lintWarnings,
             wf.CreatedAtUtc,
             wf.UpdatedAtUtc));
     }
@@ -159,6 +233,8 @@ public sealed class WorkflowsController : ControllerBase
         var syntaxError = ValidateContextVarSyntax(req.DefinitionJson);
         if (!string.IsNullOrWhiteSpace(syntaxError))
             return Problem(StatusCodes.Status400BadRequest, "context_var_syntax_invalid", syntaxError);
+
+        var lintWarnings = LintWorkflowDefinition(req.DefinitionJson);
 
         var wf = new Models.WorkflowDefinition
         {
@@ -187,6 +263,7 @@ public sealed class WorkflowsController : ControllerBase
             wf.WorkflowDefinitionId,
             wf.Name,
             wf.DefinitionJson,
+            lintWarnings,
             wf.CreatedAtUtc,
             wf.UpdatedAtUtc));
     }
@@ -207,6 +284,8 @@ public sealed class WorkflowsController : ControllerBase
         var syntaxError = ValidateContextVarSyntax(req.DefinitionJson);
         if (!string.IsNullOrWhiteSpace(syntaxError))
             return Problem(StatusCodes.Status400BadRequest, "context_var_syntax_invalid", syntaxError);
+
+        var lintWarnings = LintWorkflowDefinition(req.DefinitionJson);
 
         var wf = await _db.WorkflowDefinitions.FirstOrDefaultAsync(x => x.WorkflowDefinitionId == id, ct);
         if (wf is null)
@@ -233,6 +312,7 @@ public sealed class WorkflowsController : ControllerBase
             wf.WorkflowDefinitionId,
             wf.Name,
             wf.DefinitionJson,
+            lintWarnings,
             wf.CreatedAtUtc,
             wf.UpdatedAtUtc));
     }

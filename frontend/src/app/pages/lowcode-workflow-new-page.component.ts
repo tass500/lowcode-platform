@@ -9,6 +9,7 @@ type WorkflowDefinitionDetailsDto = {
   workflowDefinitionId: string;
   name: string;
   definitionJson: string;
+  lintWarnings: { code: string; message: string }[];
   createdAtUtc: string;
   updatedAtUtc: string;
 };
@@ -80,6 +81,13 @@ type WorkflowDefinitionDetailsDto = {
           </div>
           <div style="margin-top: 6px; color:#444;">Click a suggestion to insert at cursor.</div>
         </section>
+
+        <section *ngIf="created?.lintWarnings?.length" style="padding: 10px 12px; border: 1px solid #f0e0a0; border-radius: 8px; background: #fffaf0;">
+          <div style="font-weight: 600; margin-bottom: 6px;">Lint warnings</div>
+          <div *ngFor="let w of created!.lintWarnings" style="font-family: monospace; color:#6b4e00;">
+            {{ w.code }}: {{ w.message }}
+          </div>
+        </section>
       </form>
     </main>
   `,
@@ -90,6 +98,8 @@ export class LowCodeWorkflowNewPageComponent {
 
   creating = false;
   error: string | null = null;
+  lintWarnings: { code: string; message: string }[] = [];
+  created: WorkflowDefinitionDetailsDto | null = null;
 
   form = new FormGroup({
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -295,6 +305,7 @@ export class LowCodeWorkflowNewPageComponent {
 
     this.creating = true;
     this.error = null;
+    this.lintWarnings = [];
 
     try {
       const req = {
@@ -302,8 +313,17 @@ export class LowCodeWorkflowNewPageComponent {
         definitionJson: this.form.controls.definitionJson.value.trim(),
       };
 
-      const created = await firstValueFrom(this.http.post<WorkflowDefinitionDetailsDto>('/api/workflows', req));
-      await this.router.navigate(['/lowcode/workflows', created.workflowDefinitionId]);
+      const payload = await firstValueFrom(
+        this.http.post<WorkflowDefinitionDetailsDto>('/api/workflows', req)
+      );
+
+      this.created = payload;
+
+      if (payload.lintWarnings) {
+        this.lintWarnings = payload.lintWarnings;
+      }
+
+      await this.router.navigate(['/lowcode/workflows', payload.workflowDefinitionId]);
     } catch (e: any) {
       this.error = e?.error?.message ?? e?.message ?? 'Failed to create workflow.';
     } finally {
