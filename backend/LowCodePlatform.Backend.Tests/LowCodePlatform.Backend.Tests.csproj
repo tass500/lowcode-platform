@@ -6,8 +6,6 @@
     <IsTestProject>true</IsTestProject>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <BaseOutputPath>$(MSBuildProjectDirectory)\bin\</BaseOutputPath>
-    <BaseIntermediateOutputPath>$(MSBuildProjectDirectory)\obj\</BaseIntermediateOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
