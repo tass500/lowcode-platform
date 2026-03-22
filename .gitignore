@@ -1,6 +1,7 @@
 # .NET
 **/bin/
 **/obj/
+**/TestResults/
 
 # SQLite dev db (if created locally)
 **/*.db

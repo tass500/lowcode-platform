@@ -4,6 +4,7 @@ using LowCodePlatform.Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace LowCodePlatform.Backend.Controllers;
 
@@ -32,6 +33,80 @@ public sealed class WorkflowsController : ControllerBase
             Message: message,
             TraceId: TraceIdMiddleware.GetTraceId(HttpContext),
             TimestampUtc: DateTime.UtcNow));
+
+    private static string? ValidateContextVarSyntax(string s)
+    {
+        if (string.IsNullOrEmpty(s))
+            return null;
+        if (!s.Contains("${", StringComparison.Ordinal))
+            return null;
+
+        var idx = 0;
+        while (true)
+        {
+            var start = s.IndexOf("${", idx, StringComparison.Ordinal);
+            if (start < 0)
+                break;
+
+            var end = s.IndexOf('}', start + 2);
+            var endQuote = s.IndexOf('"', start + 2);
+            if (end < 0 || (endQuote >= 0 && endQuote < end))
+                return "Invalid context variable syntax: missing closing '}' in '${...}'.";
+
+            var inner = s.Substring(start + 2, end - (start + 2));
+            if (string.IsNullOrWhiteSpace(inner))
+                return "Invalid context variable syntax: empty path in '${...}'.";
+
+            idx = end + 1;
+        }
+
+        // Also detect explicit ${} which would otherwise slip through regex-based replacements.
+        idx = 0;
+        while (true)
+        {
+            var start = s.IndexOf("${}", idx, StringComparison.Ordinal);
+            if (start < 0)
+                break;
+            return "Invalid context variable syntax: empty path in '${...}'.";
+        }
+
+        return null;
+    }
+
+    private static string? ValidateWorkflowDefinitionSchema(string definitionJson)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(definitionJson);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                return "Invalid workflow definition: root must be a JSON object.";
+
+            if (!doc.RootElement.TryGetProperty("steps", out var stepsEl))
+                return "Invalid workflow definition: 'steps' is required.";
+
+            if (stepsEl.ValueKind != JsonValueKind.Array)
+                return "Invalid workflow definition: 'steps' must be an array.";
+
+            foreach (var stepEl in stepsEl.EnumerateArray())
+            {
+                if (stepEl.ValueKind != JsonValueKind.Object)
+                    return "Invalid workflow definition: each step must be an object.";
+
+                if (!stepEl.TryGetProperty("type", out var typeEl) || typeEl.ValueKind != JsonValueKind.String)
+                    return "Invalid workflow definition: each step must have a string 'type'.";
+
+                var type = typeEl.GetString();
+                if (string.IsNullOrWhiteSpace(type))
+                    return "Invalid workflow definition: each step must have a non-empty string 'type'.";
+            }
+
+            return null;
+        }
+        catch (JsonException)
+        {
+            return "Invalid workflow definition: definitionJson must be valid JSON.";
+        }
+    }
 
     public sealed record CreateWorkflowRequest(string Name, string DefinitionJson);
 
@@ -77,6 +152,14 @@ public sealed class WorkflowsController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.DefinitionJson))
             return Problem(StatusCodes.Status400BadRequest, "definition_missing", "DefinitionJson is required.");
 
+        var schemaError = ValidateWorkflowDefinitionSchema(req.DefinitionJson);
+        if (!string.IsNullOrWhiteSpace(schemaError))
+            return Problem(StatusCodes.Status400BadRequest, "workflow_definition_invalid", schemaError);
+
+        var syntaxError = ValidateContextVarSyntax(req.DefinitionJson);
+        if (!string.IsNullOrWhiteSpace(syntaxError))
+            return Problem(StatusCodes.Status400BadRequest, "context_var_syntax_invalid", syntaxError);
+
         var wf = new Models.WorkflowDefinition
         {
             WorkflowDefinitionId = Guid.NewGuid(),
@@ -116,6 +199,14 @@ public sealed class WorkflowsController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(req.DefinitionJson))
             return Problem(StatusCodes.Status400BadRequest, "definition_missing", "DefinitionJson is required.");
+
+        var schemaError = ValidateWorkflowDefinitionSchema(req.DefinitionJson);
+        if (!string.IsNullOrWhiteSpace(schemaError))
+            return Problem(StatusCodes.Status400BadRequest, "workflow_definition_invalid", schemaError);
+
+        var syntaxError = ValidateContextVarSyntax(req.DefinitionJson);
+        if (!string.IsNullOrWhiteSpace(syntaxError))
+            return Problem(StatusCodes.Status400BadRequest, "context_var_syntax_invalid", syntaxError);
 
         var wf = await _db.WorkflowDefinitions.FirstOrDefaultAsync(x => x.WorkflowDefinitionId == id, ct);
         if (wf is null)

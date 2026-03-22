@@ -4,6 +4,7 @@ public sealed record WorkflowStepRunDto(
     Guid WorkflowStepRunId,
     string StepKey,
     string StepType,
+    string? OriginalStepConfigJson,
     string? StepConfigJson,
     string? OutputJson,
     string State,

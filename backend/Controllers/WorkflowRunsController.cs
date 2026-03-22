@@ -40,8 +40,38 @@ public sealed class WorkflowRunsController : ControllerBase
             TraceId: TraceIdMiddleware.GetTraceId(HttpContext),
             TimestampUtc: DateTime.UtcNow));
 
+    private static Dictionary<string, string?> ExtractOriginalStepConfigsByKey(string? workflowDefinitionJson)
+    {
+        var map = new Dictionary<string, string?>(StringComparer.Ordinal);
+        if (string.IsNullOrWhiteSpace(workflowDefinitionJson))
+            return map;
+
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(workflowDefinitionJson);
+            if (!doc.RootElement.TryGetProperty("steps", out var stepsEl) || stepsEl.ValueKind != System.Text.Json.JsonValueKind.Array)
+                return map;
+
+            var i = 0;
+            foreach (var stepEl in stepsEl.EnumerateArray())
+            {
+                map[$"{i:000}"] = stepEl.GetRawText();
+                i += 1;
+            }
+        }
+        catch
+        {
+            return map;
+        }
+
+        return map;
+    }
+
     private static WorkflowRunDetailsDto ToDetails(Models.WorkflowRun run)
-        => new(
+    {
+        var originalByKey = ExtractOriginalStepConfigsByKey(run.WorkflowDefinition?.DefinitionJson);
+
+        return new WorkflowRunDetailsDto(
             WorkflowRunId: run.WorkflowRunId,
             WorkflowDefinitionId: run.WorkflowDefinitionId,
             State: run.State,
@@ -56,6 +86,7 @@ public sealed class WorkflowRunsController : ControllerBase
                     s.WorkflowStepRunId,
                     s.StepKey,
                     s.StepType,
+                    originalByKey.TryGetValue(s.StepKey, out var orig) ? orig : null,
                     s.StepConfigJson,
                     s.OutputJson,
                     s.State,
@@ -64,6 +95,7 @@ public sealed class WorkflowRunsController : ControllerBase
                     s.LastErrorMessage,
                     s.StartedAtUtc,
                     s.FinishedAtUtc)));
+    }
 
     private static WorkflowRunListItemDto ToListItem(Models.WorkflowRun run)
         => new(
@@ -131,6 +163,7 @@ public sealed class WorkflowRunsController : ControllerBase
     {
         var run = await _db.WorkflowRuns
             .Include(x => x.Steps)
+            .Include(x => x.WorkflowDefinition)
             .FirstOrDefaultAsync(x => x.WorkflowRunId == runId, ct);
 
         if (run is null)
