@@ -23,6 +23,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `unstable`
   - Jelenlegi fókusz (roadmap): Iteráció 40 — context var UX: autocomplete javaslatok (top-level keys + step output mezők)
 
+
 - **Frontend (Angular)**
   - Drift-proof “now”: kliens oldali **`serverNowOffsetMs`** kalibráció `serverTimeUtc` alapján.
   - “Last refreshed” + “ago” kijelzés queue/audit/run panelen server-calibráltan.

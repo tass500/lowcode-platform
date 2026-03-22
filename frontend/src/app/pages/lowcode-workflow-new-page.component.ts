@@ -59,6 +59,10 @@ type WorkflowDefinitionDetailsDto = {
 
         <label>
           Definition JSON
+          <div *ngIf="extractContextVars(form.controls.definitionJson.value).length" style="margin: 6px 0;">
+            <div style="font-weight: 600; color:#444; margin-bottom: 4px;">Context vars preview</div>
+            <pre style="margin:0; padding: 8px; border: 1px solid #ddd; border-radius: 8px; background:#fafafa; overflow:auto; font-family: monospace;" [innerHTML]="highlightContextVars(form.controls.definitionJson.value)"></pre>
+          </div>
           <textarea #definitionJsonEl formControlName="definitionJson" rows="14" style="width: 100%; font-family: monospace;"></textarea>
         </label>
 
@@ -238,7 +242,57 @@ export class LowCodeWorkflowNewPageComponent {
     this.form.controls.definitionJson.setValue(t.json);
   }
 
+  private escapeHtml(s: string): string {
+    return s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  extractContextVars(value: string | null | undefined): string[] {
+    const s = String(value ?? '');
+    if (!s.includes('${')) return [];
+    const matches = [...s.matchAll(/\$\{([^}]*)\}/g)].map(m => String(m[1] ?? '').trim()).filter(x => !!x);
+    return Array.from(new Set(matches)).sort((a, b) => a.localeCompare(b));
+  }
+
+  highlightContextVars(value: string | null | undefined): string {
+    const s = String(value ?? '');
+    const escaped = this.escapeHtml(s);
+    return escaped.replace(/\$\{[^}]*\}/g, m => `<span style="background:#fff4cc; border:1px solid #f0d98a; border-radius:4px; padding:0 2px;">${m}</span>`);
+  }
+
+  validateContextVarSyntax(value: string): string | null {
+    if (!value.includes('${')) return null;
+
+    let idx = 0;
+    while (true) {
+      const start = value.indexOf('${', idx);
+      if (start < 0) break;
+      const end = value.indexOf('}', start + 2);
+      if (end < 0) return "Invalid context variable syntax: missing closing '}' in '${...}'.";
+      const inner = value.substring(start + 2, end);
+      if (!inner.trim()) return "Invalid context variable syntax: empty path in '${...}'.";
+      idx = end + 1;
+    }
+
+    for (const m of value.matchAll(/\$\{([^}]*)\}/g)) {
+      const inner = String(m[1] ?? '');
+      if (!inner.trim()) return "Invalid context variable syntax: empty path in '${...}'.";
+    }
+
+    return null;
+  }
+
   async create(): Promise<void> {
+    const preflight = this.validateContextVarSyntax(this.form.controls.definitionJson.value ?? '');
+    if (preflight) {
+      this.error = preflight;
+      return;
+    }
+
     this.creating = true;
     this.error = null;
 
