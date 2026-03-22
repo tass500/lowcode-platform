@@ -9,6 +9,7 @@ type WorkflowDefinitionDetailsDto = {
   workflowDefinitionId: string;
   name: string;
   definitionJson: string;
+  lintWarnings: { code: string; message: string }[];
   createdAtUtc: string;
   updatedAtUtc: string;
 };
@@ -68,6 +69,13 @@ type WorkflowRunListResponse = {
           <div><b>Updated</b>: {{ workflow.updatedAtUtc | date: 'medium' }}</div>
           <div style="font-family: monospace;"><b>Id</b>: {{ workflow.workflowDefinitionId }}</div>
         </div>
+
+        <section *ngIf="workflow.lintWarnings?.length" style="margin-top: 10px; padding: 10px 12px; border: 1px solid #f0e0a0; border-radius: 8px; background: #fffaf0;">
+          <div style="font-weight: 600; margin-bottom: 6px;">Lint warnings</div>
+          <div *ngFor="let w of workflow.lintWarnings" style="font-family: monospace; color:#6b4e00;">
+            {{ w.code }}: {{ w.message }}
+          </div>
+        </section>
 
         <ng-container *ngIf="tab === 'definition'">
           <form [formGroup]="form" style="margin-top: 12px; display:flex; flex-direction: column; gap: 12px;">

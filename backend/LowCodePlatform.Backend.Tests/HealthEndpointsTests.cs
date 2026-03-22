@@ -16,6 +16,8 @@ public sealed class HealthEndpointsTests
         {
             builder.UseEnvironment("Testing");
 
+            builder.UseContentRoot(Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../")));
+
             builder.ConfigureAppConfiguration(cfg =>
             {
                 var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");

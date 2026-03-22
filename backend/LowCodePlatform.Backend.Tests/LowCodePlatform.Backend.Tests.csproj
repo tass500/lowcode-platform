@@ -20,4 +20,8 @@
     <ProjectReference Include="..\LowCodePlatform.Backend.csproj" />
   </ItemGroup>
 
+  <Target Name="CleanRecursiveTestOutput" BeforeTargets="Build">
+    <RemoveDir Directories="$(OutDir)$(AssemblyName)" Condition="Exists('$(OutDir)$(AssemblyName)')" />
+  </Target>
+
 </Project>

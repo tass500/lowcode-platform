@@ -16,6 +16,11 @@ if (builder.Environment.IsEnvironment("Testing"))
 {
     builder.Logging.SetMinimumLevel(LogLevel.Warning);
     builder.Logging.AddFilter((_, level) => level >= LogLevel.Warning);
+
+    var enableEfConnectionLogs = string.Equals(Environment.GetEnvironmentVariable("LCP_TEST_EF_CONNECTION_LOGS"), "1", StringComparison.OrdinalIgnoreCase)
+                                || string.Equals(builder.Configuration["Testing:EnableEfConnectionLogs"], "true", StringComparison.OrdinalIgnoreCase);
+    if (!enableEfConnectionLogs)
+        builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Connection", LogLevel.None);
 }
 
 builder.Services.AddControllers();
