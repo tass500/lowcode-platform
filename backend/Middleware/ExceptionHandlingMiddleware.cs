@@ -24,6 +24,10 @@ public sealed class ExceptionHandlingMiddleware
         {
             await _next(ctx);
         }
+        catch (OperationCanceledException) when (ctx.RequestAborted.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             if (ctx.Response.HasStarted)
