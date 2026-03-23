@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Repo workflow: branches, commits, PRs
 
+Details: **`docs/DEVELOPMENT_WORKFLOW.md`** (sections 4–6).
+
 ## Protected `master`
 - Never push directly to `master`. All changes go through a PR.
 - If changes were accidentally committed on `master`, create a branch from HEAD and open a PR (do not rewrite history).

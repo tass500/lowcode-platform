@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Docs policy: truth templates + live docs
 
+Full process (DoR/DoD, PR, handoff): **`docs/DEVELOPMENT_WORKFLOW.md`**.
+
 ## Truth templates are read-only
 - Never edit anything under `docs/00_truth_files_template/*`.
 - Treat them as guidance/templates only.

@@ -1,5 +1,8 @@
 # Következő lépések (élő)
 
+> **Folyamat / PR / kontextusvesztés után:** [`docs/DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md)  
+> (A `.windsurf/` könyvtár nem authoritative.)
+
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
 **ACTIVE: Iteráció 44 — workflow viewer v2 (read-only, no builder)**

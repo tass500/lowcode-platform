@@ -3,6 +3,8 @@ description: Enterprise-style model hints + quality, security, testing, and outp
 alwaysApply: true
 ---
 
+Canonical process + security + handoff: **`docs/DEVELOPMENT_WORKFLOW.md`**.
+
 # Model selection (advisory — user sets model in Cursor UI)
 
 - **Default**: prefer **Auto** for everyday flow, small edits, explanations, and docs touch-ups.

@@ -1,5 +1,7 @@
 # Workmode — credit-hatékony batch fejlesztés (repo-szint)
 
+Kapcsolódó (PR, merge, DoD): **[DEVELOPMENT_WORKFLOW.md](./DEVELOPMENT_WORKFLOW.md)**.
+
 ## Cél
 
 - Minél kevesebb chat kör / credit felhasználás mellett minél nagyobb haladás.
