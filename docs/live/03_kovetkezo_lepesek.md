@@ -1,8 +1,11 @@
 # Következő lépések (élő)
 
+> **Folyamat / PR / kontextusvesztés után:** [`docs/DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md)  
+> (A `.windsurf/` könyvtár nem authoritative.)
+
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 43 — workflow lint UX finomítás (frontend, low risk)**
+**ACTIVE: Iteráció 44 — workflow viewer v2 (read-only, no builder)**
 
 - Iteráció 28: `merge` step (shallow merge), integrációs tesztek, frontend executable template, live docs.
 - Iteráció 29: `foreach` step (control flow) + tesztek + frontend template + live docs.
@@ -23,7 +26,7 @@
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch: `feat/iter-42-workflow-validation-error-details`
+- Branch: `feat/iter-43-workflow-lint-ux` (következő PR-hoz)
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 - ✅ Kész (Iteráció 42): backend error detail contract egységesítés (path + code + message) + frontend megjelenítés + tesztek
@@ -34,12 +37,14 @@
 **Cél**: a lint warningok gyorsabb javíthatósága a workflow editorban.
 
 **Deliverables**
-- Definition nézetben lint warning összegző (darabszám + code grouping).
-- Viewer oldalon step-level warning megjelenítés (badge + warning sorok).
-- Warning szövegek stabil renderelése hosszabb üzeneteknél is.
+- ✅ Definition nézetben lint warning összegző (darabszám + code grouping).
+- ✅ Viewer oldalon step-level warning megjelenítés (badge + warning sorok) — korábbi slice; iter 43-ban szöveg törés finomítva.
+- ✅ Warning szövegek stabil renderelése hosszabb üzeneteknél is (`word-break` + `pre-wrap`).
+- ✅ Közös helper: `frontend/src/app/pages/lowcode-workflow-lint-utils.ts` + `lowcode-workflow-lint-utils.spec.ts`.
 
 **DoD**
-- `npm run build` zöld.
+- ✅ `npm run build` zöld.
+- ✅ `npx ng test --watch=false --browsers=ChromeHeadless` (lint util teszt + meglévők).
 - Kézi smoke: unknown step type + hiányzó context step key esetén warningok láthatók.
 
 ### Iteráció 44 — workflow viewer v2 (read-only, no builder)
@@ -1344,7 +1349,7 @@ npm start --prefix frontend
 ---
 
 ## Következő aktív iteráció
-- **Iteráció 43 — workflow lint UX finomítás (frontend, low risk)**
+- **Iteráció 44 — workflow viewer v2 (read-only, no builder)**
 ## Rövid smoke checklist (ha valami furcsaság van)
 - **Swagger**
   - Schemas/Models alatt minden admin DTO-ban látszik-e `serverTimeUtc` + `items`.

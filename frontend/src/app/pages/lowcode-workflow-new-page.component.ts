@@ -4,6 +4,7 @@ import { Component, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { groupLintWarningsByCode, type LintWarningGroup } from './lowcode-workflow-lint-utils';
 
 type WorkflowDefinitionDetailsDto = {
   workflowDefinitionId: string;
@@ -96,9 +97,22 @@ type ApiErrorDetail = {
         </section>
 
         <section *ngIf="created?.lintWarnings?.length" style="padding: 10px 12px; border: 1px solid #f0e0a0; border-radius: 8px; background: #fffaf0;">
-          <div style="font-weight: 600; margin-bottom: 6px;">Lint warnings</div>
-          <div *ngFor="let w of created!.lintWarnings" style="font-family: monospace; color:#6b4e00;">
-            {{ w.code }}: {{ w.message }}
+          <div style="display:flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; margin-bottom: 6px;">
+            <div style="font-weight: 600;">Lint warnings</div>
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 999px; background:#fff4cc; color:#6b4e00;">
+              {{ created?.lintWarnings?.length }} total
+            </span>
+          </div>
+          <div *ngFor="let g of createdLintGrouped" style="margin-top: 8px;">
+            <div style="font-weight: 600; font-family: monospace; color:#6b4e00;">
+              {{ g.code }} <span style="font-weight: 400; color:#888;">(×{{ g.count }})</span>
+            </div>
+            <div
+              *ngFor="let m of g.messages"
+              style="margin-top: 4px; padding-left: 8px; border-left: 2px solid #f0e0a0; font-family: monospace; font-size: 12px; color:#6b4e00; word-break: break-word; white-space: pre-wrap;"
+            >
+              {{ m }}
+            </div>
           </div>
         </section>
       </form>
@@ -119,6 +133,10 @@ export class LowCodeWorkflowNewPageComponent {
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     definitionJson: new FormControl('{"steps":[{"type":"noop"},{"type":"delay","ms":250}]}' , { nonNullable: true, validators: [Validators.required] }),
   });
+
+  get createdLintGrouped(): LintWarningGroup[] {
+    return groupLintWarningsByCode(this.created?.lintWarnings);
+  }
 
   get contextVarSuggestions(): string[] {
     const raw = String(this.form.controls.definitionJson.value ?? '');

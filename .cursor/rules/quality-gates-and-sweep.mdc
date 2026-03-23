@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Quality gates + maintenance sweep
 
+DoD checklist: **`docs/DEVELOPMENT_WORKFLOW.md`** section 4.
+
 ## Gates (run after substantive changes)
 - Backend: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 - Frontend: `npm run build` (cwd: `frontend/`)

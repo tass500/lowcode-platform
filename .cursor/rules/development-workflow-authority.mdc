@@ -1,0 +1,12 @@
+---
+description: Authoritative development workflow — read on every context reset
+alwaysApply: true
+---
+
+# Source of truth for process
+
+1. Read **`docs/DEVELOPMENT_WORKFLOW.md`** first (full rules: PR, DoR/DoD, gates, handoff, `.windsurf` deprecated).
+2. Then **`docs/live/03_kovetkezo_lepesek.md`** (ACTIVE iteration, next steps) and **`docs/live/02_allapot.md`** (done state).
+3. **`docs/00_truth_files_template/*`** — never edit.
+
+Do **not** treat **`.windsurf/`** as the canonical process; use **`docs/DEVELOPMENT_WORKFLOW.md`** instead.
