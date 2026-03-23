@@ -38,7 +38,16 @@ git push -u origin HEAD
 PR_NUM="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number' 2>/dev/null || true)"
 if [[ -z "$PR_NUM" || "$PR_NUM" == "null" ]]; then
   TITLE="${TITLE:-$(git log -1 --pretty=%s)}"
-  BODY="${BODY:-$(git log -1 --pretty=%b)}"
+  BODY="${BODY:-}"
+  if [[ -z "${BODY// }" ]]; then
+    if [[ -n "${BODY_FILE:-}" && -f "$BODY_FILE" ]]; then
+      BODY="$(cat "$BODY_FILE")"
+    elif [[ -f "$REPO_ROOT/pr-body.md" ]]; then
+      BODY="$(cat "$REPO_ROOT/pr-body.md")"
+    else
+      BODY="$(git log -1 --pretty=%b)"
+    fi
+  fi
   if [[ -z "${BODY// }" ]]; then
     BODY="See commits.
 
