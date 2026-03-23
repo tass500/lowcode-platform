@@ -142,6 +142,7 @@ public sealed class PlatformDbContext : DbContext
             e.Property(x => x.Attempt).HasColumnName("attempt");
             e.Property(x => x.LastErrorCode).HasColumnName("last_error_code");
             e.Property(x => x.LastErrorMessage).HasColumnName("last_error_message");
+            e.Property(x => x.LastErrorConfigPath).HasColumnName("last_error_config_path");
             e.Property(x => x.StartedAtUtc).HasColumnName("started_at_utc");
             e.Property(x => x.FinishedAtUtc).HasColumnName("finished_at_utc");
 

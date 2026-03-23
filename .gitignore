@@ -3,6 +3,14 @@
 **/obj/
 **/TestResults/
 
+# Alternate dotnet output roots under backend/ (dotnet build -o …, teszt/CI artefaktok)
+# — ezek NEM ugyanaz, mint bin/obj; nélkülük 10k+ „U” fájl jelenhet meg a Source Controlban
+backend/ef-*/
+backend/build-*/
+backend/bin-verify-*/
+backend/test-*/
+backend/*-tmp/
+
 # SQLite dev db (if created locally)
 **/*.db
 **/*.db-shm

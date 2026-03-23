@@ -795,6 +795,10 @@ public sealed class WorkflowRunEndpointsTests
         var msg = runPayload["errorMessage"]?.ToString() ?? string.Empty;
         Assert.Contains("Step '001' config path '$.recordId'", msg);
         Assert.Contains("000.entityRecordId", msg);
+
+        var stepsEl = Assert.IsType<JsonElement>(runPayload["steps"]);
+        var step001 = stepsEl.EnumerateArray().Single(s => s.GetProperty("stepKey").GetString() == "001");
+        Assert.Equal("$.recordId", step001.GetProperty("lastErrorConfigPath").GetString());
     }
 
     [Fact]

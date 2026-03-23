@@ -5,7 +5,9 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 45 — workflow editor QoL (safe bundling)**
+**ACTIVE: Iteráció 40 — utolsó lezárt: Iteráció 39 (step error config path + run details UI)**
+
+> Iteráció 39: `last_error_config_path` (DB + API + runner), context var / require / map / merge / foreach / switch inner path; run details: **Error path** oszlop + keresés.
 
 - Iteráció 28: `merge` step (shallow merge), integrációs tesztek, frontend executable template, live docs.
 - Iteráció 29: `foreach` step (control flow) + tesztek + frontend template + live docs.
@@ -17,8 +19,8 @@
 - Iteráció 35: context var UX: szerkesztő oldali highlight + preflight validáció (create/update workflow).
 - Iteráció 36: workflow create/update preflight validáció (backend) + tesztek.
 - Iteráció 37: workflow definition “schema” validáció (minimál): `steps` array kötelező, step `type` string kötelező (create/update).
-- Iteráció 38: run details: “Resolved step config” megjelenítés (interpoláció utáni config) + toggle.
-- Iteráció 39: context var UX: hiba részletek (melyik step/config path mezőben volt a hiba) + UI megjelenítés.
+- ✅ Iteráció 38: run details: “Resolved step config” megjelenítés (interpoláció utáni config) + toggle.
+- ✅ Iteráció 39: context var UX: hiba részletek (melyik step/config path mezőben volt a hiba) + UI megjelenítés.
 - Iteráció 40: context var UX: autocomplete javaslatok (top-level keys + step output mezők) a szerkesztő oldalon (minimál).
 - Iteráció 41: workflow lint: statikus ellenőrzések (unused step outputs, obvious typos) + warning szint.
 - Iteráció 42: hardening: egységes error response detail mezők (path + code + message) a workflow validációkhoz.
@@ -26,7 +28,7 @@
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch (következő PR): `feat/iter-45-workflow-editor-qol` (vagy aktuális feature branch)
+- Branch (következő PR): `feat/iter-40-<topic>` (vagy aktuális feature branch)
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 - ✅ Kész (Iteráció 42): backend error detail contract egységesítés (path + code + message) + frontend megjelenítés + tesztek
@@ -60,17 +62,45 @@
 - ✅ Viewer hibás JSON / hiányzó `steps` esetén nem törik: érthető hibaüzenet.
 - ✅ `lowcode-workflow-viewer-utils.spec.ts` (unit teszt).
 
-### Iteráció 45 — workflow editor QoL (safe bundling)
+### Iteráció 45 — workflow editor QoL (safe bundling) ✅
 **Cél**: gyorsabb authoring ugyanazzal a backend contracttal.
 
 **Deliverables**
-- JSON prettify/minify gombok.
-- Template picker kereső (step típus/command alapján).
-- Context var suggestion bővítés (`foreach.*`, összetettebb step kimenetek).
+- ✅ JSON **Prettify** / **Minify** gombok (New workflow + Workflow details JSON nézet).
+- ✅ Template **szűrő** (label / step típus / `domainCommand` / JSON szöveg részlet alapján); sablonok egy forrás: `lowcode-workflow-new-template-entries.ts`.
+- ✅ Context var javaslatok bővítve: `domainCommand` ismert kimenetek (`entityRecordId`, …), `foreach` (`foreach.index`, `foreach.item`, `as`, `00N.000.*` belső map/set), közös `lowcode-workflow-context-suggestions.ts` + teszt.
 
 **DoD**
-- `npm run build` zöld.
-- Meglévő create/update flow viselkedése változatlan.
+- ✅ `npm run build` zöld.
+- ✅ Meglévő create/update flow viselkedése változatlan (csak UX).
+
+### Iteráció 39 — step error config path (backend + run details UI) ✅
+**Cél**: strukturált **JSON path** a hibás step config mezőhöz (nem csak a hibaüzenet szövegében).
+
+**Deliverables**
+- ✅ DB: `workflow_step_run.last_error_config_path` (nullable TEXT) + EF migráció (`20260323210500_AddWorkflowStepRunLastErrorConfigPath` + Designer).
+- ✅ API: `WorkflowStepRunDto.lastErrorConfigPath`; runner kitölti: context var (`InterpolateStepConfigJson`), `require`, `map`, `merge` (`$.sources[i]`), `foreach` (`$.items`, inner: `$.do` + belső path), `switch` inner (`$.cases[i].do` vagy `$.default` + belső path).
+- ✅ `ExecuteStepAsync`: új attempt előtt `LastErrorConfigPath` nullázás.
+- ✅ Frontend run details: **Error path** oszlop; szűrő tartalmazza az error path-ot is.
+- ✅ Teszt: `Context_variable_should_fail_fast_when_missing` → `$.recordId` assertion.
+
+**DoD**
+- ✅ `dotnet test` (WorkflowRunEndpointsTests + teljes suite izolált outputtal).
+- ✅ `npm run build` zöld.
+
+### Iteráció 46 — workflow run details: resolved config UX ✅
+**Cél**: gyorsabb debug: original vs resolved config összevetése és másolása; keresés a definíciós JSON szövegre is.
+
+**Deliverables**
+- ✅ Kereső mező: `originalStepConfigJson` is beleszámít (nem csak `stepConfigJson` / output / error).
+- ✅ Config panel megnyitásakor: ha original ≠ resolved → **Show resolved** alapból bekapcsolva (`stepConfigsDiffer` helper).
+- ✅ **Copy** gombok: egyoszlopos nézet, Original / Resolved párok, step output.
+- ✅ Original vs Resolved kétoszlopos nézet: `config-compare-grid` + ≤700px-en egymás alá.
+- ✅ `lowcode-run-details-utils.ts` + `lowcode-run-details-utils.spec.ts`.
+
+**DoD**
+- ✅ `npm run build` zöld.
+- ✅ `npx ng test --watch=false --browsers=ChromeHeadless` zöld.
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.

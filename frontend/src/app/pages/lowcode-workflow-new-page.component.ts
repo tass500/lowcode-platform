@@ -4,7 +4,14 @@ import { Component, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { buildContextVarSuggestionsFromDefinitionJson } from './lowcode-workflow-context-suggestions';
 import { groupLintWarningsByCode, type LintWarningGroup } from './lowcode-workflow-lint-utils';
+import { minifyWorkflowDefinitionJson, prettifyWorkflowDefinitionJson } from './lowcode-workflow-json-form';
+import {
+  filterWorkflowNewTemplateEntries,
+  WORKFLOW_NEW_TEMPLATE_ENTRIES,
+  type WorkflowNewTemplateEntry,
+} from './lowcode-workflow-new-template-entries';
 
 type WorkflowDefinitionDetailsDto = {
   workflowDefinitionId: string;
@@ -21,26 +28,6 @@ type ApiErrorDetail = {
   message: string;
   severity?: string | null;
 };
-
-type WorkflowNewPageTemplateKind =
-  | 'noop'
-  | 'delay250'
-  | 'delay3'
-  | 'timeoutDelay'
-  | 'set'
-  | 'map'
-  | 'merge'
-  | 'foreach'
-  | 'switch'
-  | 'retryUpdateById'
-  | 'require'
-  | 'domainEcho'
-  | 'domainCreateRecord'
-  | 'domainUpdateRecord'
-  | 'domainDeleteRecord'
-  | 'domainUpsertRecord'
-  | 'createAndUpdateById'
-  | 'setAndUpdateById';
 
 @Component({
   selector: 'app-lowcode-workflow-new-page',
@@ -64,26 +51,20 @@ type WorkflowNewPageTemplateKind =
 
       <section style="margin-top: 12px; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
         <div style="font-weight: 600; margin-bottom: 8px;">Templates (executable)</div>
+        <label style="display:flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 14px; font-weight: 500;">Filter</span>
+          <input
+            type="search"
+            placeholder="step type, domain command, label…"
+            [value]="templateFilter"
+            (input)="templateFilter = $any($event.target).value"
+            style="min-width: 220px; flex: 1; max-width: 420px;"
+          />
+        </label>
         <div style="display:flex; gap: 8px; flex-wrap: wrap;">
-          <button type="button" (click)="applyTemplate('noop')">No-op</button>
-          <button type="button" (click)="applyTemplate('delay250')">Delay 250ms</button>
-          <button type="button" (click)="applyTemplate('delay3')">3x Delay</button>
-          <button type="button" (click)="applyTemplate('timeoutDelay')">Timeout (delay)</button>
-          <button type="button" (click)="applyTemplate('set')">Set (seed output)</button>
-          <button type="button" (click)="applyTemplate('map')">Map (projection)</button>
-          <button type="button" (click)="applyTemplate('merge')">Merge (combine objects)</button>
-          <button type="button" (click)="applyTemplate('foreach')">Foreach (iterate)</button>
-          <button type="button" (click)="applyTemplate('switch')">Switch (branch)</button>
-          <button type="button" (click)="applyTemplate('retryUpdateById')">Retry (updateById)</button>
-          <button type="button" (click)="applyTemplate('require')">Require (guard)</button>
-          <button type="button" (click)="applyTemplate('domainEcho')">Domain: echo</button>
-          <button type="button" (click)="applyTemplate('domainCreateRecord')">Domain: create record</button>
-          <button type="button" (click)="applyTemplate('domainUpdateRecord')">Domain: update record</button>
-          <button type="button" (click)="applyTemplate('domainDeleteRecord')">Domain: delete record</button>
-          <button type="button" (click)="applyTemplate('domainUpsertRecord')">Domain: upsert record</button>
-          <button type="button" (click)="applyTemplate('createAndUpdateById')">Create + updateById (demo)</button>
-          <button type="button" (click)="applyTemplate('setAndUpdateById')">Set + updateById (manual GUID)</button>
+          <button type="button" *ngFor="let t of filteredTemplateEntries" (click)="applyTemplateEntry(t)">{{ t.label }}</button>
         </div>
+        <div *ngIf="filteredTemplateEntries.length === 0" style="margin-top: 6px; color:#888;">No templates match filter.</div>
         <div style="margin-top: 6px; color:#444;">These templates only use step types currently supported by the engine: <code>noop</code>, <code>delay</code>, <code>set</code>, <code>map</code>, <code>merge</code>, <code>foreach</code>, <code>switch</code>, <code>require</code>, <code>domainCommand</code>.</div>
       </section>
 
@@ -144,6 +125,9 @@ export class LowCodeWorkflowNewPageComponent {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
 
+  templateFilter = '';
+  jsonFormatError: string | null = null;
+
   creating = false;
   error: string | null = null;
   errorDetails: ApiErrorDetail[] = [];
@@ -159,38 +143,37 @@ export class LowCodeWorkflowNewPageComponent {
     return groupLintWarningsByCode(this.created?.lintWarnings);
   }
 
+  get filteredTemplateEntries(): WorkflowNewTemplateEntry[] {
+    return filterWorkflowNewTemplateEntries(WORKFLOW_NEW_TEMPLATE_ENTRIES, this.templateFilter);
+  }
+
   get contextVarSuggestions(): string[] {
-    const raw = String(this.form.controls.definitionJson.value ?? '');
+    return buildContextVarSuggestionsFromDefinitionJson(String(this.form.controls.definitionJson.value ?? ''));
+  }
+
+  applyTemplateEntry(t: WorkflowNewTemplateEntry): void {
+    this.form.controls.name.setValue(t.name);
+    this.form.controls.definitionJson.setValue(t.json);
+    this.jsonFormatError = null;
+  }
+
+  prettifyDefinitionJson(): void {
+    this.jsonFormatError = null;
     try {
-      const parsed: any = JSON.parse(raw);
-      const steps: any[] = Array.isArray(parsed?.steps) ? parsed.steps : [];
+      const raw = String(this.form.controls.definitionJson.value ?? '');
+      this.form.controls.definitionJson.setValue(prettifyWorkflowDefinitionJson(raw));
+    } catch (e: any) {
+      this.jsonFormatError = e?.message ?? 'Invalid JSON.';
+    }
+  }
 
-      const suggestions: string[] = [];
-      for (let i = 0; i < steps.length; i += 1) {
-        const key = String(i).padStart(3, '0');
-        suggestions.push(key);
-
-        const step = steps[i];
-        const type = String(step?.type ?? '').toLowerCase();
-
-        if (type === 'set' && step?.output && typeof step.output === 'object' && !Array.isArray(step.output)) {
-          for (const k of Object.keys(step.output)) {
-            if (!k) continue;
-            suggestions.push(`${key}.${k}`);
-          }
-        }
-
-        if (type === 'map' && step?.mappings && typeof step.mappings === 'object' && !Array.isArray(step.mappings)) {
-          for (const k of Object.keys(step.mappings)) {
-            if (!k) continue;
-            suggestions.push(`${key}.${k}`);
-          }
-        }
-      }
-
-      return Array.from(new Set(suggestions)).sort((a, b) => a.localeCompare(b));
-    } catch {
-      return [];
+  minifyDefinitionJson(): void {
+    this.jsonFormatError = null;
+    try {
+      const raw = String(this.form.controls.definitionJson.value ?? '');
+      this.form.controls.definitionJson.setValue(minifyWorkflowDefinitionJson(raw));
+    } catch (e: any) {
+      this.jsonFormatError = e?.message ?? 'Invalid JSON.';
     }
   }
 
@@ -207,90 +190,6 @@ export class LowCodeWorkflowNewPageComponent {
       const pos = start + token.length;
       el.setSelectionRange(pos, pos);
     });
-  }
-
-  applyTemplate(kind: WorkflowNewPageTemplateKind): void {
-    const templates: Record<WorkflowNewPageTemplateKind, { name: string; json: string }> = {
-      noop: {
-        name: 'wf-noop',
-        json: '{"steps":[{"type":"noop"}]}',
-      },
-      delay250: {
-        name: 'wf-delay-250ms',
-        json: '{"steps":[{"type":"delay","ms":250}]}',
-      },
-      delay3: {
-        name: 'wf-3x-delay',
-        json: '{"steps":[{"type":"delay","ms":100},{"type":"delay","ms":200},{"type":"delay","ms":300}]}',
-      },
-      timeoutDelay: {
-        name: 'wf-timeout-delay',
-        json: '{"steps":[{"type":"delay","ms":200,"timeoutMs":50},{"type":"noop"}]}',
-      },
-      set: {
-        name: 'wf-set-seed',
-        json: '{"steps":[{"type":"set","output":{"recordId":"<RECORD_ID_GUID>","note":"seeded value"}},{"type":"noop"}]}',
-      },
-      map: {
-        name: 'wf-map-projection',
-        json: '{"steps":[{"type":"domainCommand","command":"entityRecord.createByEntityName","entityName":"Company","data":{"name":"Acme Ltd","status":"active"}},{"type":"map","mappings":{"recordId":"000.entityRecordId"}},{"type":"noop"}]}',
-      },
-      merge: {
-        name: 'wf-merge-objects',
-        json: '{"steps":[{"type":"set","output":{"a":1,"b":2}},{"type":"merge","sources":[{"b":99,"c":3},"000"]},{"type":"noop"}]}',
-      },
-      foreach: {
-        name: 'wf-foreach-items',
-        json: '{"steps":[{"type":"set","output":{"items":[{"n":1},{"n":2}]}},{"type":"foreach","items":"000.items","do":{"type":"map","mappings":{"n":"item.n"}}},{"type":"noop"}]}',
-      },
-      switch: {
-        name: 'wf-switch-branch',
-        json: '{"steps":[{"type":"set","output":{"kind":"a"}},{"type":"switch","value":"000.kind","cases":[{"when":"a","do":{"type":"set","output":{"result":1}}},{"when":"b","do":{"type":"set","output":{"result":2}}}],"default":{"type":"set","output":{"result":99}}},{"type":"noop"}]}',
-      },
-      retryUpdateById: {
-        name: 'wf-retry-update-by-id',
-        json: '{"steps":[{"type":"domainCommand","command":"entityRecord.updateById","recordId":"<RECORD_ID_GUID>","data":{"status":"active"},"retry":{"maxAttempts":5,"delayMs":200,"backoffFactor":2,"maxDelayMs":2000}},{"type":"noop"}]}',
-      },
-      require: {
-        name: 'wf-require-guard',
-        json: '{"steps":[{"type":"domainCommand","command":"entityRecord.createByEntityName","entityName":"Company","data":{"name":"Acme Ltd","status":"active"}},{"type":"require","path":"000.entityRecordId"},{"type":"noop"}]}',
-      },
-      domainEcho: {
-        name: 'wf-domain-echo',
-        json: '{"steps":[{"type":"domainCommand","command":"echo"}]}',
-      },
-      domainCreateRecord: {
-        name: 'wf-domain-create-record',
-        json: '{"steps":[{"type":"domainCommand","command":"entityRecord.createByEntityName","entityName":"Company","data":{"name":"Acme Ltd","status":"active"}}]}',
-      },
-      domainUpdateRecord: {
-        name: 'wf-domain-update-record',
-        json: '{"steps":[{"type":"domainCommand","command":"entityRecord.updateById","recordId":"<RECORD_ID_GUID>","data":{"name":"Acme Updated","status":"inactive"}}]}',
-      },
-      domainDeleteRecord: {
-        name: 'wf-domain-delete-record',
-        json: '{"steps":[{"type":"domainCommand","command":"entityRecord.deleteById","recordId":"<RECORD_ID_GUID>"}]}',
-      },
-      domainUpsertRecord: {
-        name: 'wf-domain-upsert-record',
-        json: '{"steps":[{"type":"domainCommand","command":"entityRecord.upsertByEntityName","entityName":"Company","uniqueKey":"externalId","uniqueValue":"c-1","data":{"externalId":"c-1","name":"Acme Upsert","status":"active"}}]}',
-      },
-      /** Creates a record then updates it — no placeholder GUID; uses ${000.entityRecordId} from create output. */
-      createAndUpdateById: {
-        name: 'wf-create-update-by-id',
-        json:
-          '{"steps":[{"type":"domainCommand","command":"entityRecord.createByEntityName","entityName":"Company","data":{"name":"Acme Seed","status":"active"}},{"type":"domainCommand","command":"entityRecord.updateById","recordId":"${000.entityRecordId}","data":{"name":"Acme Updated","status":"inactive"}}]}',
-      },
-      /** Replace RECORD_ID_GUID placeholder with a real entity record id before running. */
-      setAndUpdateById: {
-        name: 'wf-set-update-by-id',
-        json: '{"steps":[{"type":"set","output":{"recordId":"<RECORD_ID_GUID>"}},{"type":"domainCommand","command":"entityRecord.updateById","recordId":"${000.recordId}","data":{"name":"Acme Updated","status":"inactive"}}]}',
-      },
-    };
-
-    const t = templates[kind];
-    this.form.controls.name.setValue(t.name);
-    this.form.controls.definitionJson.setValue(t.json);
   }
 
   private escapeHtml(s: string): string {

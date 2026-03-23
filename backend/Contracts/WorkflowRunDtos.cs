@@ -11,6 +11,7 @@ public sealed record WorkflowStepRunDto(
     int Attempt,
     string? LastErrorCode,
     string? LastErrorMessage,
+    string? LastErrorConfigPath,
     DateTime? StartedAtUtc,
     DateTime? FinishedAtUtc);
 

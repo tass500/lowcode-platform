@@ -29,6 +29,7 @@ public sealed class WorkflowRunnerService
         {
             step.LastErrorCode = "require_config_missing";
             step.LastErrorMessage = "require step requires a JSON config.";
+            step.LastErrorConfigPath = "$";
             throw new InvalidOperationException(step.LastErrorMessage);
         }
 
@@ -39,6 +40,7 @@ public sealed class WorkflowRunnerService
         {
             step.LastErrorCode = "require_path_missing";
             step.LastErrorMessage = "require step requires a string 'path'.";
+            step.LastErrorConfigPath = "$.path";
             throw new InvalidOperationException(step.LastErrorMessage);
         }
 
@@ -47,6 +49,7 @@ public sealed class WorkflowRunnerService
         {
             step.LastErrorCode = "require_path_missing";
             step.LastErrorMessage = "require step requires a non-empty 'path'.";
+            step.LastErrorConfigPath = "$.path";
             throw new InvalidOperationException(step.LastErrorMessage);
         }
 
@@ -55,6 +58,7 @@ public sealed class WorkflowRunnerService
         {
             step.LastErrorCode = "require_failed";
             step.LastErrorMessage = $"Required path not found: '{path}'.";
+            step.LastErrorConfigPath = "$.path";
             throw new InvalidOperationException(step.LastErrorMessage);
         }
 
@@ -64,6 +68,7 @@ public sealed class WorkflowRunnerService
             {
                 step.LastErrorCode = "require_equals_invalid";
                 step.LastErrorMessage = "require step field 'equals' must be a string when provided.";
+                step.LastErrorConfigPath = "$.equals";
                 throw new InvalidOperationException(step.LastErrorMessage);
             }
 
@@ -74,6 +79,7 @@ public sealed class WorkflowRunnerService
             {
                 step.LastErrorCode = "require_failed";
                 step.LastErrorMessage = $"Required path '{path}' did not equal expected value.";
+                step.LastErrorConfigPath = "$.equals";
                 throw new InvalidOperationException(step.LastErrorMessage);
             }
         }
@@ -303,6 +309,7 @@ public sealed class WorkflowRunnerService
             {
                 step.LastErrorCode = "map_source_not_found";
                 step.LastErrorMessage = $"Context path not found for mapping '{prop.Name}': '{path}'.";
+                step.LastErrorConfigPath = $"$.mappings.{prop.Name}";
                 throw new InvalidOperationException(step.LastErrorMessage);
             }
 
@@ -459,6 +466,7 @@ public sealed class WorkflowRunnerService
             {
                 step.LastErrorCode = innerStep.LastErrorCode ?? "foreach_inner_failed";
                 step.LastErrorMessage = innerStep.LastErrorMessage ?? ex.Message;
+                step.LastErrorConfigPath = CombineNestedChildPath("$.do", innerStep.LastErrorConfigPath);
                 throw;
             }
         }
@@ -496,8 +504,9 @@ public sealed class WorkflowRunnerService
         }
 
         var output = new JsonObject();
-        foreach (var srcEl in sourcesEl.EnumerateArray())
+        for (var srcIdx = 0; srcIdx < sourcesEl.GetArrayLength(); srcIdx += 1)
         {
+            var srcEl = sourcesEl[srcIdx];
             JsonNode? resolved;
 
             if (srcEl.ValueKind == JsonValueKind.String)
@@ -507,6 +516,7 @@ public sealed class WorkflowRunnerService
                 {
                     step.LastErrorCode = "merge_source_invalid";
                     step.LastErrorMessage = "merge step 'sources' items must be non-empty strings (context paths) or inline objects.";
+                    step.LastErrorConfigPath = $"$.sources[{srcIdx}]";
                     throw new InvalidOperationException(step.LastErrorMessage);
                 }
 
@@ -515,6 +525,7 @@ public sealed class WorkflowRunnerService
                 {
                     step.LastErrorCode = "merge_source_not_found";
                     step.LastErrorMessage = $"Context path not found for merge source: '{path}'.";
+                    step.LastErrorConfigPath = $"$.sources[{srcIdx}]";
                     throw new InvalidOperationException(step.LastErrorMessage);
                 }
             }
@@ -526,6 +537,7 @@ public sealed class WorkflowRunnerService
             {
                 step.LastErrorCode = "merge_source_invalid";
                 step.LastErrorMessage = "merge step 'sources' items must be strings (context paths) or inline objects.";
+                step.LastErrorConfigPath = $"$.sources[{srcIdx}]";
                 throw new InvalidOperationException(step.LastErrorMessage);
             }
 
@@ -533,6 +545,7 @@ public sealed class WorkflowRunnerService
             {
                 step.LastErrorCode = "merge_source_invalid";
                 step.LastErrorMessage = "merge step sources must resolve to JSON objects.";
+                step.LastErrorConfigPath = $"$.sources[{srcIdx}]";
                 throw new InvalidOperationException(step.LastErrorMessage);
             }
 
@@ -562,6 +575,7 @@ public sealed class WorkflowRunnerService
         {
             step.LastErrorCode = "context_var_config_invalid";
             step.LastErrorMessage = "Failed to parse step config JSON for context variable interpolation.";
+            step.LastErrorConfigPath = "$";
             throw new InvalidOperationException(step.LastErrorMessage);
         }
 
@@ -574,6 +588,22 @@ public sealed class WorkflowRunnerService
 
     private static string FormatJsonPath(string jsonPath)
         => string.IsNullOrWhiteSpace(jsonPath) ? "$" : jsonPath;
+
+    private static void SetStepConfigErrorPath(WorkflowStepRun step, string? jsonPath)
+    {
+        step.LastErrorConfigPath = string.IsNullOrWhiteSpace(jsonPath) ? "$" : FormatJsonPath(jsonPath);
+    }
+
+    /// <summary>Combine parent path (e.g. <c>$.do</c>) with inner step-relative JSON path (e.g. <c>$.foo</c>).</summary>
+    private static string CombineNestedChildPath(string parentPrefix, string? childPath)
+    {
+        if (string.IsNullOrWhiteSpace(childPath)) return parentPrefix;
+        var c = childPath.Trim();
+        if (c == "$") return parentPrefix;
+        if (c.StartsWith("$.")) return parentPrefix + c[1..];
+        if (c.StartsWith("$[")) return parentPrefix + c[1..];
+        return parentPrefix + "." + c;
+    }
 
     private static bool LooksLikeUnreplacedRecordIdPlaceholder(string raw)
     {
@@ -648,6 +678,7 @@ public sealed class WorkflowRunnerService
                 if (resolved is null)
                 {
                     step.LastErrorCode = "context_var_not_found";
+                    SetStepConfigErrorPath(step, jsonPath);
                     var available = string.Join(", ", context.Select(kv => kv.Key).OrderBy(x => x));
                     step.LastErrorMessage = $"{FormatStepLocation(step, jsonPath)}Context variable not found: '{path}'. Available top-level keys: [{available}].";
                     throw new InvalidOperationException(step.LastErrorMessage);
@@ -666,6 +697,7 @@ public sealed class WorkflowRunnerService
                 if (resolved is null)
                 {
                     step.LastErrorCode = "context_var_not_found";
+                    SetStepConfigErrorPath(step, jsonPath);
                     var available = string.Join(", ", context.Select(kv => kv.Key).OrderBy(x => x));
                     step.LastErrorMessage = $"{FormatStepLocation(step, jsonPath)}Context variable not found: '{path}'. Available top-level keys: [{available}].";
                     throw new InvalidOperationException(step.LastErrorMessage);
@@ -699,6 +731,7 @@ public sealed class WorkflowRunnerService
             if (end < 0)
             {
                 step.LastErrorCode = "context_var_syntax_invalid";
+                SetStepConfigErrorPath(step, jsonPath);
                 step.LastErrorMessage = $"{FormatStepLocation(step, jsonPath)}Invalid context variable syntax: missing closing '}}' in '${{...}}'.";
                 throw new InvalidOperationException(step.LastErrorMessage);
             }
@@ -707,6 +740,7 @@ public sealed class WorkflowRunnerService
             if (string.IsNullOrWhiteSpace(inner))
             {
                 step.LastErrorCode = "context_var_syntax_invalid";
+                SetStepConfigErrorPath(step, jsonPath);
                 step.LastErrorMessage = $"{FormatStepLocation(step, jsonPath)}Invalid context variable syntax: empty path in '${{...}}'.";
                 throw new InvalidOperationException(step.LastErrorMessage);
             }
@@ -724,6 +758,7 @@ public sealed class WorkflowRunnerService
             if (string.IsNullOrWhiteSpace(inner))
             {
                 step.LastErrorCode = "context_var_syntax_invalid";
+                SetStepConfigErrorPath(step, jsonPath);
                 step.LastErrorMessage = $"{FormatStepLocation(step, jsonPath)}Invalid context variable syntax: empty path in '${{...}}'.";
                 throw new InvalidOperationException(step.LastErrorMessage);
             }
@@ -920,6 +955,7 @@ public sealed class WorkflowRunnerService
             step.State = WorkflowStepRunStates.Running;
             step.LastErrorCode = null;
             step.LastErrorMessage = null;
+            step.LastErrorConfigPath = null;
             step.OutputJson = null;
 
             CancellationToken attemptCt = ct;
@@ -1133,6 +1169,7 @@ public sealed class WorkflowRunnerService
         }
 
         JsonElement? selectedDoEl = null;
+        int? matchedCaseIndex = null;
         for (var i = 0; i < casesEl.GetArrayLength(); i += 1)
         {
             var c = casesEl[i];
@@ -1172,6 +1209,7 @@ public sealed class WorkflowRunnerService
             if (JsonNode.DeepEquals(valueNode, whenNode))
             {
                 selectedDoEl = doEl;
+                matchedCaseIndex = i;
                 break;
             }
         }
@@ -1203,6 +1241,8 @@ public sealed class WorkflowRunnerService
             throw new InvalidOperationException(step.LastErrorMessage);
         }
 
+        var switchInnerPrefix = matchedCaseIndex is int m ? $"$.cases[{m}].do" : "$.default";
+
         var innerStep = new WorkflowStepRun
         {
             WorkflowStepRunId = Guid.Empty,
@@ -1223,6 +1263,7 @@ public sealed class WorkflowRunnerService
         {
             step.LastErrorCode = innerStep.LastErrorCode ?? "switch_inner_failed";
             step.LastErrorMessage = innerStep.LastErrorMessage ?? ex.Message;
+            step.LastErrorConfigPath = CombineNestedChildPath(switchInnerPrefix, innerStep.LastErrorConfigPath);
             throw;
         }
     }
