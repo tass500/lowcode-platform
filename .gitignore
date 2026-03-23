@@ -31,6 +31,9 @@ backend/*.db-*
 .vscode/
 .idea/
 
+# Local PR body draft for `gh pr create --body-file` (see docs/templates/pr-body.example.md)
+/pr-body.md
+
 # Local secrets (GitHub token for gh scripts / optional tooling)
 .env
 .env.local

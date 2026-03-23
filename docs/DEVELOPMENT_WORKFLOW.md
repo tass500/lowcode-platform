@@ -60,6 +60,16 @@ A **`.windsurf/` könyvtár nem authoritative** (lásd alul).
   `& "C:\Program Files\GitHub CLI\gh.exe" ...`
 - **Nem interaktív / CI / másik gép:** állítsd a **`GITHUB_TOKEN`** vagy **`GH_TOKEN`** környezeti változót (ugyanazok a jogok). A repóban **ne** commitolj tokent — lokálisan másold a **`.env.example`** fájlt **`.env`** névre, töltsd ki, a **`.env` gitignore-olt** (lásd `.gitignore`). A `scripts/gh-pr-push-merge.*` szkriptek opcionálisan beolvassák a `.env`-et.
 
+**Perzisztens bejelentkezés (tipikusan Windows):**
+
+- **`gh auth login`** egyszer (HTTPS ajánlott) → a token a **Windows Credential Manager**-ben marad (`gh auth status` → `keyring`); újraindítás után is érvényes.
+- **Git push/pull HTTPS-sel:** futtasd **`gh auth setup-git`** (ha még nem), hogy a GitHub a **`gh auth git-credential`** helperrel hitelesítsen — ne duplikáld külön PAT-tal a `git config`-ban, ha a `gh` kezeli.
+- **Gyors teszt:** `gh auth status` → `gh pr list` (üres lista is OK) vagy `git ls-remote origin`.
+
+**PR szöveg asszisztens / CLI-ból:** sablon: **`docs/templates/pr-body.example.md`** (másold ki, töltsd, pl. `pr-body.md` a repo gyökerében, gitignore-olható). Push után például:  
+`gh pr create --base master --head <branch> --title "..." --body-file pr-body.md`  
+(vagy `--body "..."`). A Cursor asszisztens a commit diff + `docs/live` alapján tud szöveget generálni; a parancsot csak akkor futtasd, ha `gh` elérhető és be vagy jelentkezve. Webes PR: **`.github/PULL_REQUEST_TEMPLATE.md`** ugyanez a struktúra.
+
 ### 6a) Automatizált push → PR → CI várakozás → merge (opcionális)
 
 **Cél:** egy feature ágon (commitokkal) végigvinni ugyanazt a folyamatot, mint manuálisan: `git push`, nyitott PR újrahasználása vagy `gh pr create`, `gh pr checks --watch`, `gh pr merge`, lokálisan `master` frissítése.
