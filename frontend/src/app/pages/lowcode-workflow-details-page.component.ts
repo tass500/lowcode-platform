@@ -1,10 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { groupLintWarningsByCode, type LintWarningGroup } from './lowcode-workflow-lint-utils';
+import {
+  buildWorkflowViewerStepCards,
+  findCaretIndexForWorkflowStep,
+  type WorkflowViewerStepCard,
+} from './lowcode-workflow-viewer-utils';
 
 type WorkflowDefinitionDetailsDto = {
   workflowDefinitionId: string;
@@ -145,11 +150,25 @@ type ApiErrorDetail = {
             <div *ngIf="viewerError" style="color:#b00020;">{{ viewerError }}</div>
             <div *ngIf="!viewerError && viewerSteps.length === 0" style="color:#444;">No steps.</div>
 
-            <div *ngIf="!viewerError && viewerSteps.length > 0" style="display:flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <div *ngIf="!viewerError && viewerSteps.length > 0" style="display:flex; gap: 10px; flex-wrap: wrap; align-items: stretch;">
               <ng-container *ngFor="let s of viewerSteps; let last = last">
-                <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa; min-width: 120px;">
-                  <div style="font-family: monospace; color:#666;">{{ s.index }}</div>
-                  <div><b>{{ s.label }}</b></div>
+                <div
+                  style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa; min-width: 140px; max-width: 280px;"
+                >
+                  <div style="display:flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                    <div style="font-family: monospace; color:#666;">{{ s.stepKey }}</div>
+                    <button type="button" (click)="jumpToJsonStep(s.index)" style="font-size: 0.75rem; white-space: nowrap;">JSON →</button>
+                  </div>
+                  <div style="margin-top: 4px;"><b>{{ s.title }}</b></div>
+                  <div *ngIf="s.subtitle" style="margin-top: 4px; font-size: 12px; color:#555; word-break: break-word; line-height: 1.35;">
+                    {{ s.subtitle }}
+                  </div>
+                  <div
+                    *ngIf="s.branchPreview"
+                    style="margin-top: 6px; font-size: 12px; color:#0b5394; word-break: break-word; line-height: 1.35;"
+                  >
+                    {{ s.branchPreview }}
+                  </div>
                   <div *ngIf="viewerStepWarnings(s.index).length > 0" style="margin-top: 6px;">
                     <div style="display:inline-block; font-size: 12px; padding: 2px 6px; border-radius: 999px; background:#fff4cc; color:#6b4e00;">
                       {{ viewerStepWarnings(s.index).length }} warning
@@ -163,7 +182,7 @@ type ApiErrorDetail = {
                     </div>
                   </div>
                 </div>
-                <div *ngIf="!last" style="color:#aaa; font-size: 18px;">→</div>
+                <div *ngIf="!last" style="color:#aaa; font-size: 18px; align-self: center;">→</div>
               </ng-container>
             </div>
           </section>
@@ -221,6 +240,9 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  @ViewChild('definitionJsonEl') definitionJsonEl?: ElementRef<HTMLTextAreaElement>;
 
   workflow: WorkflowDefinitionDetailsDto | null = null;
   loading = false;
@@ -304,32 +326,42 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
     try {
       const raw = this.form.controls.definitionJson.value ?? '';
       const parsed = JSON.parse(raw);
-      const steps = parsed?.steps;
-      if (!Array.isArray(steps)) return null;
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed))
+        return 'Definition must be a JSON object.';
+      const steps = (parsed as { steps?: unknown }).steps;
+      if (steps === undefined) return 'Definition must include a `steps` array.';
+      if (!Array.isArray(steps)) return 'Definition `steps` must be an array.';
       return null;
     } catch (e: any) {
       return e?.message ?? 'Invalid JSON.';
     }
   }
 
-  get viewerSteps(): Array<{ index: number; type: string; label: string }> {
+  get viewerSteps(): WorkflowViewerStepCard[] {
     try {
       const raw = this.form.controls.definitionJson.value ?? '';
       const parsed = JSON.parse(raw);
-      const steps = parsed?.steps;
-      if (!Array.isArray(steps)) return [];
-
-      return steps.map((s: any, i: number) => {
-        const type = typeof s?.type === 'string' ? s.type : 'noop';
-        let label = type;
-        if (type.toLowerCase() === 'delay' && typeof s?.ms === 'number') {
-          label = `delay (${s.ms}ms)`;
-        }
-        return { index: i, type, label };
-      });
+      return buildWorkflowViewerStepCards(parsed?.steps);
     } catch {
       return [];
     }
+  }
+
+  jumpToJsonStep(stepIndex: number): void {
+    this.viewMode = 'json';
+    this.cdr.detectChanges();
+    const raw = this.form.controls.definitionJson.value ?? '';
+    const pos = findCaretIndexForWorkflowStep(raw, stepIndex);
+    queueMicrotask(() => {
+      setTimeout(() => {
+        const el = this.definitionJsonEl?.nativeElement;
+        if (!el) return;
+        el.focus();
+        if (pos >= 0 && pos < el.value.length) {
+          el.setSelectionRange(pos, pos);
+        }
+      }, 0);
+    });
   }
 
   viewerStepWarnings(stepIndex: number): Array<{ code: string; message: string }> {

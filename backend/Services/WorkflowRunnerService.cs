@@ -575,6 +575,16 @@ public sealed class WorkflowRunnerService
     private static string FormatJsonPath(string jsonPath)
         => string.IsNullOrWhiteSpace(jsonPath) ? "$" : jsonPath;
 
+    private static bool LooksLikeUnreplacedRecordIdPlaceholder(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return false;
+        if (raw.Contains("RECORD_ID_GUID", StringComparison.OrdinalIgnoreCase))
+            return true;
+        // Angle-bracket placeholders from UI templates, e.g. <RECORD_ID_GUID>
+        return raw.Contains('<') && raw.Contains('>', StringComparison.Ordinal);
+    }
+
     private static string FormatStepLocation(WorkflowStepRun step, string jsonPath)
         => $"Step '{step.StepKey}' config path '{FormatJsonPath(jsonPath)}': ";
 
@@ -1348,7 +1358,9 @@ public sealed class WorkflowRunnerService
             if (!Guid.TryParse(raw, out recordId))
             {
                 step.LastErrorCode = "entity_record_id_invalid";
-                step.LastErrorMessage = "entityRecord.updateById requires a valid GUID 'recordId'.";
+                step.LastErrorMessage = LooksLikeUnreplacedRecordIdPlaceholder(raw)
+                    ? "entityRecord.updateById: 'recordId' is not a valid GUID (unreplaced template like <RECORD_ID_GUID>? Replace with a real id, or use createByEntityName then ${000.entityRecordId})."
+                    : "entityRecord.updateById requires a valid GUID 'recordId'.";
                 throw new InvalidOperationException(step.LastErrorMessage);
             }
         }

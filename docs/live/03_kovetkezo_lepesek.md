@@ -5,7 +5,7 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 44 — workflow viewer v2 (read-only, no builder)**
+**ACTIVE: Iteráció 45 — workflow editor QoL (safe bundling)**
 
 - Iteráció 28: `merge` step (shallow merge), integrációs tesztek, frontend executable template, live docs.
 - Iteráció 29: `foreach` step (control flow) + tesztek + frontend template + live docs.
@@ -26,7 +26,7 @@
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch: `feat/iter-43-workflow-lint-ux` (következő PR-hoz)
+- Branch (következő PR): `feat/iter-45-workflow-editor-qol` (vagy aktuális feature branch)
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 - ✅ Kész (Iteráció 42): backend error detail contract egységesítés (path + code + message) + frontend megjelenítés + tesztek
@@ -47,17 +47,18 @@
 - ✅ `npx ng test --watch=false --browsers=ChromeHeadless` (lint util teszt + meglévők).
 - Kézi smoke: unknown step type + hiányzó context step key esetén warningok láthatók.
 
-### Iteráció 44 — workflow viewer v2 (read-only, no builder)
+### Iteráció 44 — workflow viewer v2 (read-only, no builder) ✅
 **Cél**: összetettebb workflow-k gyorsabb áttekintése szerkesztés nélkül.
 
 **Deliverables**
-- Step típus-specifikus alcímek (`delay`, `require`, `domainCommand`, `foreach`, `switch`).
-- Egyszerű branch/inner-step preview (`foreach`/`switch` jelzések).
-- Opcionális “jump to JSON” helper (viewer step → JSON mező fókusz).
+- ✅ Step típus-specifikus alcímek (`delay`, `require`, `domainCommand`, `foreach`, `switch`, stb.) — `lowcode-workflow-viewer-utils.ts`.
+- ✅ Egyszerű branch/inner-step preview (`foreach` inner type, `switch` case count + default).
+- ✅ “JSON →” helper: viewer lépés → JSON nézet + caret a lépéshez (ha `JSON.stringify(step)` megtalálható a szövegben).
 
 **DoD**
-- `npm run build` zöld.
-- Viewer hibás JSON esetén nem törik, csak valid hibaüzenetet mutat.
+- ✅ `npm run build` zöld.
+- ✅ Viewer hibás JSON / hiányzó `steps` esetén nem törik: érthető hibaüzenet.
+- ✅ `lowcode-workflow-viewer-utils.spec.ts` (unit teszt).
 
 ### Iteráció 45 — workflow editor QoL (safe bundling)
 **Cél**: gyorsabb authoring ugyanazzal a backend contracttal.
