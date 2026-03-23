@@ -4,6 +4,8 @@ import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
+import { stepConfigsDiffer } from './lowcode-run-details-utils';
+
 type WorkflowStepRunDto = {
   workflowStepRunId: string;
   stepKey: string;
@@ -15,6 +17,7 @@ type WorkflowStepRunDto = {
   attempt: number;
   lastErrorCode?: string | null;
   lastErrorMessage?: string | null;
+  lastErrorConfigPath?: string | null;
   startedAtUtc?: string | null;
   finishedAtUtc?: string | null;
 };
@@ -83,7 +86,7 @@ type WorkflowRunDetailsDto = {
 
           <label>
             Search
-            <input [value]="textFilter" (input)="textFilter = $any($event.target).value" placeholder="in errors/config" style="min-width: 260px;" />
+            <input [value]="textFilter" (input)="textFilter = $any($event.target).value" placeholder="errors / config / error path" style="min-width: 260px;" />
           </label>
         </div>
 
@@ -95,6 +98,7 @@ type WorkflowRunDetailsDto = {
               <th style="text-align:left; border-bottom:1px solid #ddd; padding: 6px;">State</th>
               <th style="text-align:left; border-bottom:1px solid #ddd; padding: 6px;">Attempt</th>
               <th style="text-align:left; border-bottom:1px solid #ddd; padding: 6px;">Error</th>
+              <th style="text-align:left; border-bottom:1px solid #ddd; padding: 6px;">Error path</th>
               <th style="text-align:left; border-bottom:1px solid #ddd; padding: 6px;"></th>
             </tr>
           </thead>
@@ -111,13 +115,13 @@ type WorkflowRunDetailsDto = {
                 <span *ngIf="s.lastErrorCode || s.lastErrorMessage">{{ s.lastErrorCode }} {{ s.lastErrorMessage }}</span>
               </td>
               <td style="border-bottom:1px solid #eee; padding: 6px; white-space: nowrap;">
-                <button type="button" (click)="toggleStepConfig(s.workflowStepRunId)">Config</button>
+                <button type="button" (click)="toggleStepConfig(s)">Config</button>
                 <button type="button" (click)="toggleStepOutput(s.workflowStepRunId)" [disabled]="!s.outputJson" style="margin-left: 6px;">Output</button>
               </td>
               </tr>
 
               <tr *ngIf="expandedStepIds[s.workflowStepRunId]">
-                <td colspan="6" style="border-bottom:1px solid #eee; padding: 6px;">
+                <td colspan="7" style="border-bottom:1px solid #eee; padding: 6px;">
                   <div style="display:flex; gap: 12px; align-items: baseline; flex-wrap: wrap; color:#444; margin-bottom: 6px;">
                     <div><b>Step config</b></div>
                     <label style="display:flex; gap: 6px; align-items:center;">
@@ -127,6 +131,10 @@ type WorkflowRunDetailsDto = {
                   </div>
 
                   <div *ngIf="!showResolvedConfig[s.workflowStepRunId]">
+                    <div style="display:flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px;">
+                      <button type="button" (click)="copyConfigText(s.workflowStepRunId + ':single', formatJsonMaybe(s.originalStepConfigJson ?? s.stepConfigJson))">Copy</button>
+                      <span *ngIf="copyHint[s.workflowStepRunId + ':single']" style="color:#1b5e20; font-size: 12px;">{{ copyHint[s.workflowStepRunId + ':single'] }}</span>
+                    </div>
                     <div *ngIf="extractContextVars(s.originalStepConfigJson).length" style="margin-bottom: 6px; color:#444;">
                       <b>Context vars</b>:
                       <span style="font-family: monospace;">{{ extractContextVars(s.originalStepConfigJson).join(', ') }}</span>
@@ -135,9 +143,13 @@ type WorkflowRunDetailsDto = {
                   </div>
 
                   <div *ngIf="showResolvedConfig[s.workflowStepRunId]">
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="config-compare-grid">
                       <div>
-                        <div style="color:#444; margin-bottom: 6px;"><b>Original</b></div>
+                        <div style="display:flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px;">
+                          <div style="color:#444;"><b>Original</b></div>
+                          <button type="button" (click)="copyConfigText(s.workflowStepRunId + ':orig', formatJsonMaybe(s.originalStepConfigJson))">Copy</button>
+                          <span *ngIf="copyHint[s.workflowStepRunId + ':orig']" style="color:#1b5e20; font-size: 12px;">{{ copyHint[s.workflowStepRunId + ':orig'] }}</span>
+                        </div>
                         <div *ngIf="extractContextVars(s.originalStepConfigJson).length" style="margin-bottom: 6px; color:#444;">
                           <b>Context vars</b>:
                           <span style="font-family: monospace;">{{ extractContextVars(s.originalStepConfigJson).join(', ') }}</span>
@@ -145,7 +157,11 @@ type WorkflowRunDetailsDto = {
                         <textarea [value]="formatJsonMaybe(s.originalStepConfigJson)" rows="8" style="width: 100%; font-family: monospace;" readonly></textarea>
                       </div>
                       <div>
-                        <div style="color:#444; margin-bottom: 6px;"><b>Resolved</b></div>
+                        <div style="display:flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px;">
+                          <div style="color:#444;"><b>Resolved</b></div>
+                          <button type="button" (click)="copyConfigText(s.workflowStepRunId + ':res', formatJsonMaybe(s.stepConfigJson))">Copy</button>
+                          <span *ngIf="copyHint[s.workflowStepRunId + ':res']" style="color:#1b5e20; font-size: 12px;">{{ copyHint[s.workflowStepRunId + ':res'] }}</span>
+                        </div>
                         <div *ngIf="extractContextVars(s.stepConfigJson).length" style="margin-bottom: 6px; color:#444;">
                           <b>Context vars</b>:
                           <span style="font-family: monospace;">{{ extractContextVars(s.stepConfigJson).join(', ') }}</span>
@@ -190,6 +206,8 @@ export class LowCodeRunDetailsPageComponent implements OnInit, OnDestroy {
   expandedStepIds: Record<string, boolean> = {};
   expandedOutputIds: Record<string, boolean> = {};
   showResolvedConfig: Record<string, boolean> = {};
+  copyHint: Record<string, string> = {};
+  private copyHintTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   get filteredSteps(): WorkflowStepRunDto[] {
     const steps = this.run?.steps ?? [];
@@ -203,9 +221,11 @@ export class LowCodeRunDetailsPageComponent implements OnInit, OnDestroy {
       if (!q) return true;
 
       const err = `${s.lastErrorCode ?? ''} ${s.lastErrorMessage ?? ''}`.toLowerCase();
+      const errPath = String(s.lastErrorConfigPath ?? '').toLowerCase();
       const cfg = String(s.stepConfigJson ?? '').toLowerCase();
+      const orig = String(s.originalStepConfigJson ?? '').toLowerCase();
       const out = String(s.outputJson ?? '').toLowerCase();
-      return err.includes(q) || cfg.includes(q) || out.includes(q);
+      return err.includes(q) || errPath.includes(q) || cfg.includes(q) || orig.includes(q) || out.includes(q);
     });
   }
 
@@ -251,8 +271,34 @@ export class LowCodeRunDetailsPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  toggleStepConfig(stepRunId: string): void {
-    this.expandedStepIds[stepRunId] = !this.expandedStepIds[stepRunId];
+  toggleStepConfig(s: WorkflowStepRunDto): void {
+    const stepRunId = s.workflowStepRunId;
+    const now = !this.expandedStepIds[stepRunId];
+    this.expandedStepIds[stepRunId] = now;
+    if (now) {
+      this.showResolvedConfig[stepRunId] = stepConfigsDiffer(s.originalStepConfigJson, s.stepConfigJson);
+    }
+  }
+
+  async copyConfigText(hintKey: string, text: string): Promise<void> {
+    const payload = String(text ?? '');
+    try {
+      await navigator.clipboard.writeText(payload);
+      this.setCopyHint(hintKey, 'Copied');
+    } catch {
+      this.setCopyHint(hintKey, 'Copy failed');
+    }
+  }
+
+  private setCopyHint(hintKey: string, message: string): void {
+    const prev = this.copyHintTimers.get(hintKey);
+    if (prev) clearTimeout(prev);
+    this.copyHint[hintKey] = message;
+    const t = setTimeout(() => {
+      delete this.copyHint[hintKey];
+      this.copyHintTimers.delete(hintKey);
+    }, 2000);
+    this.copyHintTimers.set(hintKey, t);
   }
 
   toggleResolvedConfig(stepRunId: string): void {

@@ -17,6 +17,9 @@ public sealed class WorkflowStepRun
     public string? LastErrorCode { get; set; }
     public string? LastErrorMessage { get; set; }
 
+    /// <summary>JSON path within the step config where the error applies (e.g. <c>$.recordId</c> for context var interpolation).</summary>
+    public string? LastErrorConfigPath { get; set; }
+
     public DateTime? StartedAtUtc { get; set; }
     public DateTime? FinishedAtUtc { get; set; }
 

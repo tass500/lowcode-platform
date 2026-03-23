@@ -4,7 +4,9 @@ import { ChangeDetectorRef, Component, ElementRef, inject, OnDestroy, OnInit, Vi
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { buildContextVarSuggestionsFromDefinitionJson } from './lowcode-workflow-context-suggestions';
 import { groupLintWarningsByCode, type LintWarningGroup } from './lowcode-workflow-lint-utils';
+import { minifyWorkflowDefinitionJson, prettifyWorkflowDefinitionJson } from './lowcode-workflow-json-form';
 import {
   buildWorkflowViewerStepCards,
   findCaretIndexForWorkflowStep,
@@ -122,6 +124,11 @@ type ApiErrorDetail = {
             <ng-container *ngIf="viewMode === 'json'">
               <label>
                 Definition JSON
+                <div style="margin: 6px 0; display:flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                  <button type="button" (click)="prettifyDefinitionJson()">Prettify</button>
+                  <button type="button" (click)="minifyDefinitionJson()">Minify</button>
+                  <span *ngIf="jsonFormatError" style="color:#b00020; font-size: 13px;">{{ jsonFormatError }}</span>
+                </div>
                 <div *ngIf="extractContextVars(form.controls.definitionJson.value).length" style="margin: 6px 0;">
                   <div style="font-weight: 600; color:#444; margin-bottom: 4px;">Context vars preview</div>
                   <pre style="margin:0; padding: 8px; border: 1px solid #ddd; border-radius: 8px; background:#fafafa; overflow:auto; font-family: monospace;" [innerHTML]="highlightContextVars(form.controls.definitionJson.value)"></pre>
@@ -263,6 +270,8 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
 
   lastRunId: string | null = null;
 
+  jsonFormatError: string | null = null;
+
   form = new FormGroup({
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     definitionJson: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -273,37 +282,26 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
   }
 
   get contextVarSuggestions(): string[] {
-    const raw = String(this.form.controls.definitionJson.value ?? '');
+    return buildContextVarSuggestionsFromDefinitionJson(String(this.form.controls.definitionJson.value ?? ''));
+  }
+
+  prettifyDefinitionJson(): void {
+    this.jsonFormatError = null;
     try {
-      const parsed: any = JSON.parse(raw);
-      const steps: any[] = Array.isArray(parsed?.steps) ? parsed.steps : [];
+      const raw = String(this.form.controls.definitionJson.value ?? '');
+      this.form.controls.definitionJson.setValue(prettifyWorkflowDefinitionJson(raw));
+    } catch (e: any) {
+      this.jsonFormatError = e?.message ?? 'Invalid JSON.';
+    }
+  }
 
-      const suggestions: string[] = [];
-      for (let i = 0; i < steps.length; i += 1) {
-        const key = String(i).padStart(3, '0');
-        suggestions.push(key);
-
-        const step = steps[i];
-        const type = String(step?.type ?? '').toLowerCase();
-
-        if (type === 'set' && step?.output && typeof step.output === 'object' && !Array.isArray(step.output)) {
-          for (const k of Object.keys(step.output)) {
-            if (!k) continue;
-            suggestions.push(`${key}.${k}`);
-          }
-        }
-
-        if (type === 'map' && step?.mappings && typeof step.mappings === 'object' && !Array.isArray(step.mappings)) {
-          for (const k of Object.keys(step.mappings)) {
-            if (!k) continue;
-            suggestions.push(`${key}.${k}`);
-          }
-        }
-      }
-
-      return Array.from(new Set(suggestions)).sort((a, b) => a.localeCompare(b));
-    } catch {
-      return [];
+  minifyDefinitionJson(): void {
+    this.jsonFormatError = null;
+    try {
+      const raw = String(this.form.controls.definitionJson.value ?? '');
+      this.form.controls.definitionJson.setValue(minifyWorkflowDefinitionJson(raw));
+    } catch (e: any) {
+      this.jsonFormatError = e?.message ?? 'Invalid JSON.';
     }
   }
 

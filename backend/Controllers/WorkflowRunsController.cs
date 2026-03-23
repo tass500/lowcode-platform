@@ -93,6 +93,7 @@ public sealed class WorkflowRunsController : ControllerBase
                     s.Attempt,
                     s.LastErrorCode,
                     s.LastErrorMessage,
+                    s.LastErrorConfigPath,
                     s.StartedAtUtc,
                     s.FinishedAtUtc)));
     }

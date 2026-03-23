@@ -5,6 +5,7 @@ Drift-proof observability egy greenfield lowcode platformban.
 
 ## Jelenlegi állapot – kész
 - **Backend (ASP.NET Core)**
+  - Workflow step run: **`last_error_config_path`** (JSON path a step configban, pl. `$.recordId`) — futás közbeni hibáknál kitöltve; `GET /api/workflows/runs/{id}` visszaadja.
   - Admin endpointok válaszaiban **`serverTimeUtc`** elérhető (installation/status, upgrade-runs: recent/latest/queue/get/start/retry/cancel/dev-fail-step, audit list).
   - Admin response-ok **DTO-sítva** (Swagger Models/Schemas alatt látszanak a mezők).
   - Külön **observability endpoint**: `GET /api/admin/observability` (active runs + last audit + enforcement summary + `serverTimeUtc`).
@@ -21,7 +22,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `require`
     - `domainCommand`
     - `unstable`
-  - Jelenlegi fókusz (roadmap): Iteráció 45 — workflow editor QoL (safe bundling)
+  - Utolsó lezárt roadmap iteráció: **39** — step error **config path** (`last_error_config_path` + runner + run details **Error path** oszlop). Következő ACTIVE: **40** — context var autocomplete tovább (`docs/live/03_kovetkezo_lepesek.md`).
     - unknown step type → warning
     - context var referencia ismeretlen step key-re → warning
   - Workflow create/update validációs hibák egységes `details` struktúrát adnak:
@@ -35,6 +36,9 @@ Drift-proof observability egy greenfield lowcode platformban.
   - Workflow **lint warnings** UI: összesen hány warning, **code szerinti csoportosítás** (×darab), hosszú üzenetek törése; create + details oldalon; közös `groupLintWarningsByCode` helper + unit teszt.
   - Workflow Viewer-ben a lint warningok lépésenként is látszanak (step badge + warning részlet), így gyorsabb a hibakeresés.
   - Workflow create/details oldalon a backend validációs `details` mezők UI-ban is láthatók (path|code|message), így gyorsabb a javítás.
+  - Workflow **New** + **details** JSON szerkesztő: **Prettify / Minify**; template lista **szűrő**; context var javaslatok közös `lowcode-workflow-context-suggestions` modullal (domain + foreach + belső lépés).
+  - Low-code **workflow run details** (`/lowcode/workflows/runs/...`): step config **Original / Resolved** összehasonlítás + toggle; kereső tartalmazza az `originalStepConfigJson`-t; Config megnyitásakor ha eltér az original a resolved-tól → alapból „Show resolved”; **Copy** (config / output); reszponzív kétoszlopos rács; `lowcode-run-details-utils` + unit teszt.
+  - Ugyanitt: sikertelen / hibás lépéseknél **Error path** (`lastErrorConfigPath`, pl. `$.recordId` context var hibánál); a szűrő mező erre is rákeres.
   - Drift-proof “now”: kliens oldali **`serverNowOffsetMs`** kalibráció `serverTimeUtc` alapján.
   - “Last refreshed” + “ago” kijelzés queue/audit/run panelen server-calibráltan.
   - **Clock drift warning** (>= 2 perc) + dev drift szimuláció.
