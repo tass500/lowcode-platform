@@ -34,6 +34,9 @@ Details: **`docs/DEVELOPMENT_WORKFLOW.md`** (sections 4–6).
   - docs/tooling
 - Commit messages should capture intent (why), not file lists.
 
+## AI / Cursor efficiency
+- Keep prompts **scoped**; use **Handoff** + `03` ACTIVE; minimal `@` context. See **`docs/DEVELOPMENT_WORKFLOW.md` § 10** and **`.cursor/rules/ai-cursor-efficiency.mdc`**.
+
 ## Proposed PR block (assistant output format)
 When ready for PR, provide:
 - base: `master`
