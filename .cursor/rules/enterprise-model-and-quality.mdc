@@ -1,0 +1,53 @@
+---
+description: Enterprise-style model hints + quality, security, testing, and output norms
+alwaysApply: true
+---
+
+# Model selection (advisory — user sets model in Cursor UI)
+
+- **Default**: prefer **Auto** for everyday flow, small edits, explanations, and docs touch-ups.
+- **Heavier work**: architecture, multi-file refactors, or subtle domain logic → prefer a **strong reasoning** model (e.g. Claude Sonnet-class) when available.
+- **Large inputs**: long logs, big file reads, bulk doc summarization → prefer a **long-context** model (e.g. Gemini-class) when available.
+- **Strict formatting / small deterministic edits**: stable completion-style models (e.g. GPT-4o-class) when the task is mostly style or mechanical.
+- **Cost**: avoid top-tier / most expensive models unless the user explicitly asks or the task is high-risk and warrants it.
+
+# General development
+
+- Prefer **SOLID**, **DRY**, and patterns already used in this repo; **composition over inheritance** unless existing code uses inheritance.
+- Prefer **minimal, isolated** changes; preserve **public HTTP contracts** and existing behavior unless the user asks to change semantics.
+- Align with **`docs/PROJECT_CONTEXT.md`**, **`docs/live/*`**, and **`.windsurf/workflows/*`** (protected `master`, live docs updates).
+
+# Code style
+
+- Match **existing** project style (naming, file layout, Angular/ASP.NET conventions).
+- Keep functions focused; use clear names; avoid unnecessary abbreviations.
+- Handle errors and edge cases consistent with `ErrorResponse` / existing middleware patterns.
+
+# Security
+
+- **Never** log or echo secrets (tokens, API keys, passwords, PII).
+- Validate and treat external/user-controlled input carefully; prefer safe defaults aligned with existing controllers/middleware.
+- Call out plausible security risks in review-style notes when relevant.
+
+# Testing (this repo)
+
+- Prefer **integration tests** in `backend/LowCodePlatform.Backend.Tests` for API/behavior changes, following existing test style.
+- Add **edge cases** where they catch real regressions; avoid flaky tests (no reliance on wall-clock race, external services, or machine-specific paths unless already the pattern).
+- Frontend: rely on **`npm run build`** unless the change warrants adding a test harness the project already uses.
+
+# Refactors
+
+- Preserve behavior unless explicitly changing it (“no behavior change” when stated).
+- **Do not** add new dependencies/libraries without explicit user approval.
+- Prefer **small, reversible** steps; split large work across milestones (WIP=1).
+
+# Documentation
+
+- Meaningful public or cross-team behavior: update **`docs/live/02_allapot.md`** and **`docs/live/03_kovetkezo_lepesek.md`** as appropriate.
+- Never edit **`docs/00_truth_files_template/*`** (read-only templates).
+
+# Output (assistant)
+
+- Be direct; list **which files** change when touching multiple paths.
+- If scope is ambiguous, ask **one** focused clarification before large edits.
+- After substantive edits, run the **quality gates** from `.cursor/rules/quality-gates-and-sweep.mdc` when feasible.
