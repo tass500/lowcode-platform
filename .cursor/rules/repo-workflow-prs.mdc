@@ -43,3 +43,8 @@ When ready for PR, provide:
 - test plan: exact commands run
 - notes: invariants (e.g. no behavior change) + checks to watch
 
+## Optional automation (human or trusted environment)
+- Scripts: `scripts/gh-pr-push-merge.ps1` (Windows) and `scripts/gh-pr-push-merge.sh` (Unix). Details: **`docs/DEVELOPMENT_WORKFLOW.md` § 6a**.
+- Optional token file: copy **`.env.example`** → **`.env`** (gitignored), set `GH_TOKEN` — never commit secrets.
+- Merge automation only works if `gh` is authenticated and repo rules allow merge (no blocking required reviews).
+

@@ -58,6 +58,43 @@ A **`.windsurf/` könyvtár nem authoritative** (lásd alul).
 - Ha `Resource not accessible by personal access token`: a tokennek legyen **repo** / megfelelő **fine-grained** jog a repóra (Contents + Pull requests).
 - **Teljes útvonal** (ha `gh` nincs a PATH-ban):  
   `& "C:\Program Files\GitHub CLI\gh.exe" ...`
+- **Nem interaktív / CI / másik gép:** állítsd a **`GITHUB_TOKEN`** vagy **`GH_TOKEN`** környezeti változót (ugyanazok a jogok). A repóban **ne** commitolj tokent — lokálisan másold a **`.env.example`** fájlt **`.env`** névre, töltsd ki, a **`.env` gitignore-olt** (lásd `.gitignore`). A `scripts/gh-pr-push-merge.*` szkriptek opcionálisan beolvassák a `.env`-et.
+
+### 6a) Automatizált push → PR → CI várakozás → merge (opcionális)
+
+**Cél:** egy feature ágon (commitokkal) végigvinni ugyanazt a folyamatot, mint manuálisan: `git push`, nyitott PR újrahasználása vagy `gh pr create`, `gh pr checks --watch`, `gh pr merge`, lokálisan `master` frissítése.
+
+| Fájl | Platform |
+|------|-----------|
+| `scripts/gh-pr-push-merge.ps1` | Windows (PowerShell) |
+| `scripts/gh-pr-push-merge.sh` | Linux / macOS / Git Bash |
+
+**Feltételek:**
+
+- `gh` telepítve, bejelentkezve (`gh auth login`) **vagy** `GH_TOKEN` / `GITHUB_TOKEN` + `.env`.
+- Nem állsz a **`master`** ágon; a változtatások commitolva vannak.
+- A GitHub **branch protection** / kötelező review **nem** blokkolja a merge-et (különben a script hibázhat vagy figyelmeztet).
+
+**Példa (Windows):**
+
+```powershell
+git switch master; git pull --ff-only origin master
+git switch -c feat/my-topic
+# ... kódolás, commit ...
+.\scripts\gh-pr-push-merge.ps1              # teljes folyamat
+.\scripts\gh-pr-push-merge.ps1 -NoMerge     # csak push + PR, merge kézzel
+.\scripts\gh-pr-push-merge.ps1 -Squash        # squash merge
+```
+
+**Példa (bash):**
+
+```bash
+chmod +x scripts/gh-pr-push-merge.sh
+NO_MERGE=1 ./scripts/gh-pr-push-merge.sh   # csak push + PR
+./scripts/gh-pr-push-merge.sh
+```
+
+**Megjegyzés:** Cursor / asszisztens ugyanezt a folyamatot tudja futtatni **csak akkor**, ha a környezetben elérhető a `gh` és megfelelő jogosultság van — ez dokumentáció + szkript, nem kötelező „magától” merge-elni.
 
 ---
 
