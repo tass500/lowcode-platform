@@ -22,3 +22,8 @@ backend/*.db-*
 .DS_Store
 .vscode/
 .idea/
+
+# Local secrets (GitHub token for gh scripts / optional tooling)
+.env
+.env.local
+!.env.example
