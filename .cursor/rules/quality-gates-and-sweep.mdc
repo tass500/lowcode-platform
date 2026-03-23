@@ -1,0 +1,25 @@
+---
+description: Build/test gates + periodic maintenance sweep checklist
+alwaysApply: true
+---
+
+# Quality gates + maintenance sweep
+
+## Gates (run after substantive changes)
+- Backend: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
+- Frontend: `npm run build` (cwd: `frontend/`)
+
+## Maintenance sweep (when things feel “busy”)
+Run before merging larger changes or after backend+frontend milestones:
+- Backend compile: `dotnet build` (cwd: `backend/`)
+- Frontend compile: `npm run build` (cwd: `frontend/`)
+
+## Drift/duplication watchlist (if repeated 3+ times, propose helper)
+- `e?.error?.message ??` (error mapping duplication)
+- `observe: 'response'` (header capture patterns)
+- `applyServerTimeUtc(` (time sync calls)
+
+## Constraints
+- Prefer small, low-risk refactors that preserve behavior.
+- If risk grows, split into smaller milestones (still keep WIP=1).
+

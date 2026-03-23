@@ -1,0 +1,26 @@
+---
+description: Live docs maintenance and truth template policy
+alwaysApply: true
+---
+
+# Docs policy: truth templates + live docs
+
+## Truth templates are read-only
+- Never edit anything under `docs/00_truth_files_template/*`.
+- Treat them as guidance/templates only.
+
+## Live docs are the ground truth across context resets
+Update automatically after every meaningful implementation:
+- `docs/live/02_allapot.md` (done/current facts)
+- `docs/live/03_kovetkezo_lepesek.md` (next steps / active focus)
+
+Rules:
+- Keep updates short, factual, and actionable.
+- When a milestone/iteration is done, mark it as `✅ Kész`.
+- Keep exactly one active focus (WIP=1) unless explicitly doing a safe bundle.
+
+## Context reset procedure (assistant)
+- Re-read both live docs first.
+- Continue from `docs/live/03_kovetkezo_lepesek.md`.
+- Do not invent scope; align work with the active iteration.
+

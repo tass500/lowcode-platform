@@ -177,6 +177,10 @@ public sealed class WorkflowEndpointsTests
         var payload = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
         Assert.NotNull(payload);
         Assert.Equal("context_var_syntax_invalid", payload!["errorCode"]?.ToString());
+        var details = payload["details"]?.ToString() ?? string.Empty;
+        Assert.Contains("path", details);
+        Assert.Contains("code", details);
+        Assert.Contains("message", details);
     }
 
     [Fact]
@@ -209,6 +213,10 @@ public sealed class WorkflowEndpointsTests
         var payload = await updateResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
         Assert.NotNull(payload);
         Assert.Equal("context_var_syntax_invalid", payload!["errorCode"]?.ToString());
+        var details = payload["details"]?.ToString() ?? string.Empty;
+        Assert.Contains("path", details);
+        Assert.Contains("code", details);
+        Assert.Contains("message", details);
     }
 
     [Fact]
@@ -276,6 +284,10 @@ public sealed class WorkflowEndpointsTests
         var payload = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
         Assert.NotNull(payload);
         Assert.Equal("workflow_definition_invalid", payload!["errorCode"]?.ToString());
+        var details = payload["details"]?.ToString() ?? string.Empty;
+        Assert.Contains("path", details);
+        Assert.Contains("code", details);
+        Assert.Contains("message", details);
     }
 
     [Fact]
@@ -308,6 +320,10 @@ public sealed class WorkflowEndpointsTests
         var payload = await updateResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
         Assert.NotNull(payload);
         Assert.Equal("workflow_definition_invalid", payload!["errorCode"]?.ToString());
+        var details = payload["details"]?.ToString() ?? string.Empty;
+        Assert.Contains("path", details);
+        Assert.Contains("code", details);
+        Assert.Contains("message", details);
     }
 
     [Fact]

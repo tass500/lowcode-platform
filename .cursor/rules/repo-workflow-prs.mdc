@@ -1,0 +1,43 @@
+---
+description: Protected master workflow (branch/commit/PR cadence)
+alwaysApply: true
+---
+
+# Repo workflow: branches, commits, PRs
+
+## Protected `master`
+- Never push directly to `master`. All changes go through a PR.
+- If changes were accidentally committed on `master`, create a branch from HEAD and open a PR (do not rewrite history).
+
+## Branching
+- Always branch off the latest `master`:
+  - `git switch master && git pull --ff-only`
+  - `git switch -c <branch>`
+- Naming:
+  - `feat/<topic>`
+  - `fix/<topic>`
+  - `refactor/<topic>`
+  - `docs/<topic>`
+  - `chore/<topic>`
+
+## PR cadence
+- Prefer **1 PR per milestone/iteration** that is reviewable end-to-end.
+- If the diff gets too large, split into 2 PRs within the same topic (still milestone-scoped).
+- Draft PR is OK as soon as the branch is pushed; keep committing into the same PR.
+
+## Commit guidance
+- Keep commits review-friendly. Prefer 1–3 commits per PR:
+  - backend + tests
+  - frontend
+  - docs/tooling
+- Commit messages should capture intent (why), not file lists.
+
+## Proposed PR block (assistant output format)
+When ready for PR, provide:
+- base: `master`
+- head: `<branch>`
+- title: short, scoped
+- summary: 1–3 bullets
+- test plan: exact commands run
+- notes: invariants (e.g. no behavior change) + checks to watch
+

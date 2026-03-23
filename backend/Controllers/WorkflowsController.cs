@@ -15,6 +15,8 @@ namespace LowCodePlatform.Backend.Controllers;
 [Authorize(Policy = "tenant_user")]
 public sealed class WorkflowsController : ControllerBase
 {
+    private sealed record WorkflowValidationIssue(string? Path, string Code, string Message);
+
     private readonly Data.PlatformDbContext _db;
     private readonly AuditService _audit;
     private readonly TenantRegistryService _tenants;
@@ -99,19 +101,31 @@ public sealed class WorkflowsController : ControllerBase
         return warnings;
     }
 
-    private ObjectResult Problem(int statusCode, string errorCode, string message)
+    private ObjectResult Problem(int statusCode, string errorCode, string message, List<ErrorDetail>? details = null)
         => StatusCode(statusCode, new ErrorResponse(
             ErrorCode: errorCode,
             Message: message,
             TraceId: TraceIdMiddleware.GetTraceId(HttpContext),
-            TimestampUtc: DateTime.UtcNow));
+            TimestampUtc: DateTime.UtcNow,
+            Details: details));
 
-    private static string? ValidateContextVarSyntax(string s)
+    private static List<ErrorDetail> ToErrorDetails(IEnumerable<WorkflowValidationIssue> issues)
+        => issues
+            .Select(x => new ErrorDetail(
+                Path: x.Path,
+                Code: x.Code,
+                Message: x.Message,
+                Severity: "error"))
+            .ToList();
+
+    private static List<WorkflowValidationIssue> ValidateContextVarSyntax(string s)
     {
+        var issues = new List<WorkflowValidationIssue>();
+
         if (string.IsNullOrEmpty(s))
-            return null;
+            return issues;
         if (!s.Contains("${", StringComparison.Ordinal))
-            return null;
+            return issues;
 
         var idx = 0;
         while (true)
@@ -123,11 +137,23 @@ public sealed class WorkflowsController : ControllerBase
             var end = s.IndexOf('}', start + 2);
             var endQuote = s.IndexOf('"', start + 2);
             if (end < 0 || (endQuote >= 0 && endQuote < end))
-                return "Invalid context variable syntax: missing closing '}' in '${...}'.";
+            {
+                issues.Add(new WorkflowValidationIssue(
+                    Path: "$.definitionJson",
+                    Code: "context_var_missing_closing_brace",
+                    Message: "Invalid context variable syntax: missing closing '}' in '${...}'."));
+                return issues;
+            }
 
             var inner = s.Substring(start + 2, end - (start + 2));
             if (string.IsNullOrWhiteSpace(inner))
-                return "Invalid context variable syntax: empty path in '${...}'.";
+            {
+                issues.Add(new WorkflowValidationIssue(
+                    Path: "$.definitionJson",
+                    Code: "context_var_empty_path",
+                    Message: "Invalid context variable syntax: empty path in '${...}'."));
+                return issues;
+            }
 
             idx = end + 1;
         }
@@ -139,44 +165,93 @@ public sealed class WorkflowsController : ControllerBase
             var start = s.IndexOf("${}", idx, StringComparison.Ordinal);
             if (start < 0)
                 break;
-            return "Invalid context variable syntax: empty path in '${...}'.";
+            issues.Add(new WorkflowValidationIssue(
+                Path: "$.definitionJson",
+                Code: "context_var_empty_path",
+                Message: "Invalid context variable syntax: empty path in '${...}'."));
+            return issues;
         }
 
-        return null;
+        return issues;
     }
 
-    private static string? ValidateWorkflowDefinitionSchema(string definitionJson)
+    private static List<WorkflowValidationIssue> ValidateWorkflowDefinitionSchema(string definitionJson)
     {
+        var issues = new List<WorkflowValidationIssue>();
+
         try
         {
             using var doc = JsonDocument.Parse(definitionJson);
             if (doc.RootElement.ValueKind != JsonValueKind.Object)
-                return "Invalid workflow definition: root must be a JSON object.";
+            {
+                issues.Add(new WorkflowValidationIssue(
+                    Path: "$",
+                    Code: "workflow_definition_root_invalid",
+                    Message: "Invalid workflow definition: root must be a JSON object."));
+                return issues;
+            }
 
             if (!doc.RootElement.TryGetProperty("steps", out var stepsEl))
-                return "Invalid workflow definition: 'steps' is required.";
+            {
+                issues.Add(new WorkflowValidationIssue(
+                    Path: "$.steps",
+                    Code: "workflow_steps_missing",
+                    Message: "Invalid workflow definition: 'steps' is required."));
+                return issues;
+            }
 
             if (stepsEl.ValueKind != JsonValueKind.Array)
-                return "Invalid workflow definition: 'steps' must be an array.";
+            {
+                issues.Add(new WorkflowValidationIssue(
+                    Path: "$.steps",
+                    Code: "workflow_steps_type_invalid",
+                    Message: "Invalid workflow definition: 'steps' must be an array."));
+                return issues;
+            }
 
+            var idx = 0;
             foreach (var stepEl in stepsEl.EnumerateArray())
             {
                 if (stepEl.ValueKind != JsonValueKind.Object)
-                    return "Invalid workflow definition: each step must be an object.";
+                {
+                    issues.Add(new WorkflowValidationIssue(
+                        Path: $"$.steps[{idx}]",
+                        Code: "workflow_step_type_invalid",
+                        Message: "Invalid workflow definition: each step must be an object."));
+                    return issues;
+                }
 
                 if (!stepEl.TryGetProperty("type", out var typeEl) || typeEl.ValueKind != JsonValueKind.String)
-                    return "Invalid workflow definition: each step must have a string 'type'.";
+                {
+                    issues.Add(new WorkflowValidationIssue(
+                        Path: $"$.steps[{idx}].type",
+                        Code: "workflow_step_type_missing",
+                        Message: "Invalid workflow definition: each step must have a string 'type'."));
+                    return issues;
+                }
 
                 var type = typeEl.GetString();
                 if (string.IsNullOrWhiteSpace(type))
-                    return "Invalid workflow definition: each step must have a non-empty string 'type'.";
+                {
+                    issues.Add(new WorkflowValidationIssue(
+                        Path: $"$.steps[{idx}].type",
+                        Code: "workflow_step_type_empty",
+                        Message: "Invalid workflow definition: each step must have a non-empty string 'type'."));
+                    return issues;
+                }
+
+                idx += 1;
             }
 
-            return null;
+            return issues;
         }
         catch (JsonException)
         {
-            return "Invalid workflow definition: definitionJson must be valid JSON.";
+            issues.Add(new WorkflowValidationIssue(
+                Path: "$.definitionJson",
+                Code: "workflow_definition_json_invalid",
+                Message: "Invalid workflow definition: definitionJson must be valid JSON."));
+            return issues;
         }
     }
 
@@ -226,13 +301,21 @@ public sealed class WorkflowsController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.DefinitionJson))
             return Problem(StatusCodes.Status400BadRequest, "definition_missing", "DefinitionJson is required.");
 
-        var schemaError = ValidateWorkflowDefinitionSchema(req.DefinitionJson);
-        if (!string.IsNullOrWhiteSpace(schemaError))
-            return Problem(StatusCodes.Status400BadRequest, "workflow_definition_invalid", schemaError);
+        var schemaIssues = ValidateWorkflowDefinitionSchema(req.DefinitionJson);
+        if (schemaIssues.Count > 0)
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                "workflow_definition_invalid",
+                schemaIssues[0].Message,
+                ToErrorDetails(schemaIssues));
 
-        var syntaxError = ValidateContextVarSyntax(req.DefinitionJson);
-        if (!string.IsNullOrWhiteSpace(syntaxError))
-            return Problem(StatusCodes.Status400BadRequest, "context_var_syntax_invalid", syntaxError);
+        var syntaxIssues = ValidateContextVarSyntax(req.DefinitionJson);
+        if (syntaxIssues.Count > 0)
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                "context_var_syntax_invalid",
+                syntaxIssues[0].Message,
+                ToErrorDetails(syntaxIssues));
 
         var lintWarnings = LintWorkflowDefinition(req.DefinitionJson);
 
@@ -277,13 +360,21 @@ public sealed class WorkflowsController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.DefinitionJson))
             return Problem(StatusCodes.Status400BadRequest, "definition_missing", "DefinitionJson is required.");
 
-        var schemaError = ValidateWorkflowDefinitionSchema(req.DefinitionJson);
-        if (!string.IsNullOrWhiteSpace(schemaError))
-            return Problem(StatusCodes.Status400BadRequest, "workflow_definition_invalid", schemaError);
+        var schemaIssues = ValidateWorkflowDefinitionSchema(req.DefinitionJson);
+        if (schemaIssues.Count > 0)
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                "workflow_definition_invalid",
+                schemaIssues[0].Message,
+                ToErrorDetails(schemaIssues));
 
-        var syntaxError = ValidateContextVarSyntax(req.DefinitionJson);
-        if (!string.IsNullOrWhiteSpace(syntaxError))
-            return Problem(StatusCodes.Status400BadRequest, "context_var_syntax_invalid", syntaxError);
+        var syntaxIssues = ValidateContextVarSyntax(req.DefinitionJson);
+        if (syntaxIssues.Count > 0)
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                "context_var_syntax_invalid",
+                syntaxIssues[0].Message,
+                ToErrorDetails(syntaxIssues));
 
         var lintWarnings = LintWorkflowDefinition(req.DefinitionJson);
 
