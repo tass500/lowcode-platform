@@ -19,6 +19,19 @@ public sealed class UpgradeOrchestratorHostedService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Covers LCP_SKIP_STARTUP_SEED=1 or any startup path that skipped tenant MigrateAsync.
+        try
+        {
+            using var bootScope = _sp.CreateScope();
+            var bootDb = bootScope.ServiceProvider.GetRequiredService<PlatformDbContext>();
+            await bootDb.Database.MigrateAsync(stoppingToken);
+            await PlatformSqliteSchemaRepair.EnsureUpgradeTablesExistAsync(bootDb, stoppingToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "upgrade_orchestrator_startup_migrate_failed");
+        }
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try

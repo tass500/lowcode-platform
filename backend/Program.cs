@@ -236,6 +236,7 @@ if (!app.Environment.IsEnvironment("Testing") && !IsEfDesignTime() && !ShouldSki
     tenant.Slug = defaultTenantSlug;
 
     var tenantDb = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
+    var startupLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
     try
     {
         await tenantDb.Database.MigrateAsync();
@@ -246,7 +247,10 @@ if (!app.Environment.IsEnvironment("Testing") && !IsEfDesignTime() && !ShouldSki
     {
         // Dev/Test safety valve: tolerate stale SQLite DBs created outside migrations history.
         // Prod should fail-fast to avoid running with an unknown schema state.
+        startupLogger.LogWarning(ex, "tenant_sqlite_migrate_skipped_already_exists; will try upgrade table repair");
     }
+
+    await PlatformSqliteSchemaRepair.EnsureUpgradeTablesExistAsync(tenantDb, CancellationToken.None);
 
     var inst = scope.ServiceProvider.GetRequiredService<InstallationService>();
     await inst.EnsureDefaultInstallationAsync(CancellationToken.None);

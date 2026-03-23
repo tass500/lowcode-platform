@@ -22,6 +22,26 @@ type ApiErrorDetail = {
   severity?: string | null;
 };
 
+type WorkflowNewPageTemplateKind =
+  | 'noop'
+  | 'delay250'
+  | 'delay3'
+  | 'timeoutDelay'
+  | 'set'
+  | 'map'
+  | 'merge'
+  | 'foreach'
+  | 'switch'
+  | 'retryUpdateById'
+  | 'require'
+  | 'domainEcho'
+  | 'domainCreateRecord'
+  | 'domainUpdateRecord'
+  | 'domainDeleteRecord'
+  | 'domainUpsertRecord'
+  | 'createAndUpdateById'
+  | 'setAndUpdateById';
+
 @Component({
   selector: 'app-lowcode-workflow-new-page',
   standalone: true,
@@ -61,7 +81,8 @@ type ApiErrorDetail = {
           <button type="button" (click)="applyTemplate('domainUpdateRecord')">Domain: update record</button>
           <button type="button" (click)="applyTemplate('domainDeleteRecord')">Domain: delete record</button>
           <button type="button" (click)="applyTemplate('domainUpsertRecord')">Domain: upsert record</button>
-          <button type="button" (click)="applyTemplate('setAndUpdateById')">Set + updateById (context var)</button>
+          <button type="button" (click)="applyTemplate('createAndUpdateById')">Create + updateById (demo)</button>
+          <button type="button" (click)="applyTemplate('setAndUpdateById')">Set + updateById (manual GUID)</button>
         </div>
         <div style="margin-top: 6px; color:#444;">These templates only use step types currently supported by the engine: <code>noop</code>, <code>delay</code>, <code>set</code>, <code>map</code>, <code>merge</code>, <code>foreach</code>, <code>switch</code>, <code>require</code>, <code>domainCommand</code>.</div>
       </section>
@@ -188,27 +209,8 @@ export class LowCodeWorkflowNewPageComponent {
     });
   }
 
-  applyTemplate(
-    kind:
-      | 'noop'
-      | 'delay250'
-      | 'delay3'
-      | 'timeoutDelay'
-      | 'set'
-      | 'map'
-      | 'merge'
-      | 'foreach'
-      | 'switch'
-      | 'retryUpdateById'
-      | 'require'
-      | 'domainEcho'
-      | 'domainCreateRecord'
-      | 'domainUpdateRecord'
-      | 'domainDeleteRecord'
-      | 'domainUpsertRecord'
-      | 'setAndUpdateById'
-  ): void {
-    const templates: Record<typeof kind, { name: string; json: string }> = {
+  applyTemplate(kind: WorkflowNewPageTemplateKind): void {
+    const templates: Record<WorkflowNewPageTemplateKind, { name: string; json: string }> = {
       noop: {
         name: 'wf-noop',
         json: '{"steps":[{"type":"noop"}]}',
@@ -273,6 +275,13 @@ export class LowCodeWorkflowNewPageComponent {
         name: 'wf-domain-upsert-record',
         json: '{"steps":[{"type":"domainCommand","command":"entityRecord.upsertByEntityName","entityName":"Company","uniqueKey":"externalId","uniqueValue":"c-1","data":{"externalId":"c-1","name":"Acme Upsert","status":"active"}}]}',
       },
+      /** Creates a record then updates it — no placeholder GUID; uses ${000.entityRecordId} from create output. */
+      createAndUpdateById: {
+        name: 'wf-create-update-by-id',
+        json:
+          '{"steps":[{"type":"domainCommand","command":"entityRecord.createByEntityName","entityName":"Company","data":{"name":"Acme Seed","status":"active"}},{"type":"domainCommand","command":"entityRecord.updateById","recordId":"${000.entityRecordId}","data":{"name":"Acme Updated","status":"inactive"}}]}',
+      },
+      /** Replace RECORD_ID_GUID placeholder with a real entity record id before running. */
       setAndUpdateById: {
         name: 'wf-set-update-by-id',
         json: '{"steps":[{"type":"set","output":{"recordId":"<RECORD_ID_GUID>"}},{"type":"domainCommand","command":"entityRecord.updateById","recordId":"${000.recordId}","data":{"name":"Acme Updated","status":"inactive"}}]}',
