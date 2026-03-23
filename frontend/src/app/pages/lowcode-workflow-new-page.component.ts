@@ -14,6 +14,13 @@ type WorkflowDefinitionDetailsDto = {
   updatedAtUtc: string;
 };
 
+type ApiErrorDetail = {
+  path?: string | null;
+  code: string;
+  message: string;
+  severity?: string | null;
+};
+
 @Component({
   selector: 'app-lowcode-workflow-new-page',
   standalone: true,
@@ -27,6 +34,12 @@ type WorkflowDefinitionDetailsDto = {
         <div *ngIf="creating">Creating...</div>
         <div *ngIf="error" style="color:#b00020;">{{ error }}</div>
       </div>
+      <section *ngIf="errorDetails.length > 0" style="margin-top: 10px; padding: 10px 12px; border: 1px solid #f3d5d5; border-radius: 8px; background: #fff7f7;">
+        <div style="font-weight: 600; margin-bottom: 6px;">Validation details</div>
+        <div *ngFor="let d of errorDetails" style="font-family: monospace; font-size: 12px; color:#8a1f1f; margin-bottom: 4px;">
+          {{ d.path || '$' }} | {{ d.code }} | {{ d.message }}
+        </div>
+      </section>
 
       <section style="margin-top: 12px; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
         <div style="font-weight: 600; margin-bottom: 8px;">Templates (executable)</div>
@@ -98,6 +111,7 @@ export class LowCodeWorkflowNewPageComponent {
 
   creating = false;
   error: string | null = null;
+  errorDetails: ApiErrorDetail[] = [];
   lintWarnings: { code: string; message: string }[] = [];
   created: WorkflowDefinitionDetailsDto | null = null;
 
@@ -305,6 +319,7 @@ export class LowCodeWorkflowNewPageComponent {
 
     this.creating = true;
     this.error = null;
+    this.errorDetails = [];
     this.lintWarnings = [];
 
     try {
@@ -326,6 +341,7 @@ export class LowCodeWorkflowNewPageComponent {
       await this.router.navigate(['/lowcode/workflows', payload.workflowDefinitionId]);
     } catch (e: any) {
       this.error = e?.error?.message ?? e?.message ?? 'Failed to create workflow.';
+      this.errorDetails = Array.isArray(e?.error?.details) ? (e.error.details as ApiErrorDetail[]) : [];
     } finally {
       this.creating = false;
     }

@@ -35,6 +35,13 @@ type WorkflowRunListResponse = {
   items: WorkflowRunListItemDto[];
 };
 
+type ApiErrorDetail = {
+  path?: string | null;
+  code: string;
+  message: string;
+  severity?: string | null;
+};
+
 @Component({
   selector: 'app-lowcode-workflow-details-page',
   standalone: true,
@@ -62,6 +69,12 @@ type WorkflowRunListResponse = {
         <div *ngIf="deleting">Deleting...</div>
         <div *ngIf="error" style="color:#b00020;">{{ error }}</div>
       </div>
+      <section *ngIf="errorDetails.length > 0" style="margin-top: 10px; padding: 10px 12px; border: 1px solid #f3d5d5; border-radius: 8px; background: #fff7f7;">
+        <div style="font-weight: 600; margin-bottom: 6px;">Validation details</div>
+        <div *ngFor="let d of errorDetails" style="font-family: monospace; font-size: 12px; color:#8a1f1f; margin-bottom: 4px;">
+          {{ d.path || '$' }} | {{ d.code }} | {{ d.message }}
+        </div>
+      </section>
 
       <div *ngIf="workflow" style="margin-top: 12px;">
         <div style="display:flex; gap: 24px; flex-wrap: wrap; color:#444;">
@@ -120,6 +133,15 @@ type WorkflowRunListResponse = {
                 <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa; min-width: 120px;">
                   <div style="font-family: monospace; color:#666;">{{ s.index }}</div>
                   <div><b>{{ s.label }}</b></div>
+                  <div *ngIf="viewerStepWarnings(s.index).length > 0" style="margin-top: 6px;">
+                    <div style="display:inline-block; font-size: 12px; padding: 2px 6px; border-radius: 999px; background:#fff4cc; color:#6b4e00;">
+                      {{ viewerStepWarnings(s.index).length }} warning
+                      <ng-container *ngIf="viewerStepWarnings(s.index).length !== 1">s</ng-container>
+                    </div>
+                    <div *ngFor="let w of viewerStepWarnings(s.index)" style="margin-top: 4px; font-size: 12px; color:#6b4e00;">
+                      {{ w.code }}: {{ w.message }}
+                    </div>
+                  </div>
                 </div>
                 <div *ngIf="!last" style="color:#aaa; font-size: 18px;">→</div>
               </ng-container>
@@ -186,6 +208,7 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
   saving = false;
   deleting = false;
   error: string | null = null;
+  errorDetails: ApiErrorDetail[] = [];
 
   viewMode: 'viewer' | 'json' = 'viewer';
   tab: 'definition' | 'runs' = 'definition';
@@ -285,6 +308,15 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  viewerStepWarnings(stepIndex: number): Array<{ code: string; message: string }> {
+    const key = String(stepIndex).padStart(3, '0');
+    const warnings = this.workflow?.lintWarnings ?? [];
+    return warnings.filter(w => {
+      const message = String(w?.message ?? '');
+      return message.includes(`'${key}'`) || message.includes(`\${${key}`);
+    });
+  }
+
   async ngOnInit(): Promise<void> {
     await this.load();
   }
@@ -300,6 +332,7 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
   async load(): Promise<void> {
     this.loading = true;
     this.error = null;
+    this.errorDetails = [];
 
     try {
       const id = this.workflowId;
@@ -317,6 +350,7 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
         await this.loadRuns(true);
     } catch (e: any) {
       this.error = e?.error?.message ?? e?.message ?? 'Failed to load workflow.';
+      this.errorDetails = Array.isArray(e?.error?.details) ? (e.error.details as ApiErrorDetail[]) : [];
       this.workflow = null;
     } finally {
       this.loading = false;
@@ -434,11 +468,13 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
     const preflight = this.validateContextVarSyntax(this.form.controls.definitionJson.value ?? '');
     if (preflight) {
       this.error = preflight;
+      this.errorDetails = [];
       return;
     }
 
     this.saving = true;
     this.error = null;
+    this.errorDetails = [];
 
     try {
       const id = this.workflowId;
@@ -452,6 +488,7 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
       this.form.controls.definitionJson.setValue(this.workflow.definitionJson ?? '{}');
     } catch (e: any) {
       this.error = e?.error?.message ?? e?.message ?? 'Failed to save workflow.';
+      this.errorDetails = Array.isArray(e?.error?.details) ? (e.error.details as ApiErrorDetail[]) : [];
     } finally {
       this.saving = false;
     }
@@ -462,6 +499,7 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
 
     this.deleting = true;
     this.error = null;
+    this.errorDetails = [];
 
     try {
       const id = this.workflowId;
@@ -469,6 +507,7 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
       await this.router.navigate(['/lowcode/workflows']);
     } catch (e: any) {
       this.error = e?.error?.message ?? e?.message ?? 'Failed to delete workflow.';
+      this.errorDetails = Array.isArray(e?.error?.details) ? (e.error.details as ApiErrorDetail[]) : [];
     } finally {
       this.deleting = false;
     }
@@ -477,6 +516,7 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
   async startRun(): Promise<void> {
     this.starting = true;
     this.error = null;
+    this.errorDetails = [];
 
     try {
       const id = this.workflowId;
@@ -490,6 +530,7 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
       await this.loadRuns(true);
     } catch (e: any) {
       this.error = e?.error?.message ?? e?.message ?? 'Failed to start run.';
+      this.errorDetails = Array.isArray(e?.error?.details) ? (e.error.details as ApiErrorDetail[]) : [];
     } finally {
       this.starting = false;
     }
