@@ -17,6 +17,12 @@ auto_execution_mode: 3
 - Tipikus ritmus: **milestone-onként 1 PR** (vagy ha a diff túl nagy, akkor 2 kisebb PR ugyanazon témán belül).
 - Ha a branch már pusholva van GitHubra, a PR-t bármikor meg lehet nyitni (akár Draft-ként), és utána a commitok ugyanabba a PR-ba kerülnek.
 
+# Branch név best practice (ACTIVE iterációból)
+
+- A `docs/live/03_kovetkezo_lepesek.md` fájl **ACTIVE** iterációja legyen a branch név alapja.
+  - Példa: `feat/iter-42-workflow-validation-error-details`
+- Ez segít kontextusvesztés után is gyorsan visszatalálni, hogy melyik iterációhoz tartozott a munka.
+
 # Credit-alapú fejlesztés (költséghatékonyság)
 
 - Ebben a projektben a kommunikáció/iteráció **credit-alapú**: egy egyszerű kérdés-válasz (pl. "hány óra van?") és egy teljes iteráció (pl. backend+frontend+tesztek) is ugyanannyiba kerülhet.
@@ -90,6 +96,12 @@ git push -u origin <branch-nev>
 - Alternatíva: közvetlen link: `https://github.com/tass500/lowcode-platform/pull/new/<branch-nev>`
 - Várd meg, hogy az összes required check zöld legyen.
 - Merge (squash/merge policy szerint).
+
+## Ki futtatja a git parancsokat?
+
+- Alapértelmezés: te futtatod a commit/push/PR parancsokat.
+- Ha külön kéred, a fejlesztő asszisztens is végigfuttathatja a standard flow-t (branch → commit → push → PR),
+  **ugyanazokat a lépéseket követve**, és a végén visszaadva a PR linket.
 
 5. **PR merge után takarítás**
 

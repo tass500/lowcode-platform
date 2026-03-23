@@ -2,7 +2,7 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 41 — workflow lint: statikus ellenőrzések (warning szint)**
+**ACTIVE: Iteráció 43 — workflow lint UX finomítás (frontend, low risk)**
 
 - Iteráció 28: `merge` step (shallow merge), integrációs tesztek, frontend executable template, live docs.
 - Iteráció 29: `foreach` step (control flow) + tesztek + frontend template + live docs.
@@ -19,13 +19,52 @@
 - Iteráció 40: context var UX: autocomplete javaslatok (top-level keys + step output mezők) a szerkesztő oldalon (minimál).
 - Iteráció 41: workflow lint: statikus ellenőrzések (unused step outputs, obvious typos) + warning szint.
 - Iteráció 42: hardening: egységes error response detail mezők (path + code + message) a workflow validációkhoz.
+- ✅ Kész (frontend mini-slice): workflow details Viewer step-level lint warning megjelenítés (badge + warning részlet), no behavior change.
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch: `feat/iter-41-workflow-lint`
+- Branch: `feat/iter-42-workflow-validation-error-details`
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
-- Következő teendő (Iteráció 41): commit slice (frontend + docs) → push → PR nyitás
+- ✅ Kész (Iteráció 42): backend error detail contract egységesítés (path + code + message) + frontend megjelenítés + tesztek
+
+## Több iterációs folytatási terv (low-code frontend fókusz)
+
+### Iteráció 43 — workflow lint UX finomítás (frontend, low risk)
+**Cél**: a lint warningok gyorsabb javíthatósága a workflow editorban.
+
+**Deliverables**
+- Definition nézetben lint warning összegző (darabszám + code grouping).
+- Viewer oldalon step-level warning megjelenítés (badge + warning sorok).
+- Warning szövegek stabil renderelése hosszabb üzeneteknél is.
+
+**DoD**
+- `npm run build` zöld.
+- Kézi smoke: unknown step type + hiányzó context step key esetén warningok láthatók.
+
+### Iteráció 44 — workflow viewer v2 (read-only, no builder)
+**Cél**: összetettebb workflow-k gyorsabb áttekintése szerkesztés nélkül.
+
+**Deliverables**
+- Step típus-specifikus alcímek (`delay`, `require`, `domainCommand`, `foreach`, `switch`).
+- Egyszerű branch/inner-step preview (`foreach`/`switch` jelzések).
+- Opcionális “jump to JSON” helper (viewer step → JSON mező fókusz).
+
+**DoD**
+- `npm run build` zöld.
+- Viewer hibás JSON esetén nem törik, csak valid hibaüzenetet mutat.
+
+### Iteráció 45 — workflow editor QoL (safe bundling)
+**Cél**: gyorsabb authoring ugyanazzal a backend contracttal.
+
+**Deliverables**
+- JSON prettify/minify gombok.
+- Template picker kereső (step típus/command alapján).
+- Context var suggestion bővítés (`foreach.*`, összetettebb step kimenetek).
+
+**DoD**
+- `npm run build` zöld.
+- Meglévő create/update flow viselkedése változatlan.
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.
@@ -1305,7 +1344,7 @@ npm start --prefix frontend
 ---
 
 ## Következő aktív iteráció
-- **Iteráció 8 — Low-code frontend shell**
+- **Iteráció 43 — workflow lint UX finomítás (frontend, low risk)**
 ## Rövid smoke checklist (ha valami furcsaság van)
 - **Swagger**
   - Schemas/Models alatt minden admin DTO-ban látszik-e `serverTimeUtc` + `items`.

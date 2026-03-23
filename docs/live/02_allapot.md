@@ -21,12 +21,19 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `require`
     - `domainCommand`
     - `unstable`
-  - Jelenlegi fókusz (roadmap): Iteráció 41 — workflow lint (statikus warningok)
+  - Jelenlegi fókusz (roadmap): Iteráció 43 — workflow lint UX finomítás (frontend)
     - unknown step type → warning
     - context var referencia ismeretlen step key-re → warning
+  - Workflow create/update validációs hibák egységes `details` struktúrát adnak:
+    - `path`
+    - `code`
+    - `message`
 
 
 - **Frontend (Angular)**
+  - Workflow details oldalon a read-only **Viewer** működik (kártyák + nyilak), a JSON/Viewer nézet váltása stabil.
+  - Workflow Viewer-ben a lint warningok lépésenként is látszanak (step badge + warning részlet), így gyorsabb a hibakeresés.
+  - Workflow create/details oldalon a backend validációs `details` mezők UI-ban is láthatók (path|code|message), így gyorsabb a javítás.
   - Drift-proof “now”: kliens oldali **`serverNowOffsetMs`** kalibráció `serverTimeUtc` alapján.
   - “Last refreshed” + “ago” kijelzés queue/audit/run panelen server-calibráltan.
   - **Clock drift warning** (>= 2 perc) + dev drift szimuláció.
