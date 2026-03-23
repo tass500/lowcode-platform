@@ -19,6 +19,9 @@
 .PARAMETER Body
   PR body (default: last commit body or placeholder).
 
+.PARAMETER BodyFile
+  Path to a markdown file used as PR body (overrides -Body when set and file exists). Example: pr-body.md (gitignored).
+
 .PARAMETER Draft
   Create as draft PR.
 
@@ -41,6 +44,7 @@ param(
   [string]$Base = "master",
   [string]$Title = "",
   [string]$Body = "",
+  [string]$BodyFile = "",
   [switch]$Draft,
   [switch]$NoMerge,
   [switch]$Squash
@@ -114,9 +118,18 @@ else {
     $Title = (git log -1 --pretty=%s)
   }
   if (-not $Body) {
-    $Body = (git log -1 --pretty=%b)
-    if (-not $Body.Trim()) {
-      $Body = "See commits.`n`nTest plan: dotnet test backend/... ; npm run build (frontend/)"
+    $bf = $BodyFile
+    if (-not $bf) {
+      $rootPr = Join-Path $RepoRoot "pr-body.md"
+      if (Test-Path $rootPr) { $bf = $rootPr }
+    }
+    if ($bf -and (Test-Path $bf)) {
+      $Body = Get-Content -LiteralPath $bf -Raw
+    } else {
+      $Body = (git log -1 --pretty=%b)
+      if (-not $Body.Trim()) {
+        $Body = "See commits.`n`nTest plan: dotnet test backend/... ; npm run build (frontend/)"
+      }
     }
   }
   $draftArg = @()

@@ -4,7 +4,7 @@ import { ChangeDetectorRef, Component, ElementRef, inject, OnDestroy, OnInit, Vi
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { buildContextVarSuggestionsFromDefinitionJson } from './lowcode-workflow-context-suggestions';
+import { buildMergedContextVarSuggestions } from './lowcode-workflow-context-suggestions';
 import { groupLintWarningsByCode, type LintWarningGroup } from './lowcode-workflow-lint-utils';
 import { minifyWorkflowDefinitionJson, prettifyWorkflowDefinitionJson } from './lowcode-workflow-json-form';
 import {
@@ -138,6 +138,20 @@ type ApiErrorDetail = {
 
               <section *ngIf="contextVarSuggestions.length" style="padding: 10px 12px; border: 1px solid #eee; border-radius: 8px; background: #fafafa;">
                 <div style="font-weight: 600; margin-bottom: 6px;">Context var suggestions</div>
+                <label style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px;">
+                  <span style="font-size: 13px; color: #444;">Autocomplete</span>
+                  <input
+                    type="text"
+                    [attr.list]="contextVarDatalistId"
+                    placeholder="Type to filter, pick a row…"
+                    #ctxAutocomplete
+                    (change)="onContextVarAutocompletePick(ctxAutocomplete, definitionJsonEl)"
+                    style="min-width: 220px; font-family: monospace;"
+                  />
+                </label>
+                <datalist [attr.id]="contextVarDatalistId">
+                  <option *ngFor="let s of contextVarSuggestions" [value]="s"></option>
+                </datalist>
                 <div style="display:flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                   <button
                     type="button"
@@ -148,7 +162,7 @@ type ApiErrorDetail = {
                     {{ '${' + s + '}' }}
                   </button>
                 </div>
-                <div style="margin-top: 6px; color:#444;">Click a suggestion to insert at cursor.</div>
+                <div style="margin-top: 6px; color:#444;">Pick from the list or click a chip — inserts the <code>path</code> token at the cursor.</div>
               </section>
             </ng-container>
           </form>
@@ -251,6 +265,8 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
 
   @ViewChild('definitionJsonEl') definitionJsonEl?: ElementRef<HTMLTextAreaElement>;
 
+  readonly contextVarDatalistId = 'wf-ctx-suggestions-details';
+
   workflow: WorkflowDefinitionDetailsDto | null = null;
   loading = false;
   starting = false;
@@ -282,7 +298,7 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
   }
 
   get contextVarSuggestions(): string[] {
-    return buildContextVarSuggestionsFromDefinitionJson(String(this.form.controls.definitionJson.value ?? ''));
+    return buildMergedContextVarSuggestions(String(this.form.controls.definitionJson.value ?? ''));
   }
 
   prettifyDefinitionJson(): void {
@@ -303,6 +319,14 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
     } catch (e: any) {
       this.jsonFormatError = e?.message ?? 'Invalid JSON.';
     }
+  }
+
+  onContextVarAutocompletePick(pick: HTMLInputElement, el: HTMLTextAreaElement): void {
+    const v = pick.value?.trim() ?? '';
+    if (!v) return;
+    if (!this.contextVarSuggestions.includes(v)) return;
+    this.insertContextVarSuggestion(el, v);
+    pick.value = '';
   }
 
   insertContextVarSuggestion(el: HTMLTextAreaElement, suggestion: string): void {

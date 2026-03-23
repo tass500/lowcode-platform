@@ -2,6 +2,34 @@
  * Context variable path suggestions for workflow definition JSON (authoring UX).
  */
 
+/** Shown in autocomplete even before steps are fully wired (iter 40). */
+export const STATIC_WORKFLOW_CONTEXT_HINTS: readonly string[] = ['foreach.index', 'foreach.item'];
+
+function collectInnerStepVarPaths(prefix: string, inner: unknown, push: (s: string) => void): void {
+  if (!inner || typeof inner !== 'object' || Array.isArray(inner)) return;
+  const d = inner as Record<string, unknown>;
+  const innerType = String(d['type'] ?? '').toLowerCase();
+
+  if (innerType === 'map' && d['mappings'] && typeof d['mappings'] === 'object' && !Array.isArray(d['mappings'])) {
+    for (const mk of Object.keys(d['mappings'] as object)) {
+      if (mk) push(`${prefix}.${mk}`);
+    }
+  }
+  if (innerType === 'set' && d['output'] && typeof d['output'] === 'object' && !Array.isArray(d['output'])) {
+    for (const ok of Object.keys(d['output'] as object)) {
+      if (ok) push(`${prefix}.${ok}`);
+    }
+  }
+  if (innerType === 'domaincommand') {
+    const cmd = String(d['command'] ?? '').trim();
+    if (cmd) {
+      for (const o of domainCommandOutputKeys(cmd)) {
+        push(`${prefix}.${o}`);
+      }
+    }
+  }
+}
+
 export function domainCommandOutputKeys(command: string): string[] {
   const c = command.trim().toLowerCase();
   if (c === 'entityrecord.createbyentityname') return ['entityDefinitionId', 'entityRecordId'];
@@ -60,22 +88,27 @@ export function buildContextVarSuggestionsFromSteps(steps: unknown): string[] {
 
       const doNode = s['do'];
       if (doNode && typeof doNode === 'object' && !Array.isArray(doNode)) {
-        const d = doNode as Record<string, unknown>;
-        const innerType = String(d['type'] ?? '').toLowerCase();
         // Inner step key for first iteration is `${parentKey}.000` (see engine).
         const innerPrefix = `${key}.000`;
-        if (innerType === 'map' && d['mappings'] && typeof d['mappings'] === 'object' && !Array.isArray(d['mappings'])) {
-          push(innerPrefix);
-          for (const mk of Object.keys(d['mappings'] as object)) {
-            if (mk) push(`${innerPrefix}.${mk}`);
-          }
+        push(innerPrefix);
+        collectInnerStepVarPaths(innerPrefix, doNode, push);
+      }
+    }
+
+    if (type === 'switch') {
+      const branchPrefix = `${key}.branch`;
+      push(branchPrefix);
+      const cases = s['cases'];
+      if (Array.isArray(cases)) {
+        for (const c of cases) {
+          if (!c || typeof c !== 'object' || Array.isArray(c)) continue;
+          const doNode = (c as Record<string, unknown>)['do'];
+          collectInnerStepVarPaths(branchPrefix, doNode, push);
         }
-        if (innerType === 'set' && d['output'] && typeof d['output'] === 'object' && !Array.isArray(d['output'])) {
-          push(innerPrefix);
-          for (const ok of Object.keys(d['output'] as object)) {
-            if (ok) push(`${innerPrefix}.${ok}`);
-          }
-        }
+      }
+      const def = s['default'];
+      if (def && typeof def === 'object' && !Array.isArray(def)) {
+        collectInnerStepVarPaths(branchPrefix, def, push);
       }
     }
   }
@@ -92,4 +125,12 @@ export function buildContextVarSuggestionsFromDefinitionJson(definitionJson: str
   } catch {
     return [];
   }
+}
+
+/**
+ * Step-derived paths plus static hints (`foreach.*`) for authoring autocomplete (iter 40).
+ */
+export function buildMergedContextVarSuggestions(definitionJson: string): string[] {
+  const fromDef = buildContextVarSuggestionsFromDefinitionJson(definitionJson);
+  return Array.from(new Set([...STATIC_WORKFLOW_CONTEXT_HINTS, ...fromDef])).sort((a, b) => a.localeCompare(b));
 }

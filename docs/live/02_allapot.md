@@ -22,7 +22,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `require`
     - `domainCommand`
     - `unstable`
-  - Utolsó lezárt roadmap iteráció: **39** — step error **config path** (`last_error_config_path` + runner + run details **Error path** oszlop). Következő ACTIVE: **40** — context var autocomplete tovább (`docs/live/03_kovetkezo_lepesek.md`).
+  - Utolsó lezárt roadmap iteráció: **40** — context var **autocomplete** (datalist + switch branch javaslatok) + **iter-end** / PR body fájl tooling. Következő ACTIVE: **41** — workflow lint statikus ellenőrzések (`docs/live/03_kovetkezo_lepesek.md`).
     - unknown step type → warning
     - context var referencia ismeretlen step key-re → warning
   - Workflow create/update validációs hibák egységes `details` struktúrát adnak:
@@ -36,7 +36,7 @@ Drift-proof observability egy greenfield lowcode platformban.
   - Workflow **lint warnings** UI: összesen hány warning, **code szerinti csoportosítás** (×darab), hosszú üzenetek törése; create + details oldalon; közös `groupLintWarningsByCode` helper + unit teszt.
   - Workflow Viewer-ben a lint warningok lépésenként is látszanak (step badge + warning részlet), így gyorsabb a hibakeresés.
   - Workflow create/details oldalon a backend validációs `details` mezők UI-ban is láthatók (path|code|message), így gyorsabb a javítás.
-  - Workflow **New** + **details** JSON szerkesztő: **Prettify / Minify**; template lista **szűrő**; context var javaslatok közös `lowcode-workflow-context-suggestions` modullal (domain + foreach + belső lépés).
+  - Workflow **New** + **details** JSON szerkesztő: **Prettify / Minify**; template lista **szűrő**; context var javaslatok közös `lowcode-workflow-context-suggestions` modullal (domain + foreach + `switch` branch + belső lépés) + böngészős **datalist** autocomplete a chip-ek mellett.
   - Low-code **workflow run details** (`/lowcode/workflows/runs/...`): step config **Original / Resolved** összehasonlítás + toggle; kereső tartalmazza az `originalStepConfigJson`-t; Config megnyitásakor ha eltér az original a resolved-tól → alapból „Show resolved”; **Copy** (config / output); reszponzív kétoszlopos rács; `lowcode-run-details-utils` + unit teszt.
   - Ugyanitt: sikertelen / hibás lépéseknél **Error path** (`lastErrorConfigPath`, pl. `$.recordId` context var hibánál); a szűrő mező erre is rákeres.
   - Drift-proof “now”: kliens oldali **`serverNowOffsetMs`** kalibráció `serverTimeUtc` alapján.

@@ -78,6 +78,10 @@ A **`.windsurf/` könyvtár nem authoritative** (lásd alul).
 |------|-----------|
 | `scripts/gh-pr-push-merge.ps1` | Windows (PowerShell) |
 | `scripts/gh-pr-push-merge.sh` | Linux / macOS / Git Bash |
+| `scripts/iter-end.ps1` | Windows: **DoD gate-ek** (`dotnet test`, `npm run build`) + utána `gh-pr-push-merge` |
+| `scripts/iter-end.sh` | Unix: ugyanígy (`SKIP_TESTS=1` / `SKIP_FRONTEND=1` opcionális) |
+
+**PR szöveg fájlból:** `gh-pr-push-merge` elfogad **`-BodyFile path`**; ha nincs megadva, de létezik a repo gyökerében **`pr-body.md`**, azt használja. A bash változat: **`BODY_FILE`** env + opcionális **`pr-body.md`**.
 
 **Feltételek:**
 
@@ -105,6 +109,25 @@ NO_MERGE=1 ./scripts/gh-pr-push-merge.sh   # csak push + PR
 ```
 
 **Megjegyzés:** Cursor / asszisztens ugyanezt a folyamatot tudja futtatni **csak akkor**, ha a környezetben elérhető a `gh` és megfelelő jogosultság van — ez dokumentáció + szkript, nem kötelező „magától” merge-elni.
+
+### 6b) Iteráció végén — egy menetben (ajánlott sorrend)
+
+1. Frissítsd **`docs/live/02_allapot.md`** és **`docs/live/03_kovetkezo_lepesek.md`** (kész pipák, következő ACTIVE).
+2. Állítsd össze a PR leírást: **`docs/templates/pr-body.example.md`** → másold **`pr-body.md`**-nek a repo gyökerébe (gitignore-olt).
+3. Commit + feature ágon maradva: **`.\scripts\iter-end.ps1`** (vagy `-NoMerge` / `-SkipTests` ha szükséges).  
+   Ez lefuttatja a gate-eket, majd push → PR → `gh pr checks --watch` → merge → lokális **`master`** pull.
+
+```powershell
+.\scripts\iter-end.ps1
+.\scripts\iter-end.ps1 -NoMerge
+.\scripts\iter-end.ps1 -BodyFile .\pr-body.md
+```
+
+```bash
+chmod +x scripts/iter-end.sh
+./scripts/iter-end.sh
+SKIP_TESTS=1 NO_MERGE=1 ./scripts/iter-end.sh
+```
 
 ---
 
