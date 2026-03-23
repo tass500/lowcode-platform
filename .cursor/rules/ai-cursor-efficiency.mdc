@@ -1,0 +1,14 @@
+---
+description: Token-efficient Cursor usage aligned with repo workflow
+alwaysApply: true
+---
+
+# AI / Cursor — takarékos kontextus
+
+Details: **`docs/DEVELOPMENT_WORKFLOW.md` § 10**.
+
+- Prefer **one scope per thread** (one iteration / PR / bug). Use **§7 Handoff** + `docs/live/03` ACTIVE line in new chats.
+- Attach **`@files` / folders minimally** — only what the task needs; avoid whole-repo context unless necessary.
+- For large logs: **file in repo** or **one attachment** + pointer, not pasted walls of text.
+- **Composer** for multi-file / large edits; **Chat** for small single-file work when enough.
+- End-of-iteration: refresh **`docs/live/02` + `03`**, **`pr-body.md`**, then **`iter-end`** / `gh` — reduces PR back-and-forth.
