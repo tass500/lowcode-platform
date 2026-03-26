@@ -13,8 +13,11 @@ updates:
       # Stack: Angular 17 + TS 5.4 + ESLint 8 — major bumps need a coordinated upgrade PR, not isolated Dependabot PRs.
       - dependency-name: "@angular-devkit/*"
         update-types: ["version-update:semver-major"]
+      # Pin TypeScript minor line with Angular 17 (e.g. 5.4.x); allow only patch bumps until a planned TS/Angular upgrade.
       - dependency-name: "typescript"
-        update-types: ["version-update:semver-major"]
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
       - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
       - dependency-name: "@typescript-eslint/*"
@@ -27,6 +30,9 @@ updates:
     open-pull-requests-limit: 5
     ignore:
       - dependency-name: "Microsoft.EntityFrameworkCore*"
+        update-types: ["version-update:semver-major"]
+      # Swagger major jumps (e.g. 6 → 10) need a coordinated OpenAPI / breaking-change review.
+      - dependency-name: "Swashbuckle.AspNetCore"
         update-types: ["version-update:semver-major"]
 
   # Local dotnet tools (e.g. dotnet-ef for migrations)
