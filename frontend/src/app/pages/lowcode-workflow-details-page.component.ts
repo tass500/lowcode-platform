@@ -1,12 +1,20 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, ElementRef, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { buildMergedContextVarSuggestions } from './lowcode-workflow-context-suggestions';
 import { groupLintWarningsByCode, type LintWarningGroup } from './lowcode-workflow-lint-utils';
 import { minifyWorkflowDefinitionJson, prettifyWorkflowDefinitionJson } from './lowcode-workflow-json-form';
+import {
+  appendBuilderStep,
+  moveBuilderStep,
+  parseBuilderStepSummaries,
+  removeBuilderStepAt,
+  WORKFLOW_BUILDER_PALETTE,
+  type BuilderStepType,
+} from './lowcode-workflow-builder-utils';
 import {
   buildWorkflowViewerStepCards,
   findCaretIndexForWorkflowStep,
@@ -19,6 +27,9 @@ type WorkflowDefinitionDetailsDto = {
   definitionJson: string;
   lintWarnings: { code: string; message: string }[];
   inboundTriggerConfigured: boolean;
+  scheduleEnabled: boolean;
+  scheduleCron: string | null;
+  scheduleNextDueUtc: string | null;
   createdAtUtc: string;
   updatedAtUtc: string;
 };
@@ -54,7 +65,7 @@ type ApiErrorDetail = {
 @Component({
   selector: 'app-lowcode-workflow-details-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink],
   template: `
     <main style="padding: 16px; max-width: 980px; margin: 0 auto;">
       <div style="display:flex; gap: 12px; align-items: center; flex-wrap: wrap;">
@@ -70,6 +81,7 @@ type ApiErrorDetail = {
         <ng-container *ngIf="tab === 'definition'">
           <span style="color:#999;">|</span>
           <button type="button" (click)="viewMode = 'viewer'" [disabled]="viewMode === 'viewer'">Viewer</button>
+          <button type="button" (click)="viewMode = 'builder'" [disabled]="viewMode === 'builder'">Builder</button>
           <button type="button" (click)="viewMode = 'json'" [disabled]="viewMode === 'json'">JSON</button>
         </ng-container>
         <div *ngIf="loading">Loading...</div>
@@ -97,7 +109,36 @@ type ApiErrorDetail = {
           <span *ngIf="!workflow.inboundTriggerConfigured">not set</span>
           <span style="color:#999;"> — </span>
           <code style="font-size: 12px;">POST /api/inbound/workflows/{{ workflow.workflowDefinitionId }}/runs</code>
-          <span style="color:#999;">header</span> <code style="font-size: 12px;">X-Workflow-Inbound-Secret</code>
+          <span style="color:#999;">header</span>           <code style="font-size: 12px;">X-Workflow-Inbound-Secret</code>
+        </div>
+
+        <div *ngIf="workflow" style="margin-top: 12px; padding: 10px 12px; border: 1px solid #e0e8f0; border-radius: 8px; background: #f8fbff;">
+          <div style="font-weight: 600; margin-bottom: 8px;">Schedule (UTC, MVP cron)</div>
+          <div style="font-size: 12px; color:#666; margin-bottom: 8px;">
+            Patterns: <code>* * * * *</code> (every minute), <code>*/5 * * * *</code>, <code>15 * * * *</code> (hourly :15),
+            <code>30 9 * * *</code> (daily 09:30 UTC). Day/month/dow must be <code>*</code>.
+          </div>
+          <label style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+            <input type="checkbox" [(ngModel)]="scheduleEnabled" [ngModelOptions]="{ standalone: true }" />
+            <span>Enabled</span>
+          </label>
+          <div style="margin-bottom:8px;">
+            <label style="display:block; font-size: 12px; color:#555; margin-bottom:4px;">Cron (5 fields)</label>
+            <input
+              type="text"
+              [(ngModel)]="scheduleCron"
+              [ngModelOptions]="{ standalone: true }"
+              [disabled]="!scheduleEnabled"
+              style="width:100%; max-width: 420px; font-family: monospace; padding: 6px 8px;"
+              placeholder="*/15 * * * *"
+            />
+          </div>
+          <div *ngIf="workflow.scheduleNextDueUtc" style="font-size: 12px; color:#555; margin-bottom:8px;">
+            Next due: {{ workflow.scheduleNextDueUtc | date: 'medium' : 'UTC' }}
+          </div>
+          <button type="button" (click)="saveSchedule()" [disabled]="scheduleSaving || !workflow">
+            {{ scheduleSaving ? 'Saving…' : 'Save schedule' }}
+          </button>
         </div>
 
         <section *ngIf="workflow.lintWarnings?.length" style="margin-top: 10px; padding: 10px 12px; border: 1px solid #f0e0a0; border-radius: 8px; background: #fffaf0;">
@@ -175,6 +216,38 @@ type ApiErrorDetail = {
               </section>
             </ng-container>
           </form>
+
+          <section *ngIf="viewMode === 'builder'" style="margin-top: 12px;">
+            <div *ngIf="viewerError" style="color:#b00020;">{{ viewerError }}</div>
+            <div *ngIf="jsonFormatError && !viewerError" style="color:#b00020;">{{ jsonFormatError }}</div>
+            <ng-container *ngIf="!viewerError">
+              <p style="font-size: 13px; color:#555; margin: 0 0 12px 0; line-height: 1.45;">
+                Steps run top to bottom. Runtime keys are <code>000</code>, <code>001</code>, … by order.
+                Reordering or adding steps can break references to other steps (context paths) — switch to JSON to adjust.
+              </p>
+              <div style="margin-bottom: 12px;">
+                <div style="font-weight: 600; margin-bottom: 6px;">Add step</div>
+                <div style="display:flex; flex-wrap: wrap; gap: 6px;">
+                  <button type="button" *ngFor="let p of builderPalette" (click)="addBuilderStep(p.type)">+ {{ p.label }}</button>
+                </div>
+              </div>
+              <div *ngIf="builderStepRows.length === 0" style="color:#444;">No steps yet.</div>
+              <div *ngIf="builderStepRows.length > 0" style="display:flex; flex-direction: column; gap: 8px;">
+                <div
+                  *ngFor="let row of builderStepRows"
+                  style="display:flex; align-items:center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa;"
+                >
+                  <span style="font-family: monospace; color:#666;">{{ formatBuilderStepKey(row.index) }}</span>
+                  <span style="font-family: monospace;"><b>{{ row.type }}</b></span>
+                  <span style="flex:1"></span>
+                  <button type="button" (click)="moveBuilderStepUp(row.index)" [disabled]="row.index === 0">↑</button>
+                  <button type="button" (click)="moveBuilderStepDown(row.index)" [disabled]="row.index === builderStepRows.length - 1">↓</button>
+                  <button type="button" (click)="removeBuilderStep(row.index)" style="color:#b00020;">Remove</button>
+                  <button type="button" (click)="jumpToJsonStep(row.index)">JSON →</button>
+                </div>
+              </div>
+            </ng-container>
+          </section>
 
           <section *ngIf="viewMode === 'viewer'" style="margin-top: 12px;">
             <div *ngIf="viewerError" style="color:#b00020;">{{ viewerError }}</div>
@@ -284,7 +357,56 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
   error: string | null = null;
   errorDetails: ApiErrorDetail[] = [];
 
-  viewMode: 'viewer' | 'json' = 'viewer';
+  viewMode: 'viewer' | 'json' | 'builder' = 'viewer';
+
+  readonly builderPalette = WORKFLOW_BUILDER_PALETTE;
+
+  get builderStepRows(): Array<{ index: number; type: string }> {
+    return parseBuilderStepSummaries(String(this.form.controls.definitionJson.value ?? ''));
+  }
+
+  formatBuilderStepKey(index: number): string {
+    return String(index).padStart(3, '0');
+  }
+
+  addBuilderStep(type: BuilderStepType): void {
+    this.jsonFormatError = null;
+    try {
+      const raw = String(this.form.controls.definitionJson.value ?? '');
+      this.form.controls.definitionJson.setValue(appendBuilderStep(raw, type));
+    } catch (e: any) {
+      this.jsonFormatError = e?.message ?? 'Invalid JSON.';
+    }
+  }
+
+  removeBuilderStep(index: number): void {
+    this.jsonFormatError = null;
+    try {
+      const raw = String(this.form.controls.definitionJson.value ?? '');
+      this.form.controls.definitionJson.setValue(removeBuilderStepAt(raw, index));
+    } catch (e: any) {
+      this.jsonFormatError = e?.message ?? 'Invalid JSON.';
+    }
+  }
+
+  moveBuilderStepUp(index: number): void {
+    if (index <= 0) return;
+    this.applyBuilderMove(index, index - 1);
+  }
+
+  moveBuilderStepDown(index: number): void {
+    this.applyBuilderMove(index, index + 1);
+  }
+
+  private applyBuilderMove(from: number, to: number): void {
+    this.jsonFormatError = null;
+    try {
+      const raw = String(this.form.controls.definitionJson.value ?? '');
+      this.form.controls.definitionJson.setValue(moveBuilderStep(raw, from, to));
+    } catch (e: any) {
+      this.jsonFormatError = e?.message ?? 'Invalid JSON.';
+    }
+  }
   tab: 'definition' | 'runs' = 'definition';
 
   runs: WorkflowRunListItemDto[] = [];
@@ -296,6 +418,10 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
   lastRunId: string | null = null;
 
   jsonFormatError: string | null = null;
+
+  scheduleEnabled = false;
+  scheduleCron = '';
+  scheduleSaving = false;
 
   form = new FormGroup({
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -432,6 +558,8 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
       this.workflow = await firstValueFrom(this.http.get<WorkflowDefinitionDetailsDto>(`/api/workflows/${id}`));
       this.form.controls.name.setValue(this.workflow.name ?? '');
       this.form.controls.definitionJson.setValue(this.workflow.definitionJson ?? '{}');
+      this.scheduleEnabled = !!this.workflow.scheduleEnabled;
+      this.scheduleCron = this.workflow.scheduleCron ?? '';
 
       if (this.tab === 'runs')
         await this.loadRuns(true);
@@ -573,11 +701,36 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
       this.workflow = await firstValueFrom(this.http.put<WorkflowDefinitionDetailsDto>(`/api/workflows/${id}`, req));
       this.form.controls.name.setValue(this.workflow.name ?? '');
       this.form.controls.definitionJson.setValue(this.workflow.definitionJson ?? '{}');
+      this.scheduleEnabled = !!this.workflow.scheduleEnabled;
+      this.scheduleCron = this.workflow.scheduleCron ?? '';
     } catch (e: any) {
       this.error = e?.error?.message ?? e?.message ?? 'Failed to save workflow.';
       this.errorDetails = Array.isArray(e?.error?.details) ? (e.error.details as ApiErrorDetail[]) : [];
     } finally {
       this.saving = false;
+    }
+  }
+
+  async saveSchedule(): Promise<void> {
+    if (!this.workflow) return;
+
+    this.scheduleSaving = true;
+    this.error = null;
+    this.errorDetails = [];
+
+    try {
+      const id = this.workflowId;
+      const req = { enabled: this.scheduleEnabled, cron: this.scheduleCron.trim() || null };
+      this.workflow = await firstValueFrom(
+        this.http.put<WorkflowDefinitionDetailsDto>(`/api/workflows/${id}/schedule`, req),
+      );
+      this.scheduleEnabled = !!this.workflow.scheduleEnabled;
+      this.scheduleCron = this.workflow.scheduleCron ?? '';
+    } catch (e: any) {
+      this.error = e?.error?.message ?? e?.message ?? 'Failed to save schedule.';
+      this.errorDetails = Array.isArray(e?.error?.details) ? (e.error.details as ApiErrorDetail[]) : [];
+    } finally {
+      this.scheduleSaving = false;
     }
   }
 
