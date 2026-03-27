@@ -14,6 +14,7 @@ Drift-proof observability egy greenfield lowcode platformban.
   - Admin endpointok válaszaiban **`serverTimeUtc`** elérhető (installation/status, upgrade-runs: recent/latest/queue/get/start/retry/cancel/dev-fail-step, audit list).
   - Admin response-ok **DTO-sítva** (Swagger Models/Schemas alatt látszanak a mezők).
   - Külön **observability endpoint**: `GET /api/admin/observability` (upgrade **active** runs + tenant **workflow** `pending`/`running` darabszám + last audit + enforcement summary + `serverTimeUtc`).
+  - **Health (iter 60b):** `/health`, `/api/health`, `/health/live` — JSON: `status`, `service` (`lowcode-platform-backend`), `version` (assembly); `/health/ready` ugyanígy + `managementDb: ok` ha a management DB kapcsolódik, különben **503**.
 
 - **Low-code workflow engine (Backend + Frontend demo)**
   - Támogatott workflow step-ek:

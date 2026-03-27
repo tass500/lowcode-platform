@@ -1,3 +1,4 @@
+using LowCodePlatform.Backend;
 using LowCodePlatform.Backend.Data;
 using LowCodePlatform.Backend.Middleware;
 using LowCodePlatform.Backend.Services;
@@ -163,14 +164,16 @@ app.UseAuthorization();
 
 app.UseMiddleware<AccessLogMiddleware>();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/health", () => Results.Ok(HealthPayloadBuilder.Live()));
+app.MapGet("/api/health", () => Results.Ok(HealthPayloadBuilder.Live()));
 
-app.MapGet("/health/live", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/health/live", () => Results.Ok(HealthPayloadBuilder.Live()));
 app.MapGet("/health/ready", async (ManagementDbContext db) =>
 {
     var ok = await db.Database.CanConnectAsync();
-    return ok ? Results.Ok(new { status = "ok" }) : Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable);
+    return ok
+        ? Results.Ok(HealthPayloadBuilder.Ready())
+        : Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable);
 });
 
 app.MapControllers();
