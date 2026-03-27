@@ -5,7 +5,7 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 60 — megfigyelhetőség / üzemeltethetőség** — **60a** (spórolós szelet): `GET /api/admin/observability` kiegészült a tenant **workflow** futások `pending` / `running` darabszámával; Upgrade oldalon az „Active runs” címke **(upgrade)**. **59** lezárva: `POST /api/workflows/runs/{runId}/cancel` + run details **Cancel run**. **58** — **58a** kész [`workflow-visual-builder.md`](workflow-visual-builder.md); következő backlog szelet: **58b** (Builder tovább). Ütemterv **58–62**: § *Ütemterv 56+* — workflow vonalon utolsó nagy lezárt előzmény: **55** (timeout/cancel + nested `timeoutMs`); 54 ütemezés … (lásd lent)**
+**ACTIVE: Iteráció 60 — megfigyelhetőség / üzemeltethetőség** — **60a** kész: admin observability workflow számlálók; további szelet: **60b** (health / OTel, opcionális). **59** lezárva (run cancel API + UI). **58** — **58a** + **58b** kész [`workflow-visual-builder.md`](workflow-visual-builder.md): details **Builder**; **New workflow** oldal **Builder | JSON**. Következő backlog: **58c** (pl. CDK drag&drop — külön döntés) vagy **60b**. Ütemterv **58–62**: § *Ütemterv 56+* — workflow vonalon utolsó nagy lezárt előzmény: **55** (timeout/cancel + nested `timeoutMs`); 54 ütemezés … (lásd lent)**
 
 > **56 lezárva:** **56d** SS smoke teszt + doc; **57** Helm backup CronJob (chart **0.3.0**) — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 

@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, inject, ViewChild } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -12,6 +12,15 @@ import {
   WORKFLOW_NEW_TEMPLATE_ENTRIES,
   type WorkflowNewTemplateEntry,
 } from './lowcode-workflow-new-template-entries';
+import {
+  appendBuilderStep,
+  moveBuilderStep,
+  parseBuilderStepSummaries,
+  removeBuilderStepAt,
+  WORKFLOW_BUILDER_PALETTE,
+  type BuilderStepType,
+} from './lowcode-workflow-builder-utils';
+import { findCaretIndexForWorkflowStep } from './lowcode-workflow-viewer-utils';
 
 type WorkflowDefinitionDetailsDto = {
   workflowDefinitionId: string;
@@ -42,6 +51,9 @@ type ApiErrorDetail = {
       <div style="display:flex; gap: 12px; align-items: center; flex-wrap: wrap;">
         <a routerLink="/lowcode/workflows">← Workflows</a>
         <h2 style="margin:0;">New workflow</h2>
+        <span style="color:#999;">|</span>
+        <button type="button" (click)="viewMode = 'builder'" [disabled]="viewMode === 'builder'">Builder</button>
+        <button type="button" (click)="viewMode = 'json'" [disabled]="viewMode === 'json'">JSON</button>
         <button type="button" (click)="create()" [disabled]="form.invalid || creating">Create</button>
         <div *ngIf="creating">Creating...</div>
         <div *ngIf="error" style="color:#b00020;">{{ error }}</div>
@@ -78,43 +90,50 @@ type ApiErrorDetail = {
           <input formControlName="name" placeholder="wf-demo" style="width: 100%; max-width: 520px;" />
         </label>
 
-        <label>
-          Definition JSON
-          <div *ngIf="extractContextVars(form.controls.definitionJson.value).length" style="margin: 6px 0;">
-            <div style="font-weight: 600; color:#444; margin-bottom: 4px;">Context vars preview</div>
-            <pre style="margin:0; padding: 8px; border: 1px solid #ddd; border-radius: 8px; background:#fafafa; overflow:auto; font-family: monospace;" [innerHTML]="highlightContextVars(form.controls.definitionJson.value)"></pre>
-          </div>
-          <textarea #definitionJsonEl formControlName="definitionJson" rows="14" style="width: 100%; font-family: monospace;"></textarea>
-        </label>
-
-        <section *ngIf="contextVarSuggestions.length" style="padding: 10px 12px; border: 1px solid #eee; border-radius: 8px; background: #fafafa;">
-          <div style="font-weight: 600; margin-bottom: 6px;">Context var suggestions</div>
-          <label style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 13px; color: #444;">Autocomplete</span>
-            <input
-              type="text"
-              [attr.list]="contextVarDatalistId"
-              placeholder="Type to filter, pick a row…"
-              #ctxAutocomplete
-              (change)="onContextVarAutocompletePick(ctxAutocomplete, definitionJsonEl)"
-              style="min-width: 220px; font-family: monospace;"
-            />
+        <ng-container *ngIf="viewMode === 'json'">
+          <label>
+            Definition JSON
+            <div style="margin: 6px 0; display:flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <button type="button" (click)="prettifyDefinitionJson()">Prettify</button>
+              <button type="button" (click)="minifyDefinitionJson()">Minify</button>
+              <span *ngIf="jsonFormatError" style="color:#b00020; font-size: 13px;">{{ jsonFormatError }}</span>
+            </div>
+            <div *ngIf="extractContextVars(form.controls.definitionJson.value).length" style="margin: 6px 0;">
+              <div style="font-weight: 600; color:#444; margin-bottom: 4px;">Context vars preview</div>
+              <pre style="margin:0; padding: 8px; border: 1px solid #ddd; border-radius: 8px; background:#fafafa; overflow:auto; font-family: monospace;" [innerHTML]="highlightContextVars(form.controls.definitionJson.value)"></pre>
+            </div>
+            <textarea #definitionJsonEl formControlName="definitionJson" rows="14" style="width: 100%; font-family: monospace;"></textarea>
           </label>
-          <datalist [attr.id]="contextVarDatalistId">
-            <option *ngFor="let s of contextVarSuggestions" [value]="s"></option>
-          </datalist>
-          <div style="display:flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-            <button
-              type="button"
-              *ngFor="let s of contextVarSuggestions"
-              (click)="insertContextVarSuggestion(definitionJsonEl, s)"
-              style="font-family: monospace;"
-            >
-              {{ '${' + s + '}' }}
-            </button>
-          </div>
-          <div style="margin-top: 6px; color:#444;">Pick from the list or click a chip — inserts the <code>path</code> token at the cursor.</div>
-        </section>
+
+          <section *ngIf="contextVarSuggestions.length" style="padding: 10px 12px; border: 1px solid #eee; border-radius: 8px; background: #fafafa;">
+            <div style="font-weight: 600; margin-bottom: 6px;">Context var suggestions</div>
+            <label style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 13px; color: #444;">Autocomplete</span>
+              <input
+                type="text"
+                [attr.list]="contextVarDatalistId"
+                placeholder="Type to filter, pick a row…"
+                #ctxAutocomplete
+                (change)="onContextVarAutocompletePick(ctxAutocomplete, definitionJsonEl)"
+                style="min-width: 220px; font-family: monospace;"
+              />
+            </label>
+            <datalist [attr.id]="contextVarDatalistId">
+              <option *ngFor="let s of contextVarSuggestions" [value]="s"></option>
+            </datalist>
+            <div style="display:flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <button
+                type="button"
+                *ngFor="let s of contextVarSuggestions"
+                (click)="insertContextVarSuggestion(definitionJsonEl, s)"
+                style="font-family: monospace;"
+              >
+                {{ '${' + s + '}' }}
+              </button>
+            </div>
+            <div style="margin-top: 6px; color:#444;">Pick from the list or click a chip — inserts the <code>path</code> token at the cursor.</div>
+          </section>
+        </ng-container>
 
         <section *ngIf="created?.lintWarnings?.length" style="padding: 10px 12px; border: 1px solid #f0e0a0; border-radius: 8px; background: #fffaf0;">
           <div style="display:flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; margin-bottom: 6px;">
@@ -136,14 +155,53 @@ type ApiErrorDetail = {
           </div>
         </section>
       </form>
+
+      <section *ngIf="viewMode === 'builder'" style="margin-top: 12px;">
+        <div *ngIf="viewerError" style="color:#b00020;">{{ viewerError }}</div>
+        <div *ngIf="jsonFormatError && !viewerError" style="color:#b00020;">{{ jsonFormatError }}</div>
+        <ng-container *ngIf="!viewerError">
+          <p style="font-size: 13px; color:#555; margin: 0 0 12px 0; line-height: 1.45;">
+            Steps run top to bottom. Runtime keys are <code>000</code>, <code>001</code>, … by order.
+            Reordering or adding steps can break references to other steps — switch to JSON to adjust.
+          </p>
+          <div style="margin-bottom: 12px;">
+            <div style="font-weight: 600; margin-bottom: 6px;">Add step</div>
+            <div style="display:flex; flex-wrap: wrap; gap: 6px;">
+              <button type="button" *ngFor="let p of builderPalette" (click)="addBuilderStep(p.type)">+ {{ p.label }}</button>
+            </div>
+          </div>
+          <div *ngIf="builderStepRows.length === 0" style="color:#444;">No steps yet.</div>
+          <div *ngIf="builderStepRows.length > 0" style="display:flex; flex-direction: column; gap: 8px;">
+            <div
+              *ngFor="let row of builderStepRows"
+              style="display:flex; align-items:center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa;"
+            >
+              <span style="font-family: monospace; color:#666;">{{ formatBuilderStepKey(row.index) }}</span>
+              <span style="font-family: monospace;"><b>{{ row.type }}</b></span>
+              <span style="flex:1"></span>
+              <button type="button" (click)="moveBuilderStepUp(row.index)" [disabled]="row.index === 0">↑</button>
+              <button type="button" (click)="moveBuilderStepDown(row.index)" [disabled]="row.index === builderStepRows.length - 1">↓</button>
+              <button type="button" (click)="removeBuilderStep(row.index)" style="color:#b00020;">Remove</button>
+              <button type="button" (click)="jumpToJsonStep(row.index)">JSON →</button>
+            </div>
+          </div>
+        </ng-container>
+      </section>
     </main>
   `,
 })
 export class LowCodeWorkflowNewPageComponent {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  @ViewChild('definitionJsonEl') definitionJsonEl?: ElementRef<HTMLTextAreaElement>;
 
   readonly contextVarDatalistId = 'wf-ctx-suggestions-new';
+
+  viewMode: 'builder' | 'json' = 'json';
+
+  readonly builderPalette = WORKFLOW_BUILDER_PALETTE;
 
   templateFilter = '';
   jsonFormatError: string | null = null;
@@ -165,6 +223,85 @@ export class LowCodeWorkflowNewPageComponent {
 
   get filteredTemplateEntries(): WorkflowNewTemplateEntry[] {
     return filterWorkflowNewTemplateEntries(WORKFLOW_NEW_TEMPLATE_ENTRIES, this.templateFilter);
+  }
+
+  get builderStepRows(): Array<{ index: number; type: string }> {
+    return parseBuilderStepSummaries(String(this.form.controls.definitionJson.value ?? ''));
+  }
+
+  formatBuilderStepKey(index: number): string {
+    return String(index).padStart(3, '0');
+  }
+
+  addBuilderStep(type: BuilderStepType): void {
+    this.jsonFormatError = null;
+    try {
+      const raw = String(this.form.controls.definitionJson.value ?? '');
+      this.form.controls.definitionJson.setValue(appendBuilderStep(raw, type));
+    } catch (e: any) {
+      this.jsonFormatError = e?.message ?? 'Invalid JSON.';
+    }
+  }
+
+  removeBuilderStep(index: number): void {
+    this.jsonFormatError = null;
+    try {
+      const raw = String(this.form.controls.definitionJson.value ?? '');
+      this.form.controls.definitionJson.setValue(removeBuilderStepAt(raw, index));
+    } catch (e: any) {
+      this.jsonFormatError = e?.message ?? 'Invalid JSON.';
+    }
+  }
+
+  moveBuilderStepUp(index: number): void {
+    if (index <= 0) return;
+    this.applyBuilderMove(index, index - 1);
+  }
+
+  moveBuilderStepDown(index: number): void {
+    this.applyBuilderMove(index, index + 1);
+  }
+
+  private applyBuilderMove(from: number, to: number): void {
+    this.jsonFormatError = null;
+    try {
+      const raw = String(this.form.controls.definitionJson.value ?? '');
+      this.form.controls.definitionJson.setValue(moveBuilderStep(raw, from, to));
+    } catch (e: any) {
+      this.jsonFormatError = e?.message ?? 'Invalid JSON.';
+    }
+  }
+
+  get viewerError(): string | null {
+    try {
+      const raw = this.form.controls.definitionJson.value ?? '';
+      const parsed = JSON.parse(raw);
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed))
+        return 'Definition must be a JSON object.';
+      const steps = (parsed as { steps?: unknown }).steps;
+      if (steps === undefined) return 'Definition must include a `steps` array.';
+      if (!Array.isArray(steps)) return 'Definition `steps` must be an array.';
+      return null;
+    } catch (e: any) {
+      return e?.message ?? 'Invalid JSON.';
+    }
+  }
+
+  jumpToJsonStep(stepIndex: number): void {
+    this.viewMode = 'json';
+    this.cdr.detectChanges();
+    const raw = this.form.controls.definitionJson.value ?? '';
+    const pos = findCaretIndexForWorkflowStep(raw, stepIndex);
+    queueMicrotask(() => {
+      setTimeout(() => {
+        const el = this.definitionJsonEl?.nativeElement;
+        if (!el) return;
+        el.focus();
+        if (pos >= 0 && pos < el.value.length) {
+          el.setSelectionRange(pos, pos);
+        }
+      }, 0);
+    });
   }
 
   get contextVarSuggestions(): string[] {

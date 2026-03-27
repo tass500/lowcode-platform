@@ -41,7 +41,7 @@ Drift-proof observability egy greenfield lowcode platformban.
 
 
 - **Frontend (Angular)**
-  - Workflow details oldalon a read-only **Viewer v2** működik (kártyák + nyilak): step típus szerinti alcím / összefoglaló, `foreach`/`switch` branch előnézet, **JSON →** ugrás a JSON szerkesztőhöz; közös `lowcode-workflow-viewer-utils` + unit teszt; a JSON/Viewer nézet váltása stabil. **Builder** (iter 58a): lépés **palette**, **↑↓** sorrend, törlés, JSON szinkron — [`workflow-visual-builder.md`](workflow-visual-builder.md), `lowcode-workflow-builder-utils` + teszt.
+  - Workflow details oldalon a read-only **Viewer v2** működik (kártyák + nyilak): step típus szerinti alcím / összefoglaló, `foreach`/`switch` branch előnézet, **JSON →** ugrás a JSON szerkesztőhöz; közös `lowcode-workflow-viewer-utils` + unit teszt; a JSON/Viewer nézet váltása stabil. **Builder** (iter 58a + **58b** New workflow): lépés **palette**, **↑↓** sorrend, törlés, JSON szinkron — [`workflow-visual-builder.md`](workflow-visual-builder.md), `lowcode-workflow-builder-utils` + teszt; **New** oldalon **Builder | JSON** váltó + Prettify/Minify a JSON nézetben.
   - Workflow **lint warnings** UI: összesen hány warning, **code szerinti csoportosítás** (×darab), hosszú üzenetek törése; create + details oldalon; közös `groupLintWarningsByCode` helper + unit teszt.
   - Workflow Viewer-ben a lint warningok lépésenként is látszanak (step badge + warning részlet), így gyorsabb a hibakeresés.
   - Workflow create/details oldalon a backend validációs `details` mezők UI-ban is láthatók (path|code|message), így gyorsabb a javítás.
