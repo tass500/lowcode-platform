@@ -47,6 +47,10 @@ public sealed class HealthEndpointsTests
         Assert.NotNull(payload);
         Assert.True(payload.TryGetValue("status", out var status));
         Assert.Equal("ok", status);
+        Assert.True(payload.TryGetValue("service", out var service));
+        Assert.Equal("lowcode-platform-backend", service);
+        Assert.True(payload.TryGetValue("version", out var version));
+        Assert.False(string.IsNullOrWhiteSpace(version));
     }
 
     [Fact]
@@ -63,5 +67,9 @@ public sealed class HealthEndpointsTests
         Assert.NotNull(payload);
         Assert.True(payload.TryGetValue("status", out var status));
         Assert.Equal("ok", status);
+        Assert.True(payload.TryGetValue("service", out var service));
+        Assert.Equal("lowcode-platform-backend", service);
+        Assert.True(payload.TryGetValue("version", out var version));
+        Assert.False(string.IsNullOrWhiteSpace(version));
     }
 }

@@ -5,7 +5,7 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 60 — megfigyelhetőség / üzemeltethetőség** — **60a** kész: admin observability workflow számlálók; további szelet: **60b** (health / OTel, opcionális). **59** lezárva (run cancel API + UI). **58** — **58a** + **58b** kész [`workflow-visual-builder.md`](workflow-visual-builder.md): details **Builder**; **New workflow** oldal **Builder | JSON**. Következő backlog: **58c** (pl. CDK drag&drop — külön döntés) vagy **60b**. Ütemterv **58–62**: § *Ütemterv 56+* — workflow vonalon utolsó nagy lezárt előzmény: **55** (timeout/cancel + nested `timeoutMs`); 54 ütemezés … (lásd lent)**
+**ACTIVE: Iteráció 60 — megfigyelhetőség / üzemeltethetőség** — **60a** + **60b** (health JSON: `service`, `version`; `/health/ready` bővítve `managementDb`); opcionális további: OpenTelemetry export. **59** lezárva (run cancel API + UI). **58** — **58a** + **58b** kész [`workflow-visual-builder.md`](workflow-visual-builder.md). Következő backlog: **58c** (pl. CDK drag&drop) vagy **61** import/export — § *Ütemterv 56+* — workflow vonalon utolsó nagy lezárt előzmény: **55** (timeout/cancel + nested `timeoutMs`); 54 ütemezés … (lásd lent)**
 
 > **56 lezárva:** **56d** SS smoke teszt + doc; **57** Helm backup CronJob (chart **0.3.0**) — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 
@@ -254,7 +254,7 @@
 | **57** | **Helm: backup CronJob + minimal ops** — ✅ chart **0.3.0** `backup.enabled`; SS backup doc [`sqlserver-platform.md`](sqlserver-platform.md) | Üzemeltethetőség; opcionális **Ingress** TLS minta (már a chartban). |
 | **58** | **Vizuális workflow builder** (drag&drop) — *csak* ha a JSON-szerkesztő + Viewer stabil marad | Nagy UI-adósság; **szándékosan** a motor és a deploy után. |
 | **59** | ~~**Workflow run cancel API**~~ ✅ — `POST /api/workflows/runs/{runId}/cancel` + kooperatív leállás (registry / CTS); run details **Cancel run** | Üzemeltetés + UX; összefüggés: ütemezett / háttér futások (54) és hosszú runok. |
-| **60** | **Megfigyelhetőség / üzemeltethetőség** — **60a** ✅ admin observability: tenant workflow `pending`/`running` számlálók; következő szeletek: opcionális OpenTelemetry, egységes **health** bővítés | Prod readiness; alacsony–közepes kockázat, jól szeletelhető. |
+| **60** | **Megfigyelhetőség / üzemeltethetőség** — **60a** ✅ admin observability számlálók; **60b** ✅ health JSON (`service`, `version`, ready: `managementDb`); opcionális: OpenTelemetry | Prod readiness; alacsony–közepes kockázat, jól szeletelhető. |
 | **61** | **Workflow definition import/export** — JSON csomag + opcionális verzió mező / „compat” jelzés | Csapatok közötti megosztás; kevés backend + minimál UI. |
 | **62** | **Auth bővítés (opcionális)** — külső IdP / OAuth2 client credentials minta *vagy* API key tenant szinten | Enterprise; nagyobb biztonsági felület → külön PR-kra bontandó. |
 
@@ -282,7 +282,7 @@
 **57 — Helm backup** ✅  
 - Chart **0.3.0**: `templates/backup.yaml` — opcionális SQLite `kubectl cp` CronJob + RBAC + backup PVC; doc: [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 
-**Következő konkrét ACTIVE:** **Iteráció 60** — **60a** kész (lásd ACTIVE blokk fent); **60** további szeletek: OTel / health. **58b** backlog. **55** lezárva: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md). **54** ütemezés: [`workflow-schedule.md`](workflow-schedule.md).
+**Következő konkrét ACTIVE:** **Iteráció 60** — **60a** + **60b** kész (lásd ACTIVE blokk fent); opcionális: **OTel**. **58c** / **61** backlog. **55** lezárva: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md). **54** ütemezés: [`workflow-schedule.md`](workflow-schedule.md).
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.
