@@ -18,6 +18,7 @@ type WorkflowDefinitionDetailsDto = {
   name: string;
   definitionJson: string;
   lintWarnings: { code: string; message: string }[];
+  inboundTriggerConfigured: boolean;
   createdAtUtc: string;
   updatedAtUtc: string;
 };

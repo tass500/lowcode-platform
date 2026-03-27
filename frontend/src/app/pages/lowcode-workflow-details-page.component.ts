@@ -18,6 +18,7 @@ type WorkflowDefinitionDetailsDto = {
   name: string;
   definitionJson: string;
   lintWarnings: { code: string; message: string }[];
+  inboundTriggerConfigured: boolean;
   createdAtUtc: string;
   updatedAtUtc: string;
 };
@@ -89,6 +90,14 @@ type ApiErrorDetail = {
           <div><b>Name</b>: {{ workflow.name }}</div>
           <div><b>Updated</b>: {{ workflow.updatedAtUtc | date: 'medium' }}</div>
           <div style="font-family: monospace;"><b>Id</b>: {{ workflow.workflowDefinitionId }}</div>
+        </div>
+        <div style="margin-top: 8px; font-size: 13px; color:#555;">
+          <b>Inbound trigger</b>:
+          <span *ngIf="workflow.inboundTriggerConfigured" style="color:#0a6;">configured</span>
+          <span *ngIf="!workflow.inboundTriggerConfigured">not set</span>
+          <span style="color:#999;"> — </span>
+          <code style="font-size: 12px;">POST /api/inbound/workflows/{{ workflow.workflowDefinitionId }}/runs</code>
+          <span style="color:#999;">header</span> <code style="font-size: 12px;">X-Workflow-Inbound-Secret</code>
         </div>
 
         <section *ngIf="workflow.lintWarnings?.length" style="margin-top: 10px; padding: 10px 12px; border: 1px solid #f0e0a0; border-radius: 8px; background: #fffaf0;">

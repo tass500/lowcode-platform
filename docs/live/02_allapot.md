@@ -24,7 +24,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `require`
     - `domainCommand`
     - `unstable`
-  - Utolsó lezárt **repo** milestone (workflow vonal): **50** — step-level **retry / backoff** (`retry` + `timeoutMs` a step JSON-ben): `WorkflowStepRetryPolicy` + runner; linter figyelmeztetések; Viewer v2 alcím; doc [`docs/live/workflow-step-retry.md`](workflow-step-retry.md). Előtte **49** SQL Server platform DB [`sqlserver-platform.md`](sqlserver-platform.md), **48** run lista, **47–46**; következő ACTIVE: **51** — külső trigger / webhook MVP, lásd `docs/live/03`.
+  - Utolsó lezárt **repo** milestone (workflow vonal): **51** — **inbound workflow trigger** (JWT nélkül): `POST /api/inbound/workflows/{id}/runs` + `X-Workflow-Inbound-Secret`; titok SHA-256 tárolás; PUT/DELETE `/api/workflows/{id}/inbound-trigger`; opcionális `inboundTriggerSecret` create-nél; `WorkflowDefinitionDetailsDto.inboundTriggerConfigured`; doc [`docs/live/workflow-inbound-trigger.md`](workflow-inbound-trigger.md). Előtte **50** retry [`workflow-step-retry.md`](workflow-step-retry.md), **49** SQL Server, **48** run lista; következő ACTIVE: **52** — deploy/Helm, lásd `docs/live/03`.
     - unknown step type → warning
     - context var referencia ismeretlen step key-re → warning
     - kihasználatlan `set`/`map`/ismert `domainCommand` kimenet → warning
@@ -33,7 +33,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `code`
     - `message`
     - `severity`
-  - **Következő stratégiai ütemterv (51–52+):** külső trigger (MVP) → konténer/Helm — [`docs/live/03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) § *Stratégiai irány + javasolt következő iterációk (48+)*. Retry doc: [`docs/live/workflow-step-retry.md`](workflow-step-retry.md).
+  - **Következő stratégiai ütemterv (52+):** konténer/Helm — [`docs/live/03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) § *Stratégiai irány + javasolt következő iterációk (48+)*. Inbound trigger: [`docs/live/workflow-inbound-trigger.md`](workflow-inbound-trigger.md).
 
 
 - **Frontend (Angular)**
