@@ -5,7 +5,7 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 43 — utolsó lezárt: Iteráció 42 (workflow error `details` egységesítés: name/definition/not-found + runs)**
+**ACTIVE: Iteráció 47 — backend dev ergonomics (artifact cleanup + opcionális `FAST_BUILD`) — utolsó repo milestone: Iteráció 42 (workflow error `details`, PR #73); workflow UI roadmap 43–46 ✅ (lásd lent)**
 
 > Iteráció 41: backend **`WorkflowDefinitionLinter`**: lint warning **`workflow_step_output_unused`** (`set` / `map` / `domainCommand` statikus kimenetek, ha nincs `${…}` hivatkozás); **`workflow_context_likely_typo`** (pl. `foreach.indx` → `foreach.index`); meglévő unknown step + missing step key — `WorkflowsController` a linterre delegál.  
 > Iteráció 40: workflow **New** + **details** JSON nézet: böngészős **datalist** autocomplete a context var javaslatokra; `switch` ág (`*.branch`) + belső map/set/domainCommand path-ok a javaslatokban; statikus `foreach.index` / `foreach.item`; **`scripts/iter-end.ps1` / `iter-end.sh`** + **`gh-pr-push-merge` `-BodyFile` / `pr-body.md`**.  
@@ -25,12 +25,12 @@
 - ✅ Iteráció 39: context var UX: hiba részletek (melyik step/config path mezőben volt a hiba) + UI megjelenítés.
 - ✅ Iteráció 40: context var UX: autocomplete javaslatok (datalist + chip; statikus foreach hint + step output / switch branch) a szerkesztő oldalon (minimál) + iter-end / PR body fájl támogatás.
 - ✅ Iteráció 41: workflow lint: statikus ellenőrzések (unused step outputs, obvious typos) + warning szint.
-- Iteráció 42: hardening: egységes error response detail mezők (path + code + message) a workflow validációkhoz.
+- ✅ Iteráció 42: egységes error response `details` (path + code + message + severity) a workflow / workflow-runs releváns hibákra.
 - ✅ Kész (frontend mini-slice): workflow details Viewer step-level lint warning megjelenítés (badge + warning részlet), no behavior change.
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch (következő PR): `feat/iter-43-<topic>` (vagy aktuális feature branch)
+- Branch (következő PR): `chore/iter-47-backend-dev-ergonomics` (vagy aktuális feature branch)
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 
@@ -128,6 +128,16 @@
 **DoD**
 - ✅ `npm run build` zöld.
 - ✅ `npx ng test --watch=false --browsers=ChromeHeadless` zöld.
+
+### Iteráció 47 — backend dev ergonomics (chore, low risk)
+**Cél**: kevesebb lemez/AV zaj és gyorsabb lokális fordítás-iteráció; régi `dotnet build -o …` maradványok törlése.
+
+**Deliverables**
+- ✅ `scripts/clean-backend-artifacts.ps1`: `bin`/`obj` + `build-*` / `ef-*` / `bin-verify-*` / `test-*` scratch mappák (Windows `\\?\` + `rmdir` mély fáknál is).
+- ✅ `backend/Directory.Build.props`: ha `FAST_BUILD=true` (env vagy `-p:`), akkor `RunAnalyzersDuringBuild=false` (csak lokális gyorsítás; CI-ban ne ezt add meg alapból).
+
+**DoD**
+- ✅ `dotnet build` zöld (FAST_BUILD nélkül is).
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.
