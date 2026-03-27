@@ -1,0 +1,17 @@
+.git
+.github
+**/.vs
+**/.idea
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/coverage
+backend/LowCodePlatform.Backend.Tests/
+**/*.user
+**/*.suo
+*.md
+!README.md
+docs
+scripts
+terminals

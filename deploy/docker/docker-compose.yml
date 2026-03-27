@@ -1,0 +1,36 @@
+# Local / lab stack: nginx (UI + /api proxy) + ASP.NET API + SQLite files on a volume.
+# Usage (repo root): docker compose -f deploy/docker/docker-compose.yml up --build
+#
+# UI: http://localhost:8080  (Angular → proxies /api to backend)
+# Swagger (Development): not enabled unless ASPNETCORE_ENVIRONMENT=Development
+
+services:
+  backend:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.backend
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Management: Data Source=/data/management.db
+      Tenancy__DefaultTenantSlug: default
+      Tenancy__DefaultTenantConnectionString: Data Source=/data/tenant-default.db
+      Tenancy__DefaultTenantConnectionStringSecretRef: default
+      Tenancy__Secrets__default: Data Source=/data/tenant-default.db
+      Auth__Jwt__SigningKey: change-me-in-real-deployments-use-long-random-secret!!
+    volumes:
+      - lowcode-data:/data
+    expose:
+      - "8080"
+
+  frontend:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  lowcode-data:

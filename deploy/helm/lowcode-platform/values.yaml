@@ -1,0 +1,29 @@
+# Default image names match local docker build tags (see deploy/docker).
+nameOverride: ""
+fullnameOverride: ""
+
+backend:
+  replicaCount: 1
+  image:
+    repository: lowcode-platform/backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources: {}
+  # SQLite on emptyDir — swap for PVC / SQL Server connection strings in real deployments.
+  env:
+    ASPNETCORE_ENVIRONMENT: Production
+    Auth__Jwt__SigningKey: change-me-use-secret-in-production
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: lowcode-platform/frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources: {}
+
+ingress:
+  enabled: false
+  className: ""
+  host: lowcode.local
+  tls: false
