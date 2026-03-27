@@ -139,6 +139,24 @@
 **DoD**
 - ✅ `dotnet build` zöld (FAST_BUILD nélkül is).
 
+### Stratégiai irány + javasolt következő iterációk (48+)
+
+**Miért ez a sorrend?** A platform differenciáló része a **low-code workflow + tenant-izolált futtatás + megfigyelhetőség**. A **home-lab / k3s** és a **Pi** értékes, de *párhuzamos* pálya: addig is érdemes a **terméket mélyíteni** (futások átláthatósága, ellenállóság, enterprise adatbázis), hogy legyen mit konténerbe tenni. A **PostgreSQL** (vagy SQL Server) irány a legrövidebb út a „nem csak SQLite” éles történethez; a **tenant-szintű run lista** pedig üzemeltetői érték kevés API-felületen.
+
+**WIP=1:** egyszerre egy ACTIVE iteráció; az alábbiak **ütemterv**, nem párhuzamos kötelező csomag.
+
+| Iter | Fókusz | Érték / kockázat |
+|------|--------|------------------|
+| **48** | **Tenant-wide workflow run lista** — `GET /api/workflows/runs` (lapozás, opcionális szűrés: `workflowDefinitionId`, `state`, időablak) + minimális frontend lista (vagy meglévő workflow UI bővítés) | Magas láthatóság: nem csak definition-enként kell bóklászni a futásokhoz. Közepes kockázat (új endpoint + indexek). |
+| **49** | **Második DB provider: PostgreSQL** — dev Docker + connection string; EF migrációk stratégia (külön assembly vagy provider-feltételes pipeline); SQLite marad default gyors devhez | Enterprise / konténer-barát telepítés előfeltétele. Magas munka, de egyszeri irányváltás. |
+| **50** | **Step-level retry / backoff** (korábbi roadmap **31** felvéve) — konfigurálható policy a step JSON-ben, runner viselkedés, tesztek | Megbízhatóság hosszú / instabil lépéseknél. Közepes–magas: runner core érintett. |
+| **51** | **Workflow indítás API-n kívülről (MVP)** — pl. **webhook** vagy **egyszeri schedule** (hosted service + per-tenant queue) *vagy* „run by external key” — szűk scope, egy választott út | Automatizálás; csak egyet válasszunk az MVP-ben, ne mindhárom. |
+| **52** | **Deploy / Helm chart + CI image** — `Dockerfile`, GitHub Actions build, opcionális Helm values (SQLite dev / Postgres prod); *opcionálisan* Pi doc link | A 48–49 után érdemes: van mit kipróbálni k8s-en. |
+
+**Szándékosan hátrébb:** tisztán **vizuális workflow builder** (drag&drop) — amíg a séma + linter + futó motor stabil, addig a JSON-alapú szerkesztés + viewer kevesebb UI-adósságot hagy.
+
+**Következő konkrét ACTIVE (merge után):** Iteráció **48** javasolt első PR-cél a fenti táblázat szerint (feltételezi, hogy **47** le van zárva / merge-elve).
+
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.
 - Ezt a fájlt és a `docs/02_allapot.md`-t **minden lezárt milestone után** frissítjük.

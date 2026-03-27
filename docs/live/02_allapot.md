@@ -32,6 +32,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `code`
     - `message`
     - `severity`
+  - **Következő stratégiai ütemterv (javasolt 48–52):** tenant-szintű run lista → PostgreSQL provider → step retry/backoff → külső trigger (webhook/schedule MVP) → konténer/Helm — részletek: [`docs/live/03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) § *Stratégiai irány + javasolt következő iterációk (48+)*.
 
 
 - **Frontend (Angular)**
