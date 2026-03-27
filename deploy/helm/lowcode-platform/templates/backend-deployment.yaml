@@ -1,3 +1,7 @@
+{{- $secretName := include "lowcode-platform.backend.secretName" . | trim -}}
+{{- if and (eq .Values.backend.database.tenantProvider "sqlserver") (eq $secretName "") }}
+{{- fail "database.tenantProvider=sqlserver requires backend.secrets.create=true or backend.secrets.existingSecret (with keys jwt-signing-key and tenant-connection-string)" }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -34,16 +38,41 @@ spec:
               value: Data Source=/data/management.db
             - name: Tenancy__DefaultTenantSlug
               value: default
-            - name: Tenancy__DefaultTenantConnectionString
-              value: Data Source=/data/tenant-default.db
             - name: Tenancy__DefaultTenantConnectionStringSecretRef
               value: default
+            {{- if eq .Values.backend.database.tenantProvider "sqlite" }}
+            - name: Tenancy__DefaultTenantConnectionString
+              value: Data Source=/data/tenant-default.db
             - name: Tenancy__Secrets__default
               value: Data Source=/data/tenant-default.db
+            {{- else }}
+            - name: Tenancy__DefaultTenantConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: tenant-connection-string
+            - name: Tenancy__Secrets__default
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: tenant-connection-string
+            {{- if .Values.backend.database.sqlserver.ensureCreated }}
+            - name: LCP_SQLSERVER_ENSURE_CREATED
+              value: "1"
+            {{- end }}
+            {{- end }}
             - name: ASPNETCORE_ENVIRONMENT
               value: {{ .Values.backend.env.ASPNETCORE_ENVIRONMENT | quote }}
+            {{- if $secretName }}
             - name: Auth__Jwt__SigningKey
-              value: {{ .Values.backend.env.Auth__Jwt__SigningKey | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: jwt-signing-key
+            {{- else }}
+            - name: Auth__Jwt__SigningKey
+              value: {{ .Values.backend.secrets.jwtSigningKey | quote }}
+            {{- end }}
           {{- with .Values.backend.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -52,5 +81,11 @@ spec:
             - name: data
               mountPath: /data
       volumes:
+        {{- if eq .Values.backend.dataVolume.type "pvc" }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "lowcode-platform.backend.pvcName" . }}
+        {{- else }}
         - name: data
           emptyDir: {}
+        {{- end }}

@@ -9,10 +9,36 @@ backend:
     tag: latest
     pullPolicy: IfNotPresent
   resources: {}
-  # SQLite on emptyDir — swap for PVC / SQL Server connection strings in real deployments.
+
+  # Management DB is SQLite (file under /data). Tenant platform DB: sqlite files or SQL Server.
+  dataVolume:
+    # pvc — survives pod reschedules (home-lab / prod SQLite layout)
+    # emptyDir — demo only; data lost when the pod moves
+    type: pvc
+
+  persistence:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 1Gi
+    storageClass: ""
+
+  database:
+    tenantProvider: sqlite
+    sqlserver:
+      # Greenfield SQL Server bootstrap; see docs/live/sqlserver-platform.md
+      ensureCreated: false
+
+  secrets:
+    # Chart creates Secret ...-backend-secret unless existingSecret is set.
+    create: true
+    existingSecret: ""
+    # Used when the chart creates the Secret (lab). Prod: prefer existingSecret + kubectl / external-secrets.
+    jwtSigningKey: change-me-use-strong-random-secret-and-external-secret-in-prod
+    # Required in values when tenantProvider=sqlserver and the chart creates the Secret.
+    sqlserverTenantConnectionString: ""
+
   env:
     ASPNETCORE_ENVIRONMENT: Production
-    Auth__Jwt__SigningKey: change-me-use-secret-in-production
 
 frontend:
   replicaCount: 1
@@ -27,3 +53,18 @@ ingress:
   className: ""
   host: lowcode.local
   tls: false
+
+# Optional SQLite file backup (management.db + tenant-default.db when tenantProvider=sqlite).
+# Uses in-cluster kubectl cp into a PVC or emptyDir. Requires backend.replicaCount=1.
+# SQL Server tenant data: use native DB backup / snapshots (see docs/live/sqlserver-platform.md).
+backup:
+  enabled: false
+  schedule: "0 2 * * *"
+  image:
+    repository: bitnami/kubectl
+    tag: "1.31.4-debian-12-r0"
+    pullPolicy: IfNotPresent
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClass: ""
