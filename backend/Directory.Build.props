@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Optional faster local builds: $env:FAST_BUILD='true' or -p:FAST_BUILD=true -->
+    <RunAnalyzersDuringBuild Condition="'$(FAST_BUILD)' == 'true'">false</RunAnalyzersDuringBuild>
+  </PropertyGroup>
+</Project>

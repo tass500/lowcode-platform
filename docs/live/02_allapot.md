@@ -5,6 +5,7 @@ Drift-proof observability egy greenfield lowcode platformban.
 
 ## Jelenlegi állapot – kész
 - **Backend (ASP.NET Core)**
+  - Lokális **dev ergonomics**: `scripts/clean-backend-artifacts.ps1` (backend `bin`/`obj` + scratch `build-*` mappák); `backend/Directory.Build.props`: `FAST_BUILD=true` → analyzers kikapcsolva gyors iterációhoz.
   - Workflow step run: **`last_error_config_path`** (JSON path a step configban, pl. `$.recordId`) — futás közbeni hibáknál kitöltve; `GET /api/workflows/runs/{id}` visszaadja.
   - Admin endpointok válaszaiban **`serverTimeUtc`** elérhető (installation/status, upgrade-runs: recent/latest/queue/get/start/retry/cancel/dev-fail-step, audit list).
   - Admin response-ok **DTO-sítva** (Swagger Models/Schemas alatt látszanak a mezők).
@@ -22,7 +23,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `require`
     - `domainCommand`
     - `unstable`
-  - Utolsó lezárt roadmap iteráció: **42** — workflow + workflow-runs hibák: egységes `details` (`path`, `code`, `message`, `severity`) `name_missing` / `definition_missing` / `workflow_not_found` / `workflow_run_not_found` esetén; `ErrorDetail.Single` helper; következő ACTIVE: **43** (`docs/live/03_kovetkezo_lepesek.md`).
+  - Utolsó lezárt **repo** milestone: **42** — workflow + workflow-runs hibák: egységes `details` (`path`, `code`, `message`, `severity`) `name_missing` / `definition_missing` / `workflow_not_found` / `workflow_run_not_found` esetén; `ErrorDetail.Single` helper; `docs/live/03`: workflow UI **43–46** kész; következő ACTIVE: **47** — dev ergonomics (`scripts/clean-backend-artifacts.ps1`, `backend/Directory.Build.props` + `FAST_BUILD`).
     - unknown step type → warning
     - context var referencia ismeretlen step key-re → warning
     - kihasználatlan `set`/`map`/ismert `domainCommand` kimenet → warning
