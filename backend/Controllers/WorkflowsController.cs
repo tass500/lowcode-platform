@@ -196,6 +196,9 @@ public sealed class WorkflowsController : ControllerBase
             wf.DefinitionJson,
             lintWarnings,
             InboundTriggerConfigured: !string.IsNullOrEmpty(wf.InboundTriggerSecretSha256Hex),
+            wf.ScheduleEnabled,
+            wf.ScheduleCron,
+            wf.ScheduleNextDueUtc,
             wf.CreatedAtUtc,
             wf.UpdatedAtUtc);
     }
@@ -360,6 +363,61 @@ public sealed class WorkflowsController : ControllerBase
             tenantId: tenantId,
             traceId: TraceIdMiddleware.GetTraceId(HttpContext),
             detailsJson: null,
+            ct: ct);
+
+        return Ok(ToDetailsDto(wf));
+    }
+
+    [HttpPut("{id:guid}/schedule")]
+    public async Task<ActionResult<WorkflowDefinitionDetailsDto>> SetSchedule([FromRoute] Guid id, [FromBody] SetWorkflowScheduleRequest req, CancellationToken ct)
+    {
+        var wf = await _db.WorkflowDefinitions.FirstOrDefaultAsync(x => x.WorkflowDefinitionId == id, ct);
+        if (wf is null)
+            return Problem(
+                StatusCodes.Status404NotFound,
+                "workflow_not_found",
+                "Workflow not found.",
+                ErrorDetail.Single("$.workflowDefinitionId", "workflow_not_found", "Workflow not found."));
+
+        if (req.Enabled)
+        {
+            if (string.IsNullOrWhiteSpace(req.Cron))
+                return Problem(
+                    StatusCodes.Status400BadRequest,
+                    "schedule_cron_missing",
+                    "Cron is required when schedule is enabled.",
+                    ErrorDetail.Single("$.cron", "schedule_cron_missing", "Cron is required when schedule is enabled."));
+
+            if (!WorkflowRestrictedCron.TryParse(req.Cron.Trim(), out var cronError, out var nextFn))
+                return Problem(
+                    StatusCodes.Status400BadRequest,
+                    cronError ?? "schedule_cron_invalid",
+                    "Invalid or unsupported schedule cron expression (UTC).",
+                    ErrorDetail.Single("$.cron", cronError ?? "schedule_cron_invalid", "Invalid or unsupported schedule cron expression (UTC)."));
+
+            wf.ScheduleEnabled = true;
+            wf.ScheduleCron = req.Cron.Trim();
+            wf.ScheduleNextDueUtc = nextFn(DateTime.UtcNow);
+        }
+        else
+        {
+            wf.ScheduleEnabled = false;
+            wf.ScheduleCron = null;
+            wf.ScheduleNextDueUtc = null;
+        }
+
+        wf.UpdatedAtUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        var tenantId = await TryResolveTenantIdAsync(ct);
+        await _audit.WriteAsync(
+            actor: "system",
+            action: "workflow_schedule_updated",
+            target: wf.WorkflowDefinitionId.ToString(),
+            installationId: null,
+            tenantId: tenantId,
+            traceId: TraceIdMiddleware.GetTraceId(HttpContext),
+            detailsJson: $"{{\"enabled\":{req.Enabled.ToString().ToLowerInvariant()}}}",
             ct: ct);
 
         return Ok(ToDetailsDto(wf));

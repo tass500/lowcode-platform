@@ -3,8 +3,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LowCodePlatform.Backend.Data;
 
-public sealed class PlatformDbContext : DbContext
+public class PlatformDbContext : DbContext
 {
+    protected PlatformDbContext(DbContextOptions options) : base(options)
+    {
+    }
+
     public PlatformDbContext(DbContextOptions<PlatformDbContext> options) : base(options)
     {
     }
@@ -98,10 +102,14 @@ public sealed class PlatformDbContext : DbContext
             e.Property(x => x.Name).HasColumnName("name");
             e.Property(x => x.DefinitionJson).HasColumnName("definition_json");
             e.Property(x => x.InboundTriggerSecretSha256Hex).HasColumnName("inbound_trigger_secret_sha256_hex");
+            e.Property(x => x.ScheduleEnabled).HasColumnName("schedule_enabled");
+            e.Property(x => x.ScheduleCron).HasColumnName("schedule_cron");
+            e.Property(x => x.ScheduleNextDueUtc).HasColumnName("schedule_next_due_utc");
             e.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc");
             e.Property(x => x.UpdatedAtUtc).HasColumnName("updated_at_utc");
 
             e.HasIndex(x => x.Name);
+            e.HasIndex(x => new { x.ScheduleEnabled, x.ScheduleNextDueUtc });
         });
 
         modelBuilder.Entity<WorkflowRun>(e =>

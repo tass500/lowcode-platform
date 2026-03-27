@@ -1,5 +1,4 @@
 using LowCodePlatform.Backend.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace LowCodePlatform.Backend.Services;
 
@@ -7,11 +6,13 @@ public sealed class TenantMigrationService
 {
     private readonly TenantRegistryService _registry;
     private readonly ITenantSecretResolver _secrets;
+    private readonly IServiceProvider _services;
 
-    public TenantMigrationService(TenantRegistryService registry, ITenantSecretResolver secrets)
+    public TenantMigrationService(TenantRegistryService registry, ITenantSecretResolver secrets, IServiceProvider services)
     {
         _registry = registry;
         _secrets = secrets;
+        _services = services;
     }
 
     public async Task<List<TenantMigrationResult>> EnsureTenantDatabasesAsync(CancellationToken ct)
@@ -26,10 +27,7 @@ public sealed class TenantMigrationService
             {
                 var cs = ResolveConnectionString(t);
 
-                var optionsBuilder = new DbContextOptionsBuilder<PlatformDbContext>();
-                PlatformDatabaseProvider.ConfigurePlatformDbContext(optionsBuilder, cs);
-
-                await using var tenantDb = new PlatformDbContext(optionsBuilder.Options);
+                await using var tenantDb = PlatformDatabaseProvider.CreatePlatformDbContext(_services, cs);
 
                 await PlatformTenantDatabaseBootstrap.MigrateOrEnsureCreatedAsync(tenantDb, cs, ct);
 
@@ -51,10 +49,7 @@ public sealed class TenantMigrationService
         {
             var cs = ResolveConnectionString(tenant);
 
-            var optionsBuilder = new DbContextOptionsBuilder<PlatformDbContext>();
-            PlatformDatabaseProvider.ConfigurePlatformDbContext(optionsBuilder, cs);
-
-            await using var tenantDb = new PlatformDbContext(optionsBuilder.Options);
+            await using var tenantDb = PlatformDatabaseProvider.CreatePlatformDbContext(_services, cs);
             await PlatformTenantDatabaseBootstrap.MigrateOrEnsureCreatedAsync(tenantDb, cs, ct);
 
             return new TenantMigrationResult(tenant.Slug, true, null, startedAtUtc, DateTime.UtcNow);

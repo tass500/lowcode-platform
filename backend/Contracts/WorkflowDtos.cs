@@ -16,8 +16,13 @@ public sealed record WorkflowDefinitionDetailsDto(
     string DefinitionJson,
     List<WorkflowLintWarningDto> LintWarnings,
     bool InboundTriggerConfigured,
+    bool ScheduleEnabled,
+    string? ScheduleCron,
+    DateTime? ScheduleNextDueUtc,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc);
+
+public sealed record SetWorkflowScheduleRequest(bool Enabled, string? Cron);
 
 public sealed record SetWorkflowInboundTriggerRequest(string Secret);
 

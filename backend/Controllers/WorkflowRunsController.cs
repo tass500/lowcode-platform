@@ -15,6 +15,7 @@ public sealed class WorkflowRunsController : ControllerBase
 {
     private readonly Data.PlatformDbContext _db;
     private readonly WorkflowRunnerService _runner;
+    private readonly WorkflowRunCancellationRegistry _runCancellation;
     private readonly AuditService _audit;
     private readonly TenantRegistryService _tenants;
     private readonly TenantContext _tenant;
@@ -22,12 +23,14 @@ public sealed class WorkflowRunsController : ControllerBase
     public WorkflowRunsController(
         Data.PlatformDbContext db,
         WorkflowRunnerService runner,
+        WorkflowRunCancellationRegistry runCancellation,
         AuditService audit,
         TenantRegistryService tenants,
         TenantContext tenant)
     {
         _db = db;
         _runner = runner;
+        _runCancellation = runCancellation;
         _audit = audit;
         _tenants = tenants;
         _tenant = tenant;
@@ -284,6 +287,50 @@ public sealed class WorkflowRunsController : ControllerBase
                 ErrorDetail.Single("$.workflowRunId", "workflow_run_not_found", "Workflow run not found."));
 
         return Ok(ToDetails(run));
+    }
+
+    /// <summary>Requests cooperative cancellation of an in-process workflow run (HTTP or scheduled).</summary>
+    [HttpPost("runs/{runId:guid}/cancel")]
+    public async Task<ActionResult<CancelWorkflowRunResponse>> CancelRun([FromRoute] Guid runId, CancellationToken ct)
+    {
+        var run = await _db.WorkflowRuns.FirstOrDefaultAsync(x => x.WorkflowRunId == runId, ct);
+        if (run is null)
+            return Problem(
+                StatusCodes.Status404NotFound,
+                "workflow_run_not_found",
+                "Workflow run not found.",
+                ErrorDetail.Single("$.workflowRunId", "workflow_run_not_found", "Workflow run not found."));
+
+        if (!string.Equals(run.State, Models.WorkflowRunStates.Running, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(run.State, Models.WorkflowRunStates.Pending, StringComparison.OrdinalIgnoreCase))
+        {
+            return Problem(
+                StatusCodes.Status409Conflict,
+                "workflow_run_not_cancelable",
+                "Workflow run is not in a cancelable state.",
+                ErrorDetail.Single("$.state", "workflow_run_not_cancelable", "Only pending or running runs can be canceled."));
+        }
+
+        if (!_runCancellation.TryCancel(runId))
+        {
+            await _db.Entry(run).ReloadAsync(ct);
+            if (!string.Equals(run.State, Models.WorkflowRunStates.Running, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(run.State, Models.WorkflowRunStates.Pending, StringComparison.OrdinalIgnoreCase))
+            {
+                return Problem(
+                    StatusCodes.Status409Conflict,
+                    "workflow_run_not_cancelable",
+                    "Workflow run is no longer cancelable.",
+                    ErrorDetail.Single("$.state", "workflow_run_not_cancelable", "Run already finished."));
+            }
+
+            return Problem(
+                StatusCodes.Status503ServiceUnavailable,
+                "workflow_run_cancel_unavailable",
+                "Cancel signal could not be applied; try again.");
+        }
+
+        return Ok(new CancelWorkflowRunResponse(ServerTimeUtc: DateTime.UtcNow));
     }
 
     private async Task<Guid?> TryResolveTenantIdAsync(CancellationToken ct)

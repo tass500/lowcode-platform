@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 namespace LowCodePlatform.Backend.Data;
 
 /// <summary>
-/// Applies tenant platform database schema: SQLite uses EF migrations; SQL Server can use
-/// <c>Database.EnsureCreatedAsync</c> when <c>LCP_SQLSERVER_ENSURE_CREATED=1</c> because existing migrations are SQLite-specific.
+/// Applies tenant platform database schema: SQLite uses <c>Data/Migrations/Platform</c>; SQL Server uses
+/// <c>Data/Migrations/PlatformSqlServer</c> via <see cref="PlatformSqlServerDbContext"/> (see <see cref="PlatformDatabaseProvider.CreatePlatformDbContext"/>).
+/// Optional greenfield: <c>Database.EnsureCreatedAsync</c> when <c>LCP_SQLSERVER_ENSURE_CREATED=1</c> (bypasses migrations).
+/// See <c>docs/live/sqlserver-ef-migrations-plan.md</c>.
 /// </summary>
 public static class PlatformTenantDatabaseBootstrap
 {
