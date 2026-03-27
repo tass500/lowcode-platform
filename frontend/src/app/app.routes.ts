@@ -11,6 +11,7 @@ import { LowCodeEntityNewPageComponent } from './pages/lowcode-entity-new-page.c
 import { LowCodeEntityDetailsPageComponent } from './pages/lowcode-entity-details-page.component';
 import { LowCodeAdminTenantsPageComponent } from './pages/lowcode-admin-tenants-page.component';
 import { LowCodeEntityRecordsPageComponent } from './pages/lowcode-entity-records-page.component';
+import { LowCodeWorkflowRunsPageComponent } from './pages/lowcode-workflow-runs-page.component';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'upgrade' },
@@ -18,6 +19,7 @@ export const routes: Routes = [
   { path: 'lowcode/auth', component: LowCodeAuthPageComponent },
   { path: 'lowcode/admin/tenants', component: LowCodeAdminTenantsPageComponent },
   { path: 'lowcode/workflows', component: LowCodeWorkflowsPageComponent },
+  { path: 'lowcode/workflow-runs', component: LowCodeWorkflowRunsPageComponent },
   { path: 'lowcode/workflows/new', component: LowCodeWorkflowNewPageComponent },
   { path: 'lowcode/workflows/:id', component: LowCodeWorkflowDetailsPageComponent },
   { path: 'lowcode/entities', component: LowCodeEntitiesPageComponent },

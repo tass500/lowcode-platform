@@ -6,7 +6,8 @@ Drift-proof observability egy greenfield lowcode platformban.
 ## Jelenlegi állapot – kész
 - **Backend (ASP.NET Core)**
   - Lokális **dev ergonomics**: `scripts/clean-backend-artifacts.ps1` (backend `bin`/`obj` + scratch `build-*` mappák); `backend/Directory.Build.props`: `FAST_BUILD=true` → analyzers kikapcsolva gyors iterációhoz.
-  - Workflow step run: **`last_error_config_path`** (JSON path a step configban, pl. `$.recordId`) — futás közbeni hibáknál kitöltve; `GET /api/workflows/runs/{id}` visszaadja.
+  - Workflow step run: **`last_error_config_path`** (JSON path a step configban, pl. `$.recordId`) — futás közbeni hibáknál kitöltve; `GET /api/workflows/runs/{runId}` részletek.
+  - **Tenant-wide futások**: `GET /api/workflows/runs` — lapozás (`take`/`skip`), szűrők (`workflowDefinitionId`, `state`, `startedAfterUtc` / `startedBeforeUtc` UTC); válaszban `workflowName` + `totalCount`; index `workflow_run.started_at_utc`.
   - Admin endpointok válaszaiban **`serverTimeUtc`** elérhető (installation/status, upgrade-runs: recent/latest/queue/get/start/retry/cancel/dev-fail-step, audit list).
   - Admin response-ok **DTO-sítva** (Swagger Models/Schemas alatt látszanak a mezők).
   - Külön **observability endpoint**: `GET /api/admin/observability` (active runs + last audit + enforcement summary + `serverTimeUtc`).
@@ -23,7 +24,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `require`
     - `domainCommand`
     - `unstable`
-  - Utolsó lezárt **repo** milestone: **42** — workflow + workflow-runs hibák: egységes `details` (`path`, `code`, `message`, `severity`) `name_missing` / `definition_missing` / `workflow_not_found` / `workflow_run_not_found` esetén; `ErrorDetail.Single` helper; `docs/live/03`: workflow UI **43–46** kész; következő ACTIVE: **47** — dev ergonomics (`scripts/clean-backend-artifacts.ps1`, `backend/Directory.Build.props` + `FAST_BUILD`).
+  - Utolsó lezárt **repo** milestone (workflow vonal): **48** — tenant-szintű run lista API + UI (`/lowcode/workflow-runs`); előtte **47** dev ergonomics, **42** error `details`, UI **43–46**; következő ACTIVE: **49** — SQL Server (második provider), lásd `docs/live/03`.
     - unknown step type → warning
     - context var referencia ismeretlen step key-re → warning
     - kihasználatlan `set`/`map`/ismert `domainCommand` kimenet → warning
@@ -32,6 +33,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `code`
     - `message`
     - `severity`
+  - **Következő stratégiai ütemterv (49–52+):** SQL Server (MSSQL) második provider → step retry/backoff → külső trigger (MVP) → konténer/Helm — [`docs/live/03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) § *Stratégiai irány + javasolt következő iterációk (48+)*.
 
 
 - **Frontend (Angular)**
@@ -40,7 +42,8 @@ Drift-proof observability egy greenfield lowcode platformban.
   - Workflow Viewer-ben a lint warningok lépésenként is látszanak (step badge + warning részlet), így gyorsabb a hibakeresés.
   - Workflow create/details oldalon a backend validációs `details` mezők UI-ban is láthatók (path|code|message), így gyorsabb a javítás.
   - Workflow **New** + **details** JSON szerkesztő: **Prettify / Minify**; template lista **szűrő**; context var javaslatok közös `lowcode-workflow-context-suggestions` modullal (domain + foreach + `switch` branch + belső lépés) + böngészős **datalist** autocomplete a chip-ek mellett.
-  - Low-code **workflow run details** (`/lowcode/workflows/runs/...`): step config **Original / Resolved** összehasonlítás + toggle; kereső tartalmazza az `originalStepConfigJson`-t; Config megnyitásakor ha eltér az original a resolved-tól → alapból „Show resolved”; **Copy** (config / output); reszponzív kétoszlopos rács; `lowcode-run-details-utils` + unit teszt.
+  - **Workflow runs lista** (`/lowcode/workflow-runs`): tenant összes futása táblázatban, link a run details-re (`/lowcode/runs/:runId`); Workflows oldalról **All runs**.
+  - Low-code **workflow run details** (`/lowcode/runs/:runId`): step config **Original / Resolved** összehasonlítás + toggle; kereső tartalmazza az `originalStepConfigJson`-t; Config megnyitásakor ha eltér az original a resolved-tól → alapból „Show resolved”; **Copy** (config / output); reszponzív kétoszlopos rács; `lowcode-run-details-utils` + unit teszt.
   - Ugyanitt: sikertelen / hibás lépéseknél **Error path** (`lastErrorConfigPath`, pl. `$.recordId` context var hibánál); a szűrő mező erre is rákeres.
   - Drift-proof “now”: kliens oldali **`serverNowOffsetMs`** kalibráció `serverTimeUtc` alapján.
   - “Last refreshed” + “ago” kijelzés queue/audit/run panelen server-calibráltan.
