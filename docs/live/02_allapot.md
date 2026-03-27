@@ -24,7 +24,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `require`
     - `domainCommand`
     - `unstable`
-  - Utolsó lezárt **repo** milestone (workflow vonal): **51** — **inbound workflow trigger** (JWT nélkül): `POST /api/inbound/workflows/{id}/runs` + `X-Workflow-Inbound-Secret`; titok SHA-256 tárolás; PUT/DELETE `/api/workflows/{id}/inbound-trigger`; opcionális `inboundTriggerSecret` create-nél; `WorkflowDefinitionDetailsDto.inboundTriggerConfigured`; doc [`docs/live/workflow-inbound-trigger.md`](workflow-inbound-trigger.md). Előtte **50** retry [`workflow-step-retry.md`](workflow-step-retry.md), **49** SQL Server, **48** run lista; következő ACTIVE: **52** — deploy/Helm, lásd `docs/live/03`.
+  - Utolsó lezárt **repo** milestone (workflow vonal): **52** — **Docker** (`deploy/docker/`: backend + nginx/frontend image, `docker-compose`), **Helm** chart (`deploy/helm/lowcode-platform`), CI: image build + `helm template`; doc [`docs/live/container-deploy.md`](container-deploy.md). Előtte **51** inbound [`workflow-inbound-trigger.md`](workflow-inbound-trigger.md), **50** retry, **49** SQL Server; következő ACTIVE: **home-lab / k3s mélyítés** (lásd `docs/live/03` stratégiai blokk).
     - unknown step type → warning
     - context var referencia ismeretlen step key-re → warning
     - kihasználatlan `set`/`map`/ismert `domainCommand` kimenet → warning
@@ -33,7 +33,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `code`
     - `message`
     - `severity`
-  - **Következő stratégiai ütemterv (52+):** konténer/Helm — [`docs/live/03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) § *Stratégiai irány + javasolt következő iterációk (48+)*. Inbound trigger: [`docs/live/workflow-inbound-trigger.md`](workflow-inbound-trigger.md).
+  - **Következő stratégiai ütemterv:** home-lab / Pi / k3s (részletek `docs/live/03`); konténer baseline: [`docs/live/container-deploy.md`](container-deploy.md).
 
 
 - **Frontend (Angular)**

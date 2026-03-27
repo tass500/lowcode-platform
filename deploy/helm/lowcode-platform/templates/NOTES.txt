@@ -1,0 +1,8 @@
+1. Get the frontend URL (port-forward example):
+   kubectl port-forward svc/{{ include "lowcode-platform.frontend.fullname" . }} 8080:80
+
+2. Open http://localhost:8080 — nginx proxies /api to the backend service.
+
+3. Default tenant slug is `default` (host-based tenancy; localhost resolves to default).
+
+4. For production: set Auth__Jwt__SigningKey via Secret, replace SQLite emptyDir with PVC or SQL Server connection strings.

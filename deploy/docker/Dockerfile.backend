@@ -1,0 +1,21 @@
+# ASP.NET Core API — publish + runtime (Iter 52)
+# Build: docker build -f deploy/docker/Dockerfile.backend -t lowcode-platform/backend:latest .
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+COPY backend/LowCodePlatform.Backend.csproj backend/
+RUN dotnet restore backend/LowCodePlatform.Backend.csproj
+
+COPY backend/ backend/
+RUN dotnet publish backend/LowCodePlatform.Backend.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+
+COPY --from=build /app/publish .
+
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+
+ENTRYPOINT ["dotnet", "LowCodePlatform.Backend.dll"]

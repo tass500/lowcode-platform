@@ -5,7 +5,7 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 52 — Deploy / Helm chart + CI image — utolsó lezárt: Iteráció 51 (inbound workflow webhook MVP); előtte: 50 retry + 49 SQL Server + 48 run lista + 42 `details` + UI 43–46 ✅ (lásd lent)**
+**ACTIVE: Home-lab / k3s / Pi mélyítés (stratégiai soron következő) — utolsó lezárt repo milestone a workflow vonalon: Iteráció 52 (Docker + Helm + CI); előtte: 51 inbound + 50 retry + 49 SQL Server + 48 run lista + 42 `details` + UI 43–46 ✅ (lásd lent)**
 
 > Iteráció 41: backend **`WorkflowDefinitionLinter`**: lint warning **`workflow_step_output_unused`** (`set` / `map` / `domainCommand` statikus kimenetek, ha nincs `${…}` hivatkozás); **`workflow_context_likely_typo`** (pl. `foreach.indx` → `foreach.index`); meglévő unknown step + missing step key — `WorkflowsController` a linterre delegál.  
 > Iteráció 40: workflow **New** + **details** JSON nézet: böngészős **datalist** autocomplete a context var javaslatokra; `switch` ág (`*.branch`) + belső map/set/domainCommand path-ok a javaslatokban; statikus `foreach.index` / `foreach.item`; **`scripts/iter-end.ps1` / `iter-end.sh`** + **`gh-pr-push-merge` `-BodyFile` / `pr-body.md`**.  
@@ -176,6 +176,18 @@
 **DoD**
 - ✅ `dotnet test` + `npm run build` zöld.
 
+### Iteráció 52 — Deploy / Docker + Helm + CI ✅
+**Cél**: reprodukálható image build + minimális Kubernetes chart + CI gate.
+
+**Deliverables**
+- ✅ `deploy/docker/Dockerfile.backend`, `Dockerfile.frontend`, `nginx-frontend.conf`, `docker-compose.yml` (nginx → `/api` proxy, SQLite volume).
+- ✅ `deploy/helm/lowcode-platform/` — Deployment + Service (backend + frontend), nginx ConfigMap, opcionális Ingress.
+- ✅ `.dockerignore`; GitHub Actions: Docker build (push nélkül) + `helm lint` / `helm template`.
+- ✅ [`docs/live/container-deploy.md`](container-deploy.md)
+
+**DoD**
+- ✅ `dotnet test` + `npm run build` zöld (meglévő gate-ek); CI-ban docker + helm lépések.
+
 ### Stratégiai irány + javasolt következő iterációk (48+)
 
 **Miért ez a sorrend?** A platform differenciáló része a **low-code workflow + tenant-izolált futtatás + megfigyelhetőség**. A **home-lab / k3s** és a **Pi** értékes, de *párhuzamos* pálya: addig is érdemes a **terméket mélyíteni** (futások átláthatósága, ellenállóság, enterprise adatbázis), hogy legyen mit konténerbe tenni. A **második providernek SQL Server (MSSQL)** az elsődleges cél (gyorsabb onboarding a csapat ismeretei miatt); **PostgreSQL** későbbi hullámban jöhet. A **tenant-szintű run lista** üzemeltetői érték kevés API-felületen.
@@ -187,12 +199,12 @@
 | **48** | **Tenant-wide workflow run lista** — `GET /api/workflows/runs` (lapozás, opcionális szűrés: `workflowDefinitionId`, `state`, időablak) + minimális frontend lista (vagy meglévő workflow UI bővítés) | Magas láthatóság: nem csak definition-enként kell bóklászni a futásokhoz. Közepes kockázat (új endpoint + indexek). |
 | **49** | ~~**Második DB provider: SQL Server (MSSQL)**~~ ✅ — platform tenant DB: connection string + `UseSqlServer` / `UseSqlite`; greenfield bootstrap `EnsureCreated` (`LCP_SQLSERVER_ENSURE_CREATED=1`); később: provider-specifikus migrációk | Első hullám kész (iter 49); további migráció-stratégia külön milestone lehet. |
 | **50** | ~~**Step-level retry / backoff**~~ ✅ — `WorkflowStepRetryPolicy` + runner; linter (`workflow_retry_config_invalid`, `workflow_step_timeout_invalid`); Viewer + unit teszt; [`docs/live/workflow-step-retry.md`](workflow-step-retry.md) | Meglévő motor kiegészítése; tesztek a backoff + linterre. |
-| **51** | **Workflow indítás API-n kívülről (MVP)** — pl. **webhook** vagy **egyszeri schedule** (hosted service + per-tenant queue) *vagy* „run by external key” — szűk scope, egy választott út | Automatizálás; csak egyet válasszunk az MVP-ben, ne mindhárom. |
-| **52** | **Deploy / Helm chart + CI image** — `Dockerfile`, GitHub Actions build, opcionális Helm values (SQLite dev / **SQL Server** prod); *opcionálisan* Pi doc link | A 48–49 után érdemes: van mit kipróbálni k8s-en. |
+| **51** | ~~**Workflow indítás API-n kívülről (MVP)**~~ ✅ — inbound webhook: [`docs/live/workflow-inbound-trigger.md`](workflow-inbound-trigger.md) | Webhook-first; schedule külön. |
+| **52** | ~~**Deploy / Helm chart + CI image**~~ ✅ — `deploy/docker/*`, `deploy/helm/lowcode-platform`, CI docker + helm template; [`docs/live/container-deploy.md`](container-deploy.md) | SQLite emptyDir / compose volume demó; éles: Secret + SQL Server / PVC. |
 
 **Szándékosan hátrébb:** tisztán **vizuális workflow builder** (drag&drop) — amíg a séma + linter + futó motor stabil, addig a JSON-alapú szerkesztés + viewer kevesebb UI-adósságot hagy.
 
-**Következő konkrét ACTIVE:** Iteráció **52** (deploy / Helm) — **51** lezárva (inbound: [`docs/live/workflow-inbound-trigger.md`](workflow-inbound-trigger.md)).
+**Következő konkrét ACTIVE (stratégiai):** home-lab / **k3s** / **Pi** telepítési vonal — részletek a fájl alján („Következő konkrét lépések (ajánlott)” / arch/infra). **52** lezárva: [`docs/live/container-deploy.md`](container-deploy.md).
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.
