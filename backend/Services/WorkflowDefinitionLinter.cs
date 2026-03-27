@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -50,10 +51,14 @@ public static class WorkflowDefinitionLinter
             for (var i = 0; i < stepsEl.GetArrayLength(); i += 1)
                 stepKeys.Add($"{i:000}");
 
+            var stepIndex = 0;
             foreach (var stepEl in stepsEl.EnumerateArray())
             {
                 if (stepEl.ValueKind != JsonValueKind.Object)
+                {
+                    stepIndex += 1;
                     continue;
+                }
 
                 if (stepEl.TryGetProperty("type", out var typeEl) && typeEl.ValueKind == JsonValueKind.String)
                 {
@@ -65,6 +70,8 @@ public static class WorkflowDefinitionLinter
                             Message: $"Unknown workflow step type: '{type}'."));
                     }
                 }
+
+                AppendRetryAndTimeoutLintWarnings(warnings, stepEl, stepIndex);
 
                 foreach (var m in ContextVarRegex.Matches(stepEl.GetRawText()).Cast<Match>())
                 {
@@ -92,6 +99,75 @@ public static class WorkflowDefinitionLinter
         }
 
         return warnings;
+    }
+
+    private static void AppendRetryAndTimeoutLintWarnings(List<WorkflowLintWarningDto> warnings, JsonElement stepEl, int stepIndex)
+    {
+        var stepKey = stepIndex.ToString("000", CultureInfo.InvariantCulture);
+
+        if (stepEl.TryGetProperty("timeoutMs", out var timeoutEl))
+        {
+            if (!timeoutEl.TryGetInt32(out var to) || to < 1)
+            {
+                warnings.Add(new WorkflowLintWarningDto(
+                    Code: "workflow_step_timeout_invalid",
+                    Message: $"Step '{stepKey}': 'timeoutMs' must be an integer >= 1 when provided."));
+            }
+        }
+
+        if (!stepEl.TryGetProperty("retry", out var retryEl))
+            return;
+
+        if (retryEl.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+            return;
+
+        if (retryEl.ValueKind != JsonValueKind.Object)
+        {
+            warnings.Add(new WorkflowLintWarningDto(
+                Code: "workflow_retry_config_invalid",
+                Message: $"Step '{stepKey}': 'retry' must be an object when provided."));
+            return;
+        }
+
+        if (retryEl.TryGetProperty("maxAttempts", out var maxEl))
+        {
+            if (!maxEl.TryGetInt32(out var max) || max < 1)
+            {
+                warnings.Add(new WorkflowLintWarningDto(
+                    Code: "workflow_retry_config_invalid",
+                    Message: $"Step '{stepKey}': 'retry.maxAttempts' must be an integer >= 1 when provided."));
+            }
+        }
+
+        if (retryEl.TryGetProperty("delayMs", out var delayEl))
+        {
+            if (!delayEl.TryGetInt32(out var d) || d < 0)
+            {
+                warnings.Add(new WorkflowLintWarningDto(
+                    Code: "workflow_retry_config_invalid",
+                    Message: $"Step '{stepKey}': 'retry.delayMs' must be a non-negative integer when provided."));
+            }
+        }
+
+        if (retryEl.TryGetProperty("backoffFactor", out var factorEl))
+        {
+            if (!factorEl.TryGetDouble(out var bf) || bf < 1)
+            {
+                warnings.Add(new WorkflowLintWarningDto(
+                    Code: "workflow_retry_config_invalid",
+                    Message: $"Step '{stepKey}': 'retry.backoffFactor' must be a number >= 1 when provided."));
+            }
+        }
+
+        if (retryEl.TryGetProperty("maxDelayMs", out var maxDelayEl))
+        {
+            if (!maxDelayEl.TryGetInt32(out var md) || md < 0)
+            {
+                warnings.Add(new WorkflowLintWarningDto(
+                    Code: "workflow_retry_config_invalid",
+                    Message: $"Step '{stepKey}': 'retry.maxDelayMs' must be a non-negative integer when provided."));
+            }
+        }
     }
 
     private static HashSet<string> CollectReferencedPaths(string definitionJson)

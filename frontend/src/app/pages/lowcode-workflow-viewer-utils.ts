@@ -132,6 +132,24 @@ export function buildWorkflowViewerStepCards(steps: unknown): WorkflowViewerStep
         subtitle = null;
     }
 
+    const retry = s['retry'];
+    if (retry && typeof retry === 'object' && !Array.isArray(retry)) {
+      const r = retry as Record<string, unknown>;
+      const parts: string[] = [];
+      const ma = r['maxAttempts'];
+      const dm = r['delayMs'];
+      const bf = r['backoffFactor'];
+      const mdm = r['maxDelayMs'];
+      if (typeof ma === 'number' && Number.isFinite(ma)) parts.push(`max ${ma}`);
+      if (typeof dm === 'number' && Number.isFinite(dm)) parts.push(`${dm} ms`);
+      if (typeof bf === 'number' && Number.isFinite(bf)) parts.push(`×${bf}`);
+      if (typeof mdm === 'number' && Number.isFinite(mdm)) parts.push(`cap ${mdm} ms`);
+      if (parts.length) {
+        const line = `retry ${parts.join(', ')}`;
+        subtitle = subtitle ? `${subtitle} · ${line}` : line;
+      }
+    }
+
     return { index, stepKey, type, title, subtitle, branchPreview };
   });
 }

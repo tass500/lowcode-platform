@@ -26,6 +26,14 @@ describe('buildWorkflowViewerStepCards', () => {
     expect(cards[3].branchPreview).toContain('map');
     expect(cards[4].branchPreview).toContain('case');
   });
+
+  it('shows retry summary on step cards', () => {
+    const steps = [{ type: 'noop', retry: { maxAttempts: 3, delayMs: 100, backoffFactor: 2, maxDelayMs: 500 } }];
+    const cards = buildWorkflowViewerStepCards(steps);
+    expect(cards[0].subtitle).toContain('retry');
+    expect(cards[0].subtitle).toContain('max 3');
+    expect(cards[0].subtitle).toContain('100 ms');
+  });
 });
 
 describe('findCaretIndexForWorkflowStep', () => {
