@@ -26,13 +26,12 @@ public sealed class TenantMigrationService
             {
                 var cs = ResolveConnectionString(t);
 
-                var options = new DbContextOptionsBuilder<PlatformDbContext>()
-                    .UseSqlite(cs)
-                    .Options;
+                var optionsBuilder = new DbContextOptionsBuilder<PlatformDbContext>();
+                PlatformDatabaseProvider.ConfigurePlatformDbContext(optionsBuilder, cs);
 
-                await using var tenantDb = new PlatformDbContext(options);
+                await using var tenantDb = new PlatformDbContext(optionsBuilder.Options);
 
-                await tenantDb.Database.MigrateAsync(ct);
+                await PlatformTenantDatabaseBootstrap.MigrateOrEnsureCreatedAsync(tenantDb, cs, ct);
 
                 results.Add(new TenantMigrationResult(t.Slug, true, null, startedAtUtc, DateTime.UtcNow));
             }
@@ -52,12 +51,11 @@ public sealed class TenantMigrationService
         {
             var cs = ResolveConnectionString(tenant);
 
-            var options = new DbContextOptionsBuilder<PlatformDbContext>()
-                .UseSqlite(cs)
-                .Options;
+            var optionsBuilder = new DbContextOptionsBuilder<PlatformDbContext>();
+            PlatformDatabaseProvider.ConfigurePlatformDbContext(optionsBuilder, cs);
 
-            await using var tenantDb = new PlatformDbContext(options);
-            await tenantDb.Database.MigrateAsync(ct);
+            await using var tenantDb = new PlatformDbContext(optionsBuilder.Options);
+            await PlatformTenantDatabaseBootstrap.MigrateOrEnsureCreatedAsync(tenantDb, cs, ct);
 
             return new TenantMigrationResult(tenant.Slug, true, null, startedAtUtc, DateTime.UtcNow);
         }

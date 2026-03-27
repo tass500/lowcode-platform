@@ -111,14 +111,15 @@ if (isEfDesignTime)
     var designTimeTenantCs = builder.Configuration["Tenancy:DesignTimeTenantConnectionString"]
                              ?? "Data Source=tenant-default.db";
 
-    builder.Services.AddDbContext<PlatformDbContext>(o => o.UseSqlite(designTimeTenantCs));
+    builder.Services.AddDbContext<PlatformDbContext>(o =>
+        PlatformDatabaseProvider.ConfigurePlatformDbContext(o, designTimeTenantCs));
 }
 else
 {
     builder.Services.AddDbContext<PlatformDbContext>((sp, o) =>
     {
         var tenantCs = sp.GetRequiredService<TenantDbConnectionStringProvider>().Get();
-        o.UseSqlite(tenantCs);
+        PlatformDatabaseProvider.ConfigurePlatformDbContext(o, tenantCs);
     });
 }
 
@@ -237,9 +238,10 @@ if (!app.Environment.IsEnvironment("Testing") && !IsEfDesignTime() && !ShouldSki
 
     var tenantDb = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
     var startupLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+    var tenantCsForBootstrap = tenantDb.Database.GetConnectionString() ?? defaultTenantCs;
     try
     {
-        await tenantDb.Database.MigrateAsync();
+        await PlatformTenantDatabaseBootstrap.MigrateOrEnsureCreatedAsync(tenantDb, tenantCsForBootstrap, CancellationToken.None);
     }
     catch (Microsoft.Data.Sqlite.SqliteException ex)
         when ((app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))

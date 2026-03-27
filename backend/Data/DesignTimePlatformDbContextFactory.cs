@@ -7,12 +7,12 @@ public sealed class DesignTimePlatformDbContextFactory : IDesignTimeDbContextFac
 {
     public PlatformDbContext CreateDbContext(string[] args)
     {
-        var cs = "Data Source=tenant-default.db";
+        var cs = Environment.GetEnvironmentVariable("LCP_PLATFORM_DESIGN_TIME_CONNECTION_STRING")
+                 ?? "Data Source=tenant-default.db";
 
-        var options = new DbContextOptionsBuilder<PlatformDbContext>()
-            .UseSqlite(cs)
-            .Options;
+        var optionsBuilder = new DbContextOptionsBuilder<PlatformDbContext>();
+        PlatformDatabaseProvider.ConfigurePlatformDbContext(optionsBuilder, cs);
 
-        return new PlatformDbContext(options);
+        return new PlatformDbContext(optionsBuilder.Options);
     }
 }

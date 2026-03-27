@@ -11,6 +11,10 @@ public static class PlatformSqliteSchemaRepair
 {
     public static async Task EnsureUpgradeTablesExistAsync(PlatformDbContext db, CancellationToken ct)
     {
+        var provider = db.Database.ProviderName;
+        if (string.IsNullOrEmpty(provider) || !provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+            return;
+
         await db.Database.OpenConnectionAsync(ct);
         try
         {
