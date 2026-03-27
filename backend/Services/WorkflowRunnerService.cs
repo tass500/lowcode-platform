@@ -12,10 +12,6 @@ public sealed class WorkflowRunnerService
     private static readonly Regex ContextVarRegex = new(@"\$\{([^}]+)\}", RegexOptions.Compiled);
     private static readonly Regex ContextVarAnyRegex = new(@"\$\{([^}]*)\}", RegexOptions.Compiled);
 
-    private sealed record RetryPolicy(int MaxAttempts, int DelayMs, double BackoffFactor, int? MaxDelayMs);
-
-    private sealed record StepPolicy(RetryPolicy Retry, int? TimeoutMs);
-
     private readonly PlatformDbContext _db;
 
     public WorkflowRunnerService(PlatformDbContext db)
@@ -85,33 +81,6 @@ public sealed class WorkflowRunnerService
         }
     }
 
-    private static StepPolicy ParseStepPolicy(string? stepConfigJson)
-    {
-        var retry = ParseRetryPolicy(stepConfigJson);
-        if (string.IsNullOrWhiteSpace(stepConfigJson))
-            return new StepPolicy(Retry: retry, TimeoutMs: null);
-
-        try
-        {
-            using var doc = JsonDocument.Parse(stepConfigJson);
-            var root = doc.RootElement;
-
-            int? timeoutMs = null;
-            if (root.TryGetProperty("timeoutMs", out var timeoutEl)
-                && timeoutEl.TryGetInt32(out var parsed)
-                && parsed >= 1)
-            {
-                timeoutMs = parsed;
-            }
-
-            return new StepPolicy(Retry: retry, TimeoutMs: timeoutMs);
-        }
-        catch
-        {
-            return new StepPolicy(Retry: retry, TimeoutMs: null);
-        }
-    }
-
     private static void ExecuteSetAsync(WorkflowStepRun step)
     {
         if (string.IsNullOrWhiteSpace(step.StepConfigJson))
@@ -171,61 +140,6 @@ public sealed class WorkflowRunnerService
         step.LastErrorCode = "set_output_missing";
         step.LastErrorMessage = "set step requires 'output' or 'outputJson'.";
         throw new InvalidOperationException(step.LastErrorMessage);
-    }
-
-    private static RetryPolicy ParseRetryPolicy(string? stepConfigJson)
-    {
-        if (string.IsNullOrWhiteSpace(stepConfigJson))
-            return new RetryPolicy(MaxAttempts: 1, DelayMs: 0, BackoffFactor: 1, MaxDelayMs: null);
-
-        try
-        {
-            using var doc = JsonDocument.Parse(stepConfigJson);
-            var root = doc.RootElement;
-            if (!root.TryGetProperty("retry", out var retryEl) || retryEl.ValueKind != JsonValueKind.Object)
-                return new RetryPolicy(MaxAttempts: 1, DelayMs: 0, BackoffFactor: 1, MaxDelayMs: null);
-
-            var maxAttempts = 1;
-            if (retryEl.TryGetProperty("maxAttempts", out var maxEl) && maxEl.TryGetInt32(out var parsedMax) && parsedMax >= 1)
-                maxAttempts = parsedMax;
-
-            var delayMs = 0;
-            if (retryEl.TryGetProperty("delayMs", out var delayEl) && delayEl.TryGetInt32(out var parsedDelay) && parsedDelay >= 0)
-                delayMs = parsedDelay;
-
-            var backoffFactor = 1d;
-            if (retryEl.TryGetProperty("backoffFactor", out var factorEl) && factorEl.TryGetDouble(out var parsedFactor) && parsedFactor >= 1)
-                backoffFactor = parsedFactor;
-
-            int? maxDelayMs = null;
-            if (retryEl.TryGetProperty("maxDelayMs", out var maxDelayEl) && maxDelayEl.TryGetInt32(out var parsedMaxDelay) && parsedMaxDelay >= 0)
-                maxDelayMs = parsedMaxDelay;
-
-            return new RetryPolicy(MaxAttempts: maxAttempts, DelayMs: delayMs, BackoffFactor: backoffFactor, MaxDelayMs: maxDelayMs);
-        }
-        catch
-        {
-            return new RetryPolicy(MaxAttempts: 1, DelayMs: 0, BackoffFactor: 1, MaxDelayMs: null);
-        }
-    }
-
-    private static int GetRetryDelayMs(RetryPolicy policy, int attemptNumber)
-    {
-        if (policy.MaxAttempts <= 1)
-            return 0;
-        if (policy.DelayMs <= 0)
-            return 0;
-        if (attemptNumber <= 1)
-            return 0;
-
-        var exponent = attemptNumber - 2;
-        var raw = policy.DelayMs * Math.Pow(policy.BackoffFactor, exponent);
-        var ms = raw > int.MaxValue ? int.MaxValue : (int)Math.Round(raw);
-
-        if (policy.MaxDelayMs is not null)
-            ms = Math.Min(ms, policy.MaxDelayMs.Value);
-
-        return Math.Max(0, ms);
     }
 
     private static void ExecuteUnstableAsync(WorkflowStepRun step)
@@ -937,7 +851,7 @@ public sealed class WorkflowRunnerService
 
     private async Task ExecuteStepAsync(WorkflowRun run, WorkflowStepRun step, JsonObject context, CancellationToken ct)
     {
-        var policy = ParseStepPolicy(step.StepConfigJson);
+        var policy = WorkflowStepRetryPolicy.Parse(step.StepConfigJson);
 
         var startedAt = DateTime.UtcNow;
         step.StartedAtUtc = startedAt;
@@ -947,7 +861,7 @@ public sealed class WorkflowRunnerService
         {
             ct.ThrowIfCancellationRequested();
 
-            var delayMs = GetRetryDelayMs(policy.Retry, attemptNumber);
+            var delayMs = WorkflowStepRetryPolicy.GetInterAttemptDelayMs(policy.Retry, attemptNumber);
             if (delayMs > 0)
                 await Task.Delay(delayMs, ct);
 
@@ -995,7 +909,7 @@ public sealed class WorkflowRunnerService
 
                 // timeout (linked token canceled)
                 step.LastErrorCode ??= "workflow_step_timed_out";
-                step.LastErrorMessage ??= $"Step timed out after {policy.TimeoutMs} ms.";
+                step.LastErrorMessage ??= $"Step timed out after {policy.TimeoutMs!.Value} ms.";
 
                 if (attemptNumber < policy.Retry.MaxAttempts)
                     continue;

@@ -24,7 +24,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `require`
     - `domainCommand`
     - `unstable`
-  - Utolsó lezárt **repo** milestone (workflow vonal): **49** — tenant `PlatformDbContext`: SQL Server második provider (`Microsoft.EntityFrameworkCore.SqlServer`), connection string alapú választás, bootstrap: `Migrate` (SQLite) / opcionális `EnsureCreated` SQL Serveren (`LCP_SQLSERVER_ENSURE_CREATED=1`); `TenantMigrationService` + orchestrator + design-time; SQLite repair csak SQLite-on; részletek: [`docs/live/sqlserver-platform.md`](sqlserver-platform.md). Előtte **48** run lista, **47** dev ergonomics, **42** `details`, UI **43–46**; következő ACTIVE: **50** — step retry/backoff, lásd `docs/live/03`.
+  - Utolsó lezárt **repo** milestone (workflow vonal): **50** — step-level **retry / backoff** (`retry` + `timeoutMs` a step JSON-ben): `WorkflowStepRetryPolicy` + runner; linter figyelmeztetések; Viewer v2 alcím; doc [`docs/live/workflow-step-retry.md`](workflow-step-retry.md). Előtte **49** SQL Server platform DB [`sqlserver-platform.md`](sqlserver-platform.md), **48** run lista, **47–46**; következő ACTIVE: **51** — külső trigger / webhook MVP, lásd `docs/live/03`.
     - unknown step type → warning
     - context var referencia ismeretlen step key-re → warning
     - kihasználatlan `set`/`map`/ismert `domainCommand` kimenet → warning
@@ -33,7 +33,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `code`
     - `message`
     - `severity`
-  - **Következő stratégiai ütemterv (50–52+):** step retry/backoff → külső trigger (MVP) → konténer/Helm — [`docs/live/03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) § *Stratégiai irány + javasolt következő iterációk (48+)*. SQL Server platform DB: [`docs/live/sqlserver-platform.md`](sqlserver-platform.md).
+  - **Következő stratégiai ütemterv (51–52+):** külső trigger (MVP) → konténer/Helm — [`docs/live/03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) § *Stratégiai irány + javasolt következő iterációk (48+)*. Retry doc: [`docs/live/workflow-step-retry.md`](workflow-step-retry.md).
 
 
 - **Frontend (Angular)**
