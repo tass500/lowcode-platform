@@ -97,6 +97,7 @@ public sealed class PlatformDbContext : DbContext
             e.Property(x => x.WorkflowDefinitionId).HasColumnName("workflow_definition_id");
             e.Property(x => x.Name).HasColumnName("name");
             e.Property(x => x.DefinitionJson).HasColumnName("definition_json");
+            e.Property(x => x.InboundTriggerSecretSha256Hex).HasColumnName("inbound_trigger_secret_sha256_hex");
             e.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc");
             e.Property(x => x.UpdatedAtUtc).HasColumnName("updated_at_utc");
 

@@ -15,7 +15,12 @@ public sealed record WorkflowDefinitionDetailsDto(
     string Name,
     string DefinitionJson,
     List<WorkflowLintWarningDto> LintWarnings,
+    bool InboundTriggerConfigured,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc);
+
+public sealed record SetWorkflowInboundTriggerRequest(string Secret);
+
+public sealed record WorkflowInboundTriggerStatusDto(bool InboundTriggerConfigured, DateTime ServerTimeUtc);
 
 public sealed record WorkflowListResponse(DateTime ServerTimeUtc, List<WorkflowDefinitionListItemDto> Items);

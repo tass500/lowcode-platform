@@ -183,9 +183,22 @@ public sealed class WorkflowsController : ControllerBase
         }
     }
 
-    public sealed record CreateWorkflowRequest(string Name, string DefinitionJson);
+    public sealed record CreateWorkflowRequest(string Name, string DefinitionJson, string? InboundTriggerSecret = null);
 
     public sealed record UpdateWorkflowRequest(string Name, string DefinitionJson);
+
+    private static WorkflowDefinitionDetailsDto ToDetailsDto(Models.WorkflowDefinition wf)
+    {
+        var lintWarnings = WorkflowDefinitionLinter.Lint(wf.DefinitionJson);
+        return new WorkflowDefinitionDetailsDto(
+            wf.WorkflowDefinitionId,
+            wf.Name,
+            wf.DefinitionJson,
+            lintWarnings,
+            InboundTriggerConfigured: !string.IsNullOrEmpty(wf.InboundTriggerSecretSha256Hex),
+            wf.CreatedAtUtc,
+            wf.UpdatedAtUtc);
+    }
 
     [HttpGet]
     public async Task<ActionResult<WorkflowListResponse>> List(CancellationToken ct)
@@ -214,14 +227,7 @@ public sealed class WorkflowsController : ControllerBase
                 "Workflow not found.",
                 ErrorDetail.Single("$.workflowDefinitionId", "workflow_not_found", "Workflow not found."));
 
-        var lintWarnings = WorkflowDefinitionLinter.Lint(wf.DefinitionJson);
-        return Ok(new WorkflowDefinitionDetailsDto(
-            wf.WorkflowDefinitionId,
-            wf.Name,
-            wf.DefinitionJson,
-            lintWarnings,
-            wf.CreatedAtUtc,
-            wf.UpdatedAtUtc));
+        return Ok(ToDetailsDto(wf));
     }
 
     [HttpPost]
@@ -257,7 +263,17 @@ public sealed class WorkflowsController : ControllerBase
                 syntaxIssues[0].Message,
                 ToErrorDetails(syntaxIssues));
 
-        var lintWarnings = WorkflowDefinitionLinter.Lint(req.DefinitionJson);
+        if (!string.IsNullOrWhiteSpace(req.InboundTriggerSecret))
+        {
+            if (req.InboundTriggerSecret.Trim().Length < WorkflowInboundSecretHasher.MinSecretLength)
+            {
+                return Problem(
+                    StatusCodes.Status400BadRequest,
+                    "inbound_secret_invalid",
+                    $"InboundTriggerSecret must be at least {WorkflowInboundSecretHasher.MinSecretLength} characters when provided.",
+                    ErrorDetail.Single("$.inboundTriggerSecret", "inbound_secret_invalid", "Inbound secret is too short."));
+            }
+        }
 
         var wf = new Models.WorkflowDefinition
         {
@@ -267,6 +283,9 @@ public sealed class WorkflowsController : ControllerBase
             CreatedAtUtc = DateTime.UtcNow,
             UpdatedAtUtc = DateTime.UtcNow,
         };
+
+        if (!string.IsNullOrWhiteSpace(req.InboundTriggerSecret))
+            wf.InboundTriggerSecretSha256Hex = WorkflowInboundSecretHasher.Sha256HexUtf8(req.InboundTriggerSecret.Trim());
 
         _db.WorkflowDefinitions.Add(wf);
         await _db.SaveChangesAsync(ct);
@@ -282,13 +301,7 @@ public sealed class WorkflowsController : ControllerBase
             detailsJson: null,
             ct: ct);
 
-        return Ok(new WorkflowDefinitionDetailsDto(
-            wf.WorkflowDefinitionId,
-            wf.Name,
-            wf.DefinitionJson,
-            lintWarnings,
-            wf.CreatedAtUtc,
-            wf.UpdatedAtUtc));
+        return Ok(ToDetailsDto(wf));
     }
 
     [HttpPut("{id:guid}")]
@@ -324,8 +337,6 @@ public sealed class WorkflowsController : ControllerBase
                 syntaxIssues[0].Message,
                 ToErrorDetails(syntaxIssues));
 
-        var lintWarnings = WorkflowDefinitionLinter.Lint(req.DefinitionJson);
-
         var wf = await _db.WorkflowDefinitions.FirstOrDefaultAsync(x => x.WorkflowDefinitionId == id, ct);
         if (wf is null)
             return Problem(
@@ -351,13 +362,7 @@ public sealed class WorkflowsController : ControllerBase
             detailsJson: null,
             ct: ct);
 
-        return Ok(new WorkflowDefinitionDetailsDto(
-            wf.WorkflowDefinitionId,
-            wf.Name,
-            wf.DefinitionJson,
-            lintWarnings,
-            wf.CreatedAtUtc,
-            wf.UpdatedAtUtc));
+        return Ok(ToDetailsDto(wf));
     }
 
     [HttpDelete("{id:guid}")]

@@ -5,7 +5,7 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 51 — workflow indítás API-n kívülről (MVP) — utolsó lezárt: Iteráció 50 (step retry/backoff + linter + viewer); előtte: 49 SQL Server platform DB + 48 run lista + 42 `details` + UI 43–46 ✅ (lásd lent)**
+**ACTIVE: Iteráció 52 — Deploy / Helm chart + CI image — utolsó lezárt: Iteráció 51 (inbound workflow webhook MVP); előtte: 50 retry + 49 SQL Server + 48 run lista + 42 `details` + UI 43–46 ✅ (lásd lent)**
 
 > Iteráció 41: backend **`WorkflowDefinitionLinter`**: lint warning **`workflow_step_output_unused`** (`set` / `map` / `domainCommand` statikus kimenetek, ha nincs `${…}` hivatkozás); **`workflow_context_likely_typo`** (pl. `foreach.indx` → `foreach.index`); meglévő unknown step + missing step key — `WorkflowsController` a linterre delegál.  
 > Iteráció 40: workflow **New** + **details** JSON nézet: böngészős **datalist** autocomplete a context var javaslatokra; `switch` ág (`*.branch`) + belső map/set/domainCommand path-ok a javaslatokban; statikus `foreach.index` / `foreach.item`; **`scripts/iter-end.ps1` / `iter-end.sh`** + **`gh-pr-push-merge` `-BodyFile` / `pr-body.md`**.  
@@ -163,6 +163,19 @@
 **DoD**
 - ✅ `dotnet test` + `npm run build` + `npx ng test --watch=false --browsers=ChromeHeadless` zöld.
 
+### Iteráció 51 — inbound workflow trigger (webhook MVP) ✅
+**Cél**: JWT nélküli workflow indítás megosztott titokkal (külső rendszerek / CI).
+
+**Deliverables**
+- ✅ DB: `workflow_definition.inbound_trigger_secret_sha256_hex` + EF migráció.
+- ✅ `POST /api/inbound/workflows/{id}/runs` + `X-Workflow-Inbound-Secret`; `PUT`/`DELETE` `/api/workflows/{id}/inbound-trigger` (JWT); opcionális `inboundTriggerSecret` create body-ban.
+- ✅ `WorkflowDefinitionDetailsDto.inboundTriggerConfigured`; frontend workflow details sor.
+- ✅ Integrációs tesztek: siker, rossz titok, nincs titok beállítva.
+- ✅ [`docs/live/workflow-inbound-trigger.md`](workflow-inbound-trigger.md)
+
+**DoD**
+- ✅ `dotnet test` + `npm run build` zöld.
+
 ### Stratégiai irány + javasolt következő iterációk (48+)
 
 **Miért ez a sorrend?** A platform differenciáló része a **low-code workflow + tenant-izolált futtatás + megfigyelhetőség**. A **home-lab / k3s** és a **Pi** értékes, de *párhuzamos* pálya: addig is érdemes a **terméket mélyíteni** (futások átláthatósága, ellenállóság, enterprise adatbázis), hogy legyen mit konténerbe tenni. A **második providernek SQL Server (MSSQL)** az elsődleges cél (gyorsabb onboarding a csapat ismeretei miatt); **PostgreSQL** későbbi hullámban jöhet. A **tenant-szintű run lista** üzemeltetői érték kevés API-felületen.
@@ -179,7 +192,7 @@
 
 **Szándékosan hátrébb:** tisztán **vizuális workflow builder** (drag&drop) — amíg a séma + linter + futó motor stabil, addig a JSON-alapú szerkesztés + viewer kevesebb UI-adósságot hagy.
 
-**Következő konkrét ACTIVE:** Iteráció **51** (külső trigger / webhook MVP) — **50** lezárva (retry: [`docs/live/workflow-step-retry.md`](workflow-step-retry.md)).
+**Következő konkrét ACTIVE:** Iteráció **52** (deploy / Helm) — **51** lezárva (inbound: [`docs/live/workflow-inbound-trigger.md`](workflow-inbound-trigger.md)).
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.
