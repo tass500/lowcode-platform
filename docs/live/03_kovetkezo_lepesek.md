@@ -5,7 +5,7 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 49 — második DB provider (SQL Server) — utolsó lezárt: Iteráció 48 (tenant-wide workflow run lista); előtte: 47 dev ergonomics + 42 error `details` + UI 43–46 ✅ (lásd lent)**
+**ACTIVE: Iteráció 50 — step-level retry / backoff — utolsó lezárt: Iteráció 49 (SQL Server platform DB provider + bootstrap); előtte: 48 run lista + 47 dev ergonomics + 42 `details` + UI 43–46 ✅ (lásd lent)**
 
 > Iteráció 41: backend **`WorkflowDefinitionLinter`**: lint warning **`workflow_step_output_unused`** (`set` / `map` / `domainCommand` statikus kimenetek, ha nincs `${…}` hivatkozás); **`workflow_context_likely_typo`** (pl. `foreach.indx` → `foreach.index`); meglévő unknown step + missing step key — `WorkflowsController` a linterre delegál.  
 > Iteráció 40: workflow **New** + **details** JSON nézet: böngészős **datalist** autocomplete a context var javaslatokra; `switch` ág (`*.branch`) + belső map/set/domainCommand path-ok a javaslatokban; statikus `foreach.index` / `foreach.item`; **`scripts/iter-end.ps1` / `iter-end.sh`** + **`gh-pr-push-merge` `-BodyFile` / `pr-body.md`**.  
@@ -160,14 +160,14 @@
 | Iter | Fókusz | Érték / kockázat |
 |------|--------|------------------|
 | **48** | **Tenant-wide workflow run lista** — `GET /api/workflows/runs` (lapozás, opcionális szűrés: `workflowDefinitionId`, `state`, időablak) + minimális frontend lista (vagy meglévő workflow UI bővítés) | Magas láthatóság: nem csak definition-enként kell bóklászni a futásokhoz. Közepes kockázat (új endpoint + indexek). |
-| **49** | **Második DB provider: SQL Server (MSSQL)** — dev: LocalDB vagy Docker `mssql/server`; connection string + EF migrációk stratégia (külön assembly vagy provider-feltételes pipeline); SQLite marad default gyors devhez; *PostgreSQL későbbi iterációban* | Enterprise / konténer-barát telepítés; a csapat MSSQL-t jobban ismeri → előbb ez, mint a Postgres. Magas munka, de egyszeri irányváltás. |
+| **49** | ~~**Második DB provider: SQL Server (MSSQL)**~~ ✅ — platform tenant DB: connection string + `UseSqlServer` / `UseSqlite`; greenfield bootstrap `EnsureCreated` (`LCP_SQLSERVER_ENSURE_CREATED=1`); később: provider-specifikus migrációk | Első hullám kész (iter 49); további migráció-stratégia külön milestone lehet. |
 | **50** | **Step-level retry / backoff** (korábbi roadmap **31** felvéve) — konfigurálható policy a step JSON-ben, runner viselkedés, tesztek | Megbízhatóság hosszú / instabil lépéseknél. Közepes–magas: runner core érintett. |
 | **51** | **Workflow indítás API-n kívülről (MVP)** — pl. **webhook** vagy **egyszeri schedule** (hosted service + per-tenant queue) *vagy* „run by external key” — szűk scope, egy választott út | Automatizálás; csak egyet válasszunk az MVP-ben, ne mindhárom. |
 | **52** | **Deploy / Helm chart + CI image** — `Dockerfile`, GitHub Actions build, opcionális Helm values (SQLite dev / **SQL Server** prod); *opcionálisan* Pi doc link | A 48–49 után érdemes: van mit kipróbálni k8s-en. |
 
 **Szándékosan hátrébb:** tisztán **vizuális workflow builder** (drag&drop) — amíg a séma + linter + futó motor stabil, addig a JSON-alapú szerkesztés + viewer kevesebb UI-adósságot hagy.
 
-**Következő konkrét ACTIVE:** Iteráció **49** (SQL Server második provider) — **48** lezárva.
+**Következő konkrét ACTIVE:** Iteráció **50** (step retry/backoff) — **49** lezárva (SQL Server platform DB: [`docs/live/sqlserver-platform.md`](sqlserver-platform.md)).
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.

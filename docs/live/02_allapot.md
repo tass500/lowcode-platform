@@ -24,7 +24,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `require`
     - `domainCommand`
     - `unstable`
-  - Utolsó lezárt **repo** milestone (workflow vonal): **48** — tenant-szintű run lista API + UI (`/lowcode/workflow-runs`); előtte **47** dev ergonomics, **42** error `details`, UI **43–46**; következő ACTIVE: **49** — SQL Server (második provider), lásd `docs/live/03`.
+  - Utolsó lezárt **repo** milestone (workflow vonal): **49** — tenant `PlatformDbContext`: SQL Server második provider (`Microsoft.EntityFrameworkCore.SqlServer`), connection string alapú választás, bootstrap: `Migrate` (SQLite) / opcionális `EnsureCreated` SQL Serveren (`LCP_SQLSERVER_ENSURE_CREATED=1`); `TenantMigrationService` + orchestrator + design-time; SQLite repair csak SQLite-on; részletek: [`docs/live/sqlserver-platform.md`](sqlserver-platform.md). Előtte **48** run lista, **47** dev ergonomics, **42** `details`, UI **43–46**; következő ACTIVE: **50** — step retry/backoff, lásd `docs/live/03`.
     - unknown step type → warning
     - context var referencia ismeretlen step key-re → warning
     - kihasználatlan `set`/`map`/ismert `domainCommand` kimenet → warning
@@ -33,7 +33,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `code`
     - `message`
     - `severity`
-  - **Következő stratégiai ütemterv (49–52+):** SQL Server (MSSQL) második provider → step retry/backoff → külső trigger (MVP) → konténer/Helm — [`docs/live/03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) § *Stratégiai irány + javasolt következő iterációk (48+)*.
+  - **Következő stratégiai ütemterv (50–52+):** step retry/backoff → külső trigger (MVP) → konténer/Helm — [`docs/live/03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) § *Stratégiai irány + javasolt következő iterációk (48+)*. SQL Server platform DB: [`docs/live/sqlserver-platform.md`](sqlserver-platform.md).
 
 
 - **Frontend (Angular)**

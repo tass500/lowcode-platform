@@ -24,8 +24,14 @@ public sealed class UpgradeOrchestratorHostedService : BackgroundService
         {
             using var bootScope = _sp.CreateScope();
             var bootDb = bootScope.ServiceProvider.GetRequiredService<PlatformDbContext>();
-            await bootDb.Database.MigrateAsync(stoppingToken);
-            await PlatformSqliteSchemaRepair.EnsureUpgradeTablesExistAsync(bootDb, stoppingToken);
+            var bootCs = bootDb.Database.GetConnectionString();
+            if (string.IsNullOrWhiteSpace(bootCs))
+                _logger.LogWarning("upgrade_orchestrator_boot_no_connection_string");
+            else
+            {
+                await PlatformTenantDatabaseBootstrap.MigrateOrEnsureCreatedAsync(bootDb, bootCs, stoppingToken);
+                await PlatformSqliteSchemaRepair.EnsureUpgradeTablesExistAsync(bootDb, stoppingToken);
+            }
         }
         catch (Exception ex)
         {
