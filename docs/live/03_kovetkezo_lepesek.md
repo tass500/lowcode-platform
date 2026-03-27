@@ -5,8 +5,9 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 41 — utolsó lezárt: Iteráció 40 (context var autocomplete + iter-end tooling)**
+**ACTIVE: Iteráció 42 — utolsó lezárt: Iteráció 41 (workflow lint: unused output + typo hints)**
 
+> Iteráció 41: backend **`WorkflowDefinitionLinter`**: lint warning **`workflow_step_output_unused`** (`set` / `map` / `domainCommand` statikus kimenetek, ha nincs `${…}` hivatkozás); **`workflow_context_likely_typo`** (pl. `foreach.indx` → `foreach.index`); meglévő unknown step + missing step key — `WorkflowsController` a linterre delegál.  
 > Iteráció 40: workflow **New** + **details** JSON nézet: böngészős **datalist** autocomplete a context var javaslatokra; `switch` ág (`*.branch`) + belső map/set/domainCommand path-ok a javaslatokban; statikus `foreach.index` / `foreach.item`; **`scripts/iter-end.ps1` / `iter-end.sh`** + **`gh-pr-push-merge` `-BodyFile` / `pr-body.md`**.  
 > Iteráció 39: `last_error_config_path` (DB + API + runner), context var / require / map / merge / foreach / switch inner path; run details: **Error path** oszlop + keresés.
 
@@ -23,13 +24,13 @@
 - ✅ Iteráció 38: run details: “Resolved step config” megjelenítés (interpoláció utáni config) + toggle.
 - ✅ Iteráció 39: context var UX: hiba részletek (melyik step/config path mezőben volt a hiba) + UI megjelenítés.
 - ✅ Iteráció 40: context var UX: autocomplete javaslatok (datalist + chip; statikus foreach hint + step output / switch branch) a szerkesztő oldalon (minimál) + iter-end / PR body fájl támogatás.
-- Iteráció 41: workflow lint: statikus ellenőrzések (unused step outputs, obvious typos) + warning szint.
+- ✅ Iteráció 41: workflow lint: statikus ellenőrzések (unused step outputs, obvious typos) + warning szint.
 - Iteráció 42: hardening: egységes error response detail mezők (path + code + message) a workflow validációkhoz.
 - ✅ Kész (frontend mini-slice): workflow details Viewer step-level lint warning megjelenítés (badge + warning részlet), no behavior change.
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch (következő PR): `feat/iter-41-<topic>` (vagy aktuális feature branch)
+- Branch (következő PR): `feat/iter-42-<topic>` (vagy aktuális feature branch)
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 - ✅ Kész (Iteráció 42): backend error detail contract egységesítés (path + code + message) + frontend megjelenítés + tesztek
@@ -74,6 +75,18 @@
 **DoD**
 - ✅ `npm run build` zöld.
 - ✅ Meglévő create/update flow viselkedése változatlan (csak UX).
+
+### Iteráció 41 — workflow lint: unused output + likely typos (backend) ✅
+**Cél:** statikus lint **warning** szinten: kihasználatlan step kimenet + tipikus `foreach.*` elírás.
+
+**Deliverables**
+- ✅ `WorkflowDefinitionLinter` (`Services/`): összevonja a meglévő lintet (unknown step type, hiányzó step key a `${…}`-ben).
+- ✅ Új kódok: **`workflow_step_output_unused`**, **`workflow_context_likely_typo`**.
+- ✅ `set` / `map` / `domainCommand` (ismert parancs kimenetek) — ha egy kimeneti path sehol sincs hivatkozva (`${stepKey}` vagy `${stepKey.prop}` …).
+- ✅ Integrációs tesztek: `WorkflowEndpointsTests` (unused, referenced, typo).
+
+**DoD**
+- ✅ `dotnet test` (backend teszt projekt).
 
 ### Iteráció 40 — context var autocomplete (frontend) + iter-end tooling ✅
 **Cél**: gyorsabb `${…}` szerkesztés; iteráció végén egy **parancs** a gate-ekre + PR-merge folyamatra.

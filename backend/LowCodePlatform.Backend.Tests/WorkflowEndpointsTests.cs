@@ -362,4 +362,108 @@ public sealed class WorkflowEndpointsTests
         }
         Assert.True(found);
     }
+
+    [Fact]
+    public async Task Workflows_create_should_warn_when_set_output_never_referenced()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var def =
+            "{\"steps\":[" +
+            "{\"type\":\"set\",\"output\":{\"seed\":\"1\"}}," +
+            "{\"type\":\"noop\"}" +
+            "]}";
+        var createReq = new { name = "wf-lint-unused-out", definitionJson = def };
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", createReq);
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+
+        var json = await createResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.TryGetProperty("lintWarnings", out var warningsEl));
+        var found = false;
+        foreach (var w in warningsEl.EnumerateArray())
+        {
+            if (w.TryGetProperty("code", out var c) && c.GetString() == "workflow_step_output_unused")
+                found = true;
+        }
+
+        Assert.True(found);
+    }
+
+    [Fact]
+    public async Task Workflows_create_should_not_warn_unused_when_output_referenced()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var def =
+            "{\"steps\":[" +
+            "{\"type\":\"set\",\"output\":{\"seed\":\"1\"}}," +
+            "{\"type\":\"noop\",\"ref\":\"${000.seed}\"}" +
+            "]}";
+        var createReq = new { name = "wf-lint-used-out", definitionJson = def };
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", createReq);
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+
+        var json = await createResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.TryGetProperty("lintWarnings", out var warningsEl));
+        foreach (var w in warningsEl.EnumerateArray())
+        {
+            if (w.TryGetProperty("code", out var c) && c.GetString() == "workflow_step_output_unused")
+                Assert.True(false, "Did not expect workflow_step_output_unused when output is referenced.");
+        }
+    }
+
+    [Fact]
+    public async Task Workflows_create_should_warn_on_likely_foreach_typo()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var def = "{\"steps\":[{\"type\":\"noop\",\"x\":\"${foreach.indx}\"}]}";
+        var createReq = new { name = "wf-lint-typo", definitionJson = def };
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", createReq);
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+
+        var json = await createResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.TryGetProperty("lintWarnings", out var warningsEl));
+        var found = false;
+        foreach (var w in warningsEl.EnumerateArray())
+        {
+            if (w.TryGetProperty("code", out var c) && c.GetString() == "workflow_context_likely_typo")
+                found = true;
+        }
+
+        Assert.True(found);
+    }
 }
