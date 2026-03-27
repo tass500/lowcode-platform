@@ -5,7 +5,7 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 42 — utolsó lezárt: Iteráció 41 (workflow lint: unused output + typo hints)**
+**ACTIVE: Iteráció 43 — utolsó lezárt: Iteráció 42 (workflow error `details` egységesítés: name/definition/not-found + runs)**
 
 > Iteráció 41: backend **`WorkflowDefinitionLinter`**: lint warning **`workflow_step_output_unused`** (`set` / `map` / `domainCommand` statikus kimenetek, ha nincs `${…}` hivatkozás); **`workflow_context_likely_typo`** (pl. `foreach.indx` → `foreach.index`); meglévő unknown step + missing step key — `WorkflowsController` a linterre delegál.  
 > Iteráció 40: workflow **New** + **details** JSON nézet: böngészős **datalist** autocomplete a context var javaslatokra; `switch` ág (`*.branch`) + belső map/set/domainCommand path-ok a javaslatokban; statikus `foreach.index` / `foreach.item`; **`scripts/iter-end.ps1` / `iter-end.sh`** + **`gh-pr-push-merge` `-BodyFile` / `pr-body.md`**.  
@@ -30,10 +30,9 @@
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch (következő PR): `feat/iter-42-<topic>` (vagy aktuális feature branch)
+- Branch (következő PR): `feat/iter-43-<topic>` (vagy aktuális feature branch)
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
-- ✅ Kész (Iteráció 42): backend error detail contract egységesítés (path + code + message) + frontend megjelenítés + tesztek
 
 ## Több iterációs folytatási terv (low-code frontend fókusz)
 

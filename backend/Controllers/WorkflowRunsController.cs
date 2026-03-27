@@ -33,12 +33,13 @@ public sealed class WorkflowRunsController : ControllerBase
         _tenant = tenant;
     }
 
-    private ObjectResult Problem(int statusCode, string errorCode, string message)
+    private ObjectResult Problem(int statusCode, string errorCode, string message, List<ErrorDetail>? details = null)
         => StatusCode(statusCode, new ErrorResponse(
             ErrorCode: errorCode,
             Message: message,
             TraceId: TraceIdMiddleware.GetTraceId(HttpContext),
-            TimestampUtc: DateTime.UtcNow));
+            TimestampUtc: DateTime.UtcNow,
+            Details: details));
 
     private static Dictionary<string, string?> ExtractOriginalStepConfigsByKey(string? workflowDefinitionJson)
     {
@@ -114,7 +115,11 @@ public sealed class WorkflowRunsController : ControllerBase
     {
         var wf = await _db.WorkflowDefinitions.FirstOrDefaultAsync(x => x.WorkflowDefinitionId == id, ct);
         if (wf is null)
-            return Problem(StatusCodes.Status404NotFound, "workflow_not_found", "Workflow not found.");
+            return Problem(
+                StatusCodes.Status404NotFound,
+                "workflow_not_found",
+                "Workflow not found.",
+                ErrorDetail.Single("$.workflowDefinitionId", "workflow_not_found", "Workflow not found."));
 
         var traceId = TraceIdMiddleware.GetTraceId(HttpContext);
 
@@ -168,7 +173,11 @@ public sealed class WorkflowRunsController : ControllerBase
             .FirstOrDefaultAsync(x => x.WorkflowRunId == runId, ct);
 
         if (run is null)
-            return Problem(StatusCodes.Status404NotFound, "workflow_run_not_found", "Workflow run not found.");
+            return Problem(
+                StatusCodes.Status404NotFound,
+                "workflow_run_not_found",
+                "Workflow run not found.",
+                ErrorDetail.Single("$.workflowRunId", "workflow_run_not_found", "Workflow run not found."));
 
         return Ok(ToDetails(run));
     }

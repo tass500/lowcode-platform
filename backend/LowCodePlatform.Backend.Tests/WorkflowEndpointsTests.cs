@@ -327,6 +327,90 @@ public sealed class WorkflowEndpointsTests
     }
 
     [Fact]
+    public async Task Workflows_create_should_return_structured_details_when_name_missing()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var createReq = new { name = "", definitionJson = "{\"steps\":[]}" };
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", createReq);
+        Assert.Equal(HttpStatusCode.BadRequest, createResp.StatusCode);
+
+        var json = await createResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("name_missing", doc.RootElement.GetProperty("errorCode").GetString());
+        var d0 = doc.RootElement.GetProperty("details")[0];
+        Assert.Equal("$.name", d0.GetProperty("path").GetString());
+        Assert.Equal("name_missing", d0.GetProperty("code").GetString());
+        Assert.Equal("error", d0.GetProperty("severity").GetString());
+    }
+
+    [Fact]
+    public async Task Workflows_create_should_return_structured_details_when_definition_missing()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var createReq = new { name = "wf", definitionJson = "" };
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", createReq);
+        Assert.Equal(HttpStatusCode.BadRequest, createResp.StatusCode);
+
+        var json = await createResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("definition_missing", doc.RootElement.GetProperty("errorCode").GetString());
+        var d0 = doc.RootElement.GetProperty("details")[0];
+        Assert.Equal("$.definitionJson", d0.GetProperty("path").GetString());
+        Assert.Equal("definition_missing", d0.GetProperty("code").GetString());
+        Assert.Equal("error", d0.GetProperty("severity").GetString());
+    }
+
+    [Fact]
+    public async Task Workflows_get_should_return_structured_details_when_not_found()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var id = Guid.NewGuid();
+        using var getResp = await client.GetAsync($"/api/workflows/{id}");
+        Assert.Equal(HttpStatusCode.NotFound, getResp.StatusCode);
+
+        var json = await getResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("workflow_not_found", doc.RootElement.GetProperty("errorCode").GetString());
+        var d0 = doc.RootElement.GetProperty("details")[0];
+        Assert.Equal("$.workflowDefinitionId", d0.GetProperty("path").GetString());
+        Assert.Equal("workflow_not_found", d0.GetProperty("code").GetString());
+        Assert.Equal("error", d0.GetProperty("severity").GetString());
+    }
+
+    [Fact]
     public async Task Workflows_create_should_return_lint_warnings_for_unknown_step_types()
     {
         var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
