@@ -1,0 +1,12 @@
+﻿# Reduce Cursor index noise. Not a substitute for .gitignore.
+
+node_modules/
+frontend/dist/
+frontend/.angular/
+**/bin/
+**/obj/
+**/TestResults/
+coverage/
+*.db
+.env
+.env.local

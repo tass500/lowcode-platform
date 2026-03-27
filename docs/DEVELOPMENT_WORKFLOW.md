@@ -174,8 +174,10 @@ A Cursor UI-ban állítod. Irányelv: **Auto / gyorsabb modell** a napi kis munk
 ### 10b) Kontextus — mitől fogy kevesebb token (ajánlott szokások)
 
 - **Egy szál = egy fókusz:** egy iteráció / egy PR / egy konkrét bug; ne keverd össze a teljes roadmapot egy üzenetben.
-- **Minimális @ hivatkozás:** csak azokat a fájlokat / mappákat add meg (`@path`), amik **közvetlenül** kellenek a feladathoz — ne az egész repót.
-- **Handoff + live docs először:** új chatnél másold be a **§7 Handoff** blokkot + mutasd meg az **ACTIVE** sort a `docs/live/03_kovetkezo_lepesek.md`-ből — így nem kell újra felépíteni a történetet.
+- **Hosszú szál → új chat:** ha a thread már több témát / milestone-t kever, vagy csak a „összefoglaló + következő lépés” kellene, nyiss **újat** Handoff-fal — olcsóbb, mint újraküldeni a teljes előzményt.
+- **Minimális @ hivatkozás:** csak azokat a fájlokat / mappákat add meg (`@path`), amik **közvetlenül** kellenek a feladathoz — ne az egész repót; a `@Codebase` / teljes workspace keresés csak akkor, ha tényleg szükséges.
+- **`.cursorignore`:** a repo gyökerében szűrjük a build outputot, `node_modules`-t, `*.db`-t, stb. — kevesebb zaj az indexben és a véletlen kontextusban (nem helyettesíti a `.gitignore`-t).
+- **Handoff + live docs először:** új chatnél másold be a **§7 Handoff** blokkot + mutasd meg az **ACTIVE** sort a `docs/live/03_kovetkezo_lepesek.md`-ből — így nem kell újra felépíteni a történetet. Rövid összefoglaló: `docs/live/ai-cursor-token-efficiency.md`.
 - **Nagy log helyett:** ne illessz be tízezer sort; tedd **fájlba** a repóban (vagy csatolj **egy** fájlt) + írd meg, melyik sorra vagy kíváncsi.
 - **Iteráció végén:** `docs/live/02` + `03` frissítése + **`pr-body.md`** + **`iter-end`** / `gh pr create` — kevesebb „mi volt a DoD?” vissza-vissza a chatben.
 - **Composer:** több fájl / nagy diff esetén érdemes; egyszerű egyfájlos edithez elég a **Chat** — így is lehet spórolni.
@@ -184,9 +186,10 @@ A Cursor UI-ban állítod. Irányelv: **Auto / gyorsabb modell** a napi kis munk
 
 | Cél | Hogyan segít |
 |-----|----------------|
-| Kevesebb „ismételd el a kontextust” | §7 Handoff, `03` ACTIVE, branch név |
+| Kevesebb „ismételd el a kontextust” | §7 Handoff, `03` ACTIVE, branch név, `ai-cursor-token-efficiency.md` |
 | Kevesebb véletlen nagy diff | WIP=1, 1 PR ≈ 1 milestone (§2, §5) |
 | Kevesebb manuális PR-csevegés | §6b `iter-end`, `pr-body.md`, `gh` |
+| Kevesebb indexelt / véletlen kontextus | `.cursorignore` (build, `node_modules`, stb.) |
 
 ---
 
