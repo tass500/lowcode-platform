@@ -52,6 +52,11 @@ public sealed class AdminObservabilityController : ControllerBase
 
         var enforcement = _enforcement.Evaluate(inst);
 
+        var workflowRunsPendingCount = await _db.WorkflowRuns
+            .LongCountAsync(x => x.State == WorkflowRunStates.Pending, ct);
+        var workflowRunsRunningCount = await _db.WorkflowRuns
+            .LongCountAsync(x => x.State == WorkflowRunStates.Running, ct);
+
         var activeRuns = await _db.UpgradeRuns
             .Where(x => x.InstallationId == inst.InstallationId)
             .Where(x => x.State == UpgradeRunStates.Pending || x.State == UpgradeRunStates.Running)
@@ -84,6 +89,8 @@ public sealed class AdminObservabilityController : ControllerBase
             InstallationId: inst.InstallationId,
             EnforcementState: enforcement.EnforcementState,
             DaysOutOfSupport: enforcement.DaysOutOfSupport,
+            WorkflowRunsPendingCount: (int)workflowRunsPendingCount,
+            WorkflowRunsRunningCount: (int)workflowRunsRunningCount,
             ActiveRuns: activeRuns,
             LastAudit: lastAudit));
     }

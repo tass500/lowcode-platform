@@ -550,4 +550,53 @@ public sealed class WorkflowEndpointsTests
 
         Assert.True(found);
     }
+
+    [Fact]
+    public async Task Workflows_schedule_put_should_validate_cron_and_persist()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var createReq = new { name = "wf-sched", definitionJson = "{\"steps\":[{\"type\":\"noop\"}]}" };
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", createReq);
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(created);
+        var id = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var badResp = await client.PutAsJsonAsync($"/api/workflows/{id}/schedule", new { enabled = true, cron = "0 0 1 * *" });
+        Assert.Equal(HttpStatusCode.BadRequest, badResp.StatusCode);
+
+        using var okResp = await client.PutAsJsonAsync($"/api/workflows/{id}/schedule", new { enabled = true, cron = "*/10 * * * *" });
+        Assert.Equal(HttpStatusCode.OK, okResp.StatusCode);
+
+        var okJson = await okResp.Content.ReadAsStringAsync();
+        using (var doc = JsonDocument.Parse(okJson))
+        {
+            var root = doc.RootElement;
+            Assert.True(root.GetProperty("scheduleEnabled").GetBoolean());
+            Assert.Equal("*/10 * * * *", root.GetProperty("scheduleCron").GetString());
+            Assert.NotEqual(JsonValueKind.Null, root.GetProperty("scheduleNextDueUtc").ValueKind);
+        }
+
+        using var offResp = await client.PutAsJsonAsync($"/api/workflows/{id}/schedule", new { enabled = false, cron = (string?)null });
+        Assert.Equal(HttpStatusCode.OK, offResp.StatusCode);
+        var offJson = await offResp.Content.ReadAsStringAsync();
+        using (var doc2 = JsonDocument.Parse(offJson))
+        {
+            var root = doc2.RootElement;
+            Assert.False(root.GetProperty("scheduleEnabled").GetBoolean());
+            Assert.Equal(JsonValueKind.Null, root.GetProperty("scheduleCron").ValueKind);
+        }
+    }
 }

@@ -3,61 +3,69 @@ using System;
 using LowCodePlatform.Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace LowCodePlatform.Backend.Data.Migrations.Platform
+namespace LowCodePlatform.Backend.Data.Migrations.PlatformSqlServer
 {
-    [DbContext(typeof(PlatformDbContext))]
-    partial class PlatformDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(PlatformSqlServerDbContext))]
+    [Migration("20260327200558_InitialPlatformSqlServer")]
+    partial class InitialPlatformSqlServer
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.25");
+            modelBuilder
+                .HasAnnotation("ProductVersion", "8.0.25")
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
             modelBuilder.Entity("LowCodePlatform.Backend.Models.AuditLog", b =>
                 {
                     b.Property<Guid>("AuditLogId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("audit_log_id");
 
                     b.Property<string>("Action")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("action");
 
                     b.Property<string>("Actor")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("actor");
 
                     b.Property<string>("DetailsJson")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("details_json");
 
                     b.Property<Guid?>("InstallationId")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("installation_id");
 
                     b.Property<string>("Target")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("target");
 
                     b.Property<Guid?>("TenantId")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("tenant_id");
 
                     b.Property<DateTime>("TimestampUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("timestamp_utc");
 
                     b.Property<string>("TraceId")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("trace_id");
 
                     b.HasKey("AuditLogId");
@@ -69,20 +77,20 @@ namespace LowCodePlatform.Backend.Data.Migrations.Platform
                 {
                     b.Property<Guid>("EntityDefinitionId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("entity_definition_id");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at_utc");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("name");
 
                     b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("updated_at_utc");
 
                     b.HasKey("EntityDefinitionId");
@@ -97,24 +105,24 @@ namespace LowCodePlatform.Backend.Data.Migrations.Platform
                 {
                     b.Property<Guid>("EntityRecordId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("entity_record_id");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at_utc");
 
                     b.Property<string>("DataJson")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("data_json");
 
                     b.Property<Guid>("EntityDefinitionId")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("entity_definition_id");
 
                     b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("updated_at_utc");
 
                     b.HasKey("EntityRecordId");
@@ -130,37 +138,37 @@ namespace LowCodePlatform.Backend.Data.Migrations.Platform
                 {
                     b.Property<Guid>("FieldDefinitionId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("field_definition_id");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at_utc");
 
                     b.Property<Guid>("EntityDefinitionId")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("entity_definition_id");
 
                     b.Property<string>("FieldType")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("field_type");
 
                     b.Property<bool>("IsRequired")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("bit")
                         .HasColumnName("is_required");
 
                     b.Property<int?>("MaxLength")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("int")
                         .HasColumnName("max_length");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("name");
 
                     b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("updated_at_utc");
 
                     b.HasKey("FieldDefinitionId");
@@ -177,38 +185,38 @@ namespace LowCodePlatform.Backend.Data.Migrations.Platform
                 {
                     b.Property<Guid>("InstallationId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("installation_id");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at_utc");
 
                     b.Property<string>("CurrentVersion")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("current_version");
 
                     b.Property<string>("ReleaseChannel")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("release_channel");
 
                     b.Property<DateTime>("ReleaseDateUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("release_date_utc");
 
                     b.Property<string>("SupportedVersion")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("supported_version");
 
                     b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("updated_at_utc");
 
                     b.Property<int>("UpgradeWindowDays")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("int")
                         .HasColumnName("upgrade_window_days");
 
                     b.HasKey("InstallationId");
@@ -220,42 +228,42 @@ namespace LowCodePlatform.Backend.Data.Migrations.Platform
                 {
                     b.Property<Guid>("UpgradeRunId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("upgrade_run_id");
 
                     b.Property<string>("ErrorCode")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("error_code");
 
                     b.Property<string>("ErrorMessage")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("error_message");
 
                     b.Property<DateTime?>("FinishedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("finished_at_utc");
 
                     b.Property<Guid>("InstallationId")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("installation_id");
 
                     b.Property<DateTime?>("StartedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("started_at_utc");
 
                     b.Property<string>("State")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("state");
 
                     b.Property<string>("TargetVersion")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("target_version");
 
                     b.Property<string>("TraceId")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("trace_id");
 
                     b.HasKey("UpgradeRunId");
@@ -269,45 +277,45 @@ namespace LowCodePlatform.Backend.Data.Migrations.Platform
                 {
                     b.Property<Guid>("UpgradeRunStepId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("upgrade_run_step_id");
 
                     b.Property<int>("Attempt")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("int")
                         .HasColumnName("attempt");
 
                     b.Property<DateTime?>("FinishedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("finished_at_utc");
 
                     b.Property<string>("LastErrorCode")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("last_error_code");
 
                     b.Property<string>("LastErrorMessage")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("last_error_message");
 
                     b.Property<DateTime?>("NextRetryAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("next_retry_at_utc");
 
                     b.Property<DateTime?>("StartedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("started_at_utc");
 
                     b.Property<string>("State")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("state");
 
                     b.Property<string>("StepKey")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("step_key");
 
                     b.Property<Guid>("UpgradeRunId")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("upgrade_run_id");
 
                     b.HasKey("UpgradeRunStepId");
@@ -321,41 +329,41 @@ namespace LowCodePlatform.Backend.Data.Migrations.Platform
                 {
                     b.Property<Guid>("WorkflowDefinitionId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("workflow_definition_id");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at_utc");
 
                     b.Property<string>("DefinitionJson")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("definition_json");
 
                     b.Property<string>("InboundTriggerSecretSha256Hex")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("inbound_trigger_secret_sha256_hex");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("name");
 
                     b.Property<string>("ScheduleCron")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("schedule_cron");
 
                     b.Property<bool>("ScheduleEnabled")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("bit")
                         .HasColumnName("schedule_enabled");
 
                     b.Property<DateTime?>("ScheduleNextDueUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("schedule_next_due_utc");
 
                     b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("updated_at_utc");
 
                     b.HasKey("WorkflowDefinitionId");
@@ -371,37 +379,37 @@ namespace LowCodePlatform.Backend.Data.Migrations.Platform
                 {
                     b.Property<Guid>("WorkflowRunId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("workflow_run_id");
 
                     b.Property<string>("ErrorCode")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("error_code");
 
                     b.Property<string>("ErrorMessage")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("error_message");
 
                     b.Property<DateTime?>("FinishedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("finished_at_utc");
 
                     b.Property<DateTime?>("StartedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("started_at_utc");
 
                     b.Property<string>("State")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("state");
 
                     b.Property<string>("TraceId")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("trace_id");
 
                     b.Property<Guid>("WorkflowDefinitionId")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("workflow_definition_id");
 
                     b.HasKey("WorkflowRunId");
@@ -419,58 +427,58 @@ namespace LowCodePlatform.Backend.Data.Migrations.Platform
                 {
                     b.Property<Guid>("WorkflowStepRunId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("workflow_step_run_id");
 
                     b.Property<int>("Attempt")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("int")
                         .HasColumnName("attempt");
 
                     b.Property<DateTime?>("FinishedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("finished_at_utc");
 
                     b.Property<string>("LastErrorCode")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("last_error_code");
 
                     b.Property<string>("LastErrorConfigPath")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("last_error_config_path");
 
                     b.Property<string>("LastErrorMessage")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("last_error_message");
 
                     b.Property<string>("OutputJson")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("output_json");
 
                     b.Property<DateTime?>("StartedAtUtc")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("started_at_utc");
 
                     b.Property<string>("State")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("state");
 
                     b.Property<string>("StepConfigJson")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("step_config_json");
 
                     b.Property<string>("StepKey")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("step_key");
 
                     b.Property<string>("StepType")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("step_type");
 
                     b.Property<Guid>("WorkflowRunId")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("workflow_run_id");
 
                     b.HasKey("WorkflowStepRunId");

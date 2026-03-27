@@ -27,6 +27,10 @@ Opcionális **`retry`** objektum a lépés gyökerén (testvére a `type`-nak), 
 | `retry.maxDelayMs` | nem | Felső korlát egy várakozásra (ms). |
 | `timeoutMs` | nem | Lépés szintű időkorlát (ms) egy próbán belül. |
 
+## Beágyazott lépések (`foreach` / `switch`)
+
+A **`do`** (és `switch` `default`) belsejében lévő lépésre ugyanúgy vonatkozik a **`retry`** és **`timeoutMs`**, mint a fő `steps` tömb elemeire. Részletek: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md).
+
 ## Viselkedés
 
 - Az első próbánál **nincs** `delayMs` várakozás.

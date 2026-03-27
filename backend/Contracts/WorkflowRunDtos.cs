@@ -28,6 +28,8 @@ public sealed record WorkflowRunDetailsDto(
 
 public sealed record StartWorkflowRunResponse(DateTime ServerTimeUtc, Guid WorkflowRunId);
 
+public sealed record CancelWorkflowRunResponse(DateTime ServerTimeUtc);
+
 public sealed record WorkflowRunListItemDto(
     Guid WorkflowRunId,
     Guid WorkflowDefinitionId,

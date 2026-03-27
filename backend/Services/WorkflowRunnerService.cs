@@ -13,10 +13,12 @@ public sealed class WorkflowRunnerService
     private static readonly Regex ContextVarAnyRegex = new(@"\$\{([^}]*)\}", RegexOptions.Compiled);
 
     private readonly PlatformDbContext _db;
+    private readonly WorkflowRunCancellationRegistry _runCancellation;
 
-    public WorkflowRunnerService(PlatformDbContext db)
+    public WorkflowRunnerService(PlatformDbContext db, WorkflowRunCancellationRegistry runCancellation)
     {
         _db = db;
+        _runCancellation = runCancellation;
     }
 
     private static void ExecuteRequireAsync(WorkflowStepRun step, JsonObject context)
@@ -357,8 +359,7 @@ public sealed class WorkflowRunnerService
 
             try
             {
-                InterpolateStepConfigJson(innerStep, context);
-                await ExecuteStepBodyAsync(innerStep, context, ct);
+                await ExecuteNestedStepWithPolicyOrThrowAsync(innerStep, context, ct);
 
                 if (string.IsNullOrWhiteSpace(innerStep.OutputJson))
                 {
@@ -725,79 +726,96 @@ public sealed class WorkflowRunnerService
         _db.WorkflowRuns.Add(run);
         await _db.SaveChangesAsync(ct);
 
+        var runCts = new CancellationTokenSource();
+        if (!_runCancellation.TryRegister(run.WorkflowRunId, runCts))
+        {
+            runCts.Dispose();
+            throw new InvalidOperationException("workflow_run_cancellation_register_failed");
+        }
+
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, runCts.Token);
+        var execCt = linked.Token;
+
         try
         {
-            foreach (var step in run.Steps.OrderBy(x => x.StepKey))
-            {
-                await ExecuteStepAsync(run, step, context, ct);
-                await _db.SaveChangesAsync(ct);
-
-                if (step.State == WorkflowStepRunStates.Succeeded && !string.IsNullOrWhiteSpace(step.OutputJson))
-                {
-                    try
-                    {
-                        context[step.StepKey] = JsonNode.Parse(step.OutputJson);
-                    }
-                    catch
-                    {
-                        // ignore invalid output json; step succeeded but context won't have it
-                    }
-                }
-
-                if (step.State == WorkflowStepRunStates.Failed)
-                {
-                    run.State = WorkflowRunStates.Failed;
-                    run.ErrorCode = step.LastErrorCode;
-                    run.ErrorMessage = step.LastErrorMessage;
-                    run.FinishedAtUtc = DateTime.UtcNow;
-                    await _db.SaveChangesAsync(ct);
-                    return run;
-                }
-
-                if (step.State == WorkflowStepRunStates.Canceled)
-                {
-                    run.State = WorkflowRunStates.Canceled;
-                    run.ErrorCode = step.LastErrorCode;
-                    run.ErrorMessage = step.LastErrorMessage;
-                    run.FinishedAtUtc = DateTime.UtcNow;
-                    await _db.SaveChangesAsync(ct);
-                    return run;
-                }
-            }
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            var now = DateTime.UtcNow;
-            run.State = WorkflowRunStates.Canceled;
-            run.ErrorCode = "canceled";
-            run.ErrorMessage = "Canceled.";
-            run.FinishedAtUtc = now;
-
-            foreach (var step in run.Steps.Where(x => x.State is WorkflowStepRunStates.Pending or WorkflowStepRunStates.Running))
-            {
-                step.State = WorkflowStepRunStates.Canceled;
-                step.FinishedAtUtc ??= now;
-                step.LastErrorCode ??= "canceled";
-                step.LastErrorMessage ??= "Canceled.";
-            }
-
             try
             {
-                await _db.SaveChangesAsync(CancellationToken.None);
+                foreach (var step in run.Steps.OrderBy(x => x.StepKey))
+                {
+                    await ExecuteStepAsync(run, step, context, execCt);
+                    await _db.SaveChangesAsync(execCt);
+
+                    if (step.State == WorkflowStepRunStates.Succeeded && !string.IsNullOrWhiteSpace(step.OutputJson))
+                    {
+                        try
+                        {
+                            context[step.StepKey] = JsonNode.Parse(step.OutputJson);
+                        }
+                        catch
+                        {
+                            // ignore invalid output json; step succeeded but context won't have it
+                        }
+                    }
+
+                    if (step.State == WorkflowStepRunStates.Failed)
+                    {
+                        run.State = WorkflowRunStates.Failed;
+                        run.ErrorCode = step.LastErrorCode;
+                        run.ErrorMessage = step.LastErrorMessage;
+                        run.FinishedAtUtc = DateTime.UtcNow;
+                        await _db.SaveChangesAsync(CancellationToken.None);
+                        return run;
+                    }
+
+                    if (step.State == WorkflowStepRunStates.Canceled)
+                    {
+                        run.State = WorkflowRunStates.Canceled;
+                        run.ErrorCode = step.LastErrorCode;
+                        run.ErrorMessage = step.LastErrorMessage;
+                        run.FinishedAtUtc = DateTime.UtcNow;
+                        await _db.SaveChangesAsync(CancellationToken.None);
+                        return run;
+                    }
+                }
             }
-            catch
+            catch (OperationCanceledException) when (execCt.IsCancellationRequested)
             {
-                // ignore
+                var now = DateTime.UtcNow;
+                run.State = WorkflowRunStates.Canceled;
+                run.ErrorCode = "canceled";
+                run.ErrorMessage = "Canceled.";
+                run.FinishedAtUtc = now;
+
+                foreach (var step in run.Steps.Where(x => x.State is WorkflowStepRunStates.Pending or WorkflowStepRunStates.Running))
+                {
+                    step.State = WorkflowStepRunStates.Canceled;
+                    step.FinishedAtUtc ??= now;
+                    step.LastErrorCode ??= "canceled";
+                    step.LastErrorMessage ??= "Canceled.";
+                }
+
+                try
+                {
+                    await _db.SaveChangesAsync(CancellationToken.None);
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                return run;
             }
 
-            throw;
+            run.State = WorkflowRunStates.Succeeded;
+            run.FinishedAtUtc = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+
+            return run;
         }
-
-        run.State = WorkflowRunStates.Succeeded;
-        run.FinishedAtUtc = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
-
-        return run;
+        finally
+        {
+            _runCancellation.DisposeRegistration(run.WorkflowRunId);
+        }
     }
 
     private static List<WorkflowStepRun> BuildSteps(WorkflowDefinition wf)
@@ -851,10 +869,19 @@ public sealed class WorkflowRunnerService
 
     private async Task ExecuteStepAsync(WorkflowRun run, WorkflowStepRun step, JsonObject context, CancellationToken ct)
     {
+        await TryExecuteStepWithRetryAndTimeoutAsync(step, context, run, ct);
+    }
+
+    /// <summary>
+    /// Runs retry/backoff and optional <c>timeoutMs</c> for a step. When <paramref name="run"/> is null (nested inner step),
+    /// run-level error fields are not updated.
+    /// </summary>
+    /// <returns><c>true</c> if the step finished <see cref="WorkflowStepRunStates.Succeeded"/>; otherwise <c>false</c> (failed or canceled).</returns>
+    private async Task<bool> TryExecuteStepWithRetryAndTimeoutAsync(WorkflowStepRun step, JsonObject context, WorkflowRun? run, CancellationToken ct)
+    {
         var policy = WorkflowStepRetryPolicy.Parse(step.StepConfigJson);
 
-        var startedAt = DateTime.UtcNow;
-        step.StartedAtUtc = startedAt;
+        step.StartedAtUtc ??= DateTime.UtcNow;
 
         Exception? lastEx = null;
         for (var attemptNumber = 1; attemptNumber <= policy.Retry.MaxAttempts; attemptNumber += 1)
@@ -889,7 +916,7 @@ public sealed class WorkflowRunnerService
 
                 step.State = WorkflowStepRunStates.Succeeded;
                 step.FinishedAtUtc = DateTime.UtcNow;
-                return;
+                return true;
             }
             catch (OperationCanceledException oce)
             {
@@ -902,23 +929,32 @@ public sealed class WorkflowRunnerService
                     step.LastErrorCode ??= "canceled";
                     step.LastErrorMessage ??= "Canceled.";
 
-                    run.ErrorCode = step.LastErrorCode;
-                    run.ErrorMessage = step.LastErrorMessage;
-                    return;
+                    if (run is not null)
+                    {
+                        run.ErrorCode = step.LastErrorCode;
+                        run.ErrorMessage = step.LastErrorMessage;
+                    }
+
+                    return false;
                 }
 
                 // timeout (linked token canceled)
                 step.LastErrorCode ??= "workflow_step_timed_out";
                 step.LastErrorMessage ??= $"Step timed out after {policy.TimeoutMs!.Value} ms.";
+                step.LastErrorConfigPath ??= "$.timeoutMs";
 
                 if (attemptNumber < policy.Retry.MaxAttempts)
                     continue;
 
                 step.State = WorkflowStepRunStates.Failed;
                 step.FinishedAtUtc = DateTime.UtcNow;
-                run.ErrorCode = step.LastErrorCode;
-                run.ErrorMessage = step.LastErrorMessage;
-                return;
+                if (run is not null)
+                {
+                    run.ErrorCode = step.LastErrorCode;
+                    run.ErrorMessage = step.LastErrorMessage;
+                }
+
+                return false;
             }
             catch (Exception ex)
             {
@@ -932,9 +968,13 @@ public sealed class WorkflowRunnerService
                 step.LastErrorCode ??= "workflow_step_failed";
                 step.LastErrorMessage ??= ex.Message;
 
-                run.ErrorCode = step.LastErrorCode;
-                run.ErrorMessage = step.LastErrorMessage;
-                return;
+                if (run is not null)
+                {
+                    run.ErrorCode = step.LastErrorCode;
+                    run.ErrorMessage = step.LastErrorMessage;
+                }
+
+                return false;
             }
             finally
             {
@@ -947,8 +987,29 @@ public sealed class WorkflowRunnerService
         step.LastErrorCode ??= "workflow_step_failed";
         step.LastErrorMessage ??= lastEx?.Message ?? "Unknown error.";
 
-        run.ErrorCode = step.LastErrorCode;
-        run.ErrorMessage = step.LastErrorMessage;
+        if (run is not null)
+        {
+            run.ErrorCode = step.LastErrorCode;
+            run.ErrorMessage = step.LastErrorMessage;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Nested steps (e.g. <c>foreach.do</c>) use the same retry/timeout policy as top-level steps; failures throw so the parent step can map error paths.
+    /// Cooperative cancellation throws <see cref="OperationCanceledException"/> so the run can abort consistently.
+    /// </summary>
+    private async Task ExecuteNestedStepWithPolicyOrThrowAsync(WorkflowStepRun innerStep, JsonObject context, CancellationToken ct)
+    {
+        var ok = await TryExecuteStepWithRetryAndTimeoutAsync(innerStep, context, run: null, ct);
+        if (ok)
+            return;
+
+        if (innerStep.State == WorkflowStepRunStates.Canceled)
+            throw new OperationCanceledException(ct);
+
+        throw new InvalidOperationException(innerStep.LastErrorMessage ?? "Workflow inner step failed.");
     }
 
     private async Task ExecuteStepBodyAsync(WorkflowStepRun step, JsonObject context, CancellationToken ct)
@@ -1169,8 +1230,7 @@ public sealed class WorkflowRunnerService
 
         try
         {
-            InterpolateStepConfigJson(innerStep, context);
-            await ExecuteStepBodyAsync(innerStep, context, ct);
+            await ExecuteNestedStepWithPolicyOrThrowAsync(innerStep, context, ct);
             step.OutputJson = innerStep.OutputJson;
         }
         catch (Exception ex)

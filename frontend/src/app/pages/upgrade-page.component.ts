@@ -147,7 +147,11 @@ import type {
         <div *ngIf="observability" style="margin-top: 10px;">
           <div><b>Enforcement</b>: {{ observability.enforcementState }} (daysOutOfSupport={{ observability.daysOutOfSupport }})</div>
 
-          <div style="margin-top: 8px;"><b>Active runs</b>: {{ observability.activeRuns.length }}</div>
+          <div style="margin-top: 8px;"><b>Active runs</b> (upgrade): {{ observability.activeRuns.length }}</div>
+          <div style="margin-top: 6px; color:#444;">
+            <b>Workflow runs</b> (tenant): pending={{ observability.workflowRunsPendingCount ?? 0 }},
+            running={{ observability.workflowRunsRunningCount ?? 0 }}
+          </div>
           <table *ngIf="observability.activeRuns.length > 0" style="width:100%; border-collapse: collapse; margin-top: 8px;">
             <thead>
               <tr>

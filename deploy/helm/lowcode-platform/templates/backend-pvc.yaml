@@ -1,0 +1,22 @@
+{{- if eq .Values.backend.dataVolume.type "pvc" }}
+{{- if not .Values.backend.persistence.enabled }}
+{{- fail "backend.persistence.enabled must be true when backend.dataVolume.type is pvc" }}
+{{- end }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "lowcode-platform.backend.pvcName" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "lowcode-platform.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: backend
+spec:
+  accessModes:
+    - {{ .Values.backend.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.backend.persistence.size | quote }}
+  {{- with .Values.backend.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+{{- end }}

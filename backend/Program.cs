@@ -116,21 +116,25 @@ if (isEfDesignTime)
 }
 else
 {
-    builder.Services.AddDbContext<PlatformDbContext>((sp, o) =>
+    builder.Services.AddScoped<PlatformDbContext>(sp =>
     {
         var tenantCs = sp.GetRequiredService<TenantDbConnectionStringProvider>().Get();
-        PlatformDatabaseProvider.ConfigurePlatformDbContext(o, tenantCs);
+        return PlatformDatabaseProvider.CreatePlatformDbContext(sp, tenantCs);
     });
 }
 
 builder.Services.AddScoped<AuditService>();
 builder.Services.AddScoped<InstallationService>();
+builder.Services.AddSingleton<WorkflowRunCancellationRegistry>();
 builder.Services.AddScoped<WorkflowRunnerService>();
 builder.Services.AddSingleton<VersionEnforcementService>();
 builder.Services.AddSingleton<DevUpgradeFaults>();
 
 if (!builder.Environment.IsEnvironment("Testing") && !isEfDesignTime)
+{
     builder.Services.AddHostedService<UpgradeOrchestratorHostedService>();
+    builder.Services.AddHostedService<WorkflowScheduleHostedService>();
+}
 
 var app = builder.Build();
 

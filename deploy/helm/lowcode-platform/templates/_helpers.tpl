@@ -21,3 +21,20 @@
 {{- define "lowcode-platform.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" }}
 {{- end }}
+
+{{/*
+Kubernetes Secret name for backend sensitive env (JWT + optional SQL tenant connection).
+*/}}
+{{- define "lowcode-platform.backend.secretName" -}}
+{{- if .Values.backend.secrets.existingSecret }}
+{{- .Values.backend.secrets.existingSecret }}
+{{- else if .Values.backend.secrets.create }}
+{{- printf "%s-secret" (include "lowcode-platform.backend.fullname" .) }}
+{{- else }}
+{{- "" }}
+{{- end }}
+{{- end }}
+
+{{- define "lowcode-platform.backend.pvcName" -}}
+{{- printf "%s-data" (include "lowcode-platform.backend.fullname" .) }}
+{{- end }}

@@ -19,6 +19,9 @@ type WorkflowDefinitionDetailsDto = {
   definitionJson: string;
   lintWarnings: { code: string; message: string }[];
   inboundTriggerConfigured: boolean;
+  scheduleEnabled?: boolean;
+  scheduleCron?: string | null;
+  scheduleNextDueUtc?: string | null;
   createdAtUtc: string;
   updatedAtUtc: string;
 };

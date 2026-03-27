@@ -97,6 +97,9 @@ export type ObservabilitySnapshot = {
   installationId: string;
   enforcementState: 'ok' | 'warn' | 'soft_block' | 'hard_block';
   daysOutOfSupport: number;
+  /** Low-code workflow runs in this tenant DB (not upgrade runs). */
+  workflowRunsPendingCount?: number;
+  workflowRunsRunningCount?: number;
   activeRuns: ObservabilityActiveRun[];
   lastAudit: ObservabilityLastAudit | null;
 };

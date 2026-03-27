@@ -3,6 +3,9 @@
 ## Cél
 Drift-proof observability egy greenfield lowcode platformban.
 
+## Folyamat — AI / Cursor (takarékos mód)
+- Irányelvek: [`ai-cursor-token-efficiency.md`](ai-cursor-token-efficiency.md), [`docs/DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) §10; `.cursorignore` a repo gyökerében.
+
 ## Jelenlegi állapot – kész
 - **Backend (ASP.NET Core)**
   - Lokális **dev ergonomics**: `scripts/clean-backend-artifacts.ps1` (backend `bin`/`obj` + scratch `build-*` mappák); `backend/Directory.Build.props`: `FAST_BUILD=true` → analyzers kikapcsolva gyors iterációhoz.
@@ -10,7 +13,7 @@ Drift-proof observability egy greenfield lowcode platformban.
   - **Tenant-wide futások**: `GET /api/workflows/runs` — lapozás (`take`/`skip`), szűrők (`workflowDefinitionId`, `state`, `startedAfterUtc` / `startedBeforeUtc` UTC); válaszban `workflowName` + `totalCount`; index `workflow_run.started_at_utc`.
   - Admin endpointok válaszaiban **`serverTimeUtc`** elérhető (installation/status, upgrade-runs: recent/latest/queue/get/start/retry/cancel/dev-fail-step, audit list).
   - Admin response-ok **DTO-sítva** (Swagger Models/Schemas alatt látszanak a mezők).
-  - Külön **observability endpoint**: `GET /api/admin/observability` (active runs + last audit + enforcement summary + `serverTimeUtc`).
+  - Külön **observability endpoint**: `GET /api/admin/observability` (upgrade **active** runs + tenant **workflow** `pending`/`running` darabszám + last audit + enforcement summary + `serverTimeUtc`).
 
 - **Low-code workflow engine (Backend + Frontend demo)**
   - Támogatott workflow step-ek:
@@ -24,7 +27,8 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `require`
     - `domainCommand`
     - `unstable`
-  - Utolsó lezárt **repo** milestone (workflow vonal): **52** — **Docker** (`deploy/docker/`: backend + nginx/frontend image, `docker-compose`), **Helm** chart (`deploy/helm/lowcode-platform`), CI: image build + `helm template`; doc [`docs/live/container-deploy.md`](container-deploy.md). Előtte **51** inbound [`workflow-inbound-trigger.md`](workflow-inbound-trigger.md), **50** retry, **49** SQL Server; következő ACTIVE: **home-lab / k3s mélyítés** (lásd `docs/live/03` stratégiai blokk).
+  - **Workflow run cancel (iter 59)**: `POST /api/workflows/runs/{runId}/cancel` (csak `pending`/`running`); kooperatív leállás; low-code **run details**: **Cancel run** gomb.
+  - Utolsó lezárt **repo** milestone (workflow vonal): **55** — **step timeout / cancellation hardening**: `foreach` / `switch` belső lépések ugyanazt a **`retry` / `timeoutMs`** policy-t kapják, mint a top-level lépések; timeout → `lastErrorConfigPath` **`$.timeoutMs`**; doc [`docs/live/workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md). Előtte **54** ütemezés [`workflow-schedule.md`](workflow-schedule.md). **Iteráció 56–57** lezárva: SQL Server EF (**56a–56d**, smoke teszt), Helm **0.3.0** backup CronJob — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md). **Következő:** **58** vizuális builder — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
     - unknown step type → warning
     - context var referencia ismeretlen step key-re → warning
     - kihasználatlan `set`/`map`/ismert `domainCommand` kimenet → warning
@@ -33,17 +37,18 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `code`
     - `message`
     - `severity`
-  - **Következő stratégiai ütemterv:** home-lab / Pi / k3s (részletek `docs/live/03`); konténer baseline: [`docs/live/container-deploy.md`](container-deploy.md).
+  - **Következő stratégiai ütemterv:** **58** vizuális builder, majd **59–62** — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) § *Ütemterv 56+*; SS + Helm: [`sqlserver-platform.md`](sqlserver-platform.md); timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); ütemezés: [`workflow-schedule.md`](workflow-schedule.md); konténer: [`container-deploy.md`](container-deploy.md), [`k3s-home-lab.md`](k3s-home-lab.md).
 
 
 - **Frontend (Angular)**
-  - Workflow details oldalon a read-only **Viewer v2** működik (kártyák + nyilak): step típus szerinti alcím / összefoglaló, `foreach`/`switch` branch előnézet, **JSON →** ugrás a JSON szerkesztőhöz; közös `lowcode-workflow-viewer-utils` + unit teszt; a JSON/Viewer nézet váltása stabil.
+  - Workflow details oldalon a read-only **Viewer v2** működik (kártyák + nyilak): step típus szerinti alcím / összefoglaló, `foreach`/`switch` branch előnézet, **JSON →** ugrás a JSON szerkesztőhöz; közös `lowcode-workflow-viewer-utils` + unit teszt; a JSON/Viewer nézet váltása stabil. **Builder** (iter 58a): lépés **palette**, **↑↓** sorrend, törlés, JSON szinkron — [`workflow-visual-builder.md`](workflow-visual-builder.md), `lowcode-workflow-builder-utils` + teszt.
   - Workflow **lint warnings** UI: összesen hány warning, **code szerinti csoportosítás** (×darab), hosszú üzenetek törése; create + details oldalon; közös `groupLintWarningsByCode` helper + unit teszt.
   - Workflow Viewer-ben a lint warningok lépésenként is látszanak (step badge + warning részlet), így gyorsabb a hibakeresés.
   - Workflow create/details oldalon a backend validációs `details` mezők UI-ban is láthatók (path|code|message), így gyorsabb a javítás.
   - Workflow **New** + **details** JSON szerkesztő: **Prettify / Minify**; template lista **szűrő**; context var javaslatok közös `lowcode-workflow-context-suggestions` modullal (domain + foreach + `switch` branch + belső lépés) + böngészős **datalist** autocomplete a chip-ek mellett.
   - **Workflow runs lista** (`/lowcode/workflow-runs`): tenant összes futása táblázatban, link a run details-re (`/lowcode/runs/:runId`); Workflows oldalról **All runs**.
-  - Low-code **workflow run details** (`/lowcode/runs/:runId`): step config **Original / Resolved** összehasonlítás + toggle; kereső tartalmazza az `originalStepConfigJson`-t; Config megnyitásakor ha eltér az original a resolved-tól → alapból „Show resolved”; **Copy** (config / output); reszponzív kétoszlopos rács; `lowcode-run-details-utils` + unit teszt.
+  - Workflow **details**: **Schedule (UTC)** blokk — engedélyezés, 5 mezős MVP cron, **Save schedule** → `PUT /api/workflows/{id}/schedule`.
+  - Low-code **workflow run details** (`/lowcode/runs/:runId`): **Cancel run** (`pending`/`running`); step config **Original / Resolved** összehasonlítás + toggle; kereső tartalmazza az `originalStepConfigJson`-t; Config megnyitásakor ha eltér az original a resolved-tól → alapból „Show resolved”; **Copy** (config / output); reszponzív kétoszlopos rács; `lowcode-run-details-utils` + unit teszt.
   - Ugyanitt: sikertelen / hibás lépéseknél **Error path** (`lastErrorConfigPath`, pl. `$.recordId` context var hibánál); a szűrő mező erre is rákeres.
   - Drift-proof “now”: kliens oldali **`serverNowOffsetMs`** kalibráció `serverTimeUtc` alapján.
   - “Last refreshed” + “ago” kijelzés queue/audit/run panelen server-calibráltan.

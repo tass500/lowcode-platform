@@ -5,7 +5,9 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Home-lab / k3s / Pi mélyítés (stratégiai soron következő) — utolsó lezárt repo milestone a workflow vonalon: Iteráció 52 (Docker + Helm + CI); előtte: 51 inbound + 50 retry + 49 SQL Server + 48 run lista + 42 `details` + UI 43–46 ✅ (lásd lent)**
+**ACTIVE: Iteráció 60 — megfigyelhetőség / üzemeltethetőség** — **60a** (spórolós szelet): `GET /api/admin/observability` kiegészült a tenant **workflow** futások `pending` / `running` darabszámával; Upgrade oldalon az „Active runs” címke **(upgrade)**. **59** lezárva: `POST /api/workflows/runs/{runId}/cancel` + run details **Cancel run**. **58** — **58a** kész [`workflow-visual-builder.md`](workflow-visual-builder.md); következő backlog szelet: **58b** (Builder tovább). Ütemterv **58–62**: § *Ütemterv 56+* — workflow vonalon utolsó nagy lezárt előzmény: **55** (timeout/cancel + nested `timeoutMs`); 54 ütemezés … (lásd lent)**
+
+> **56 lezárva:** **56d** SS smoke teszt + doc; **57** Helm backup CronJob (chart **0.3.0**) — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 
 > Iteráció 41: backend **`WorkflowDefinitionLinter`**: lint warning **`workflow_step_output_unused`** (`set` / `map` / `domainCommand` statikus kimenetek, ha nincs `${…}` hivatkozás); **`workflow_context_likely_typo`** (pl. `foreach.indx` → `foreach.index`); meglévő unknown step + missing step key — `WorkflowsController` a linterre delegál.  
 > Iteráció 40: workflow **New** + **details** JSON nézet: böngészős **datalist** autocomplete a context var javaslatokra; `switch` ág (`*.branch`) + belső map/set/domainCommand path-ok a javaslatokban; statikus `foreach.index` / `foreach.item`; **`scripts/iter-end.ps1` / `iter-end.sh`** + **`gh-pr-push-merge` `-BodyFile` / `pr-body.md`**.  
@@ -30,7 +32,8 @@
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch (következő PR): `chore/iter-47-backend-dev-ergonomics` (vagy aktuális feature branch)
+- Branch (következő PR): `feat/iter-58-visual-workflow-builder` (nagyobb) vagy karbantartó PR-k
+- ACTIVE iteráció: **60** (megfigyelhetőség) — **59** (run cancel API) lezárva — **56** + **57** lezárva — § *Ütemterv 56+*
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 
@@ -188,28 +191,108 @@
 **DoD**
 - ✅ `dotnet test` + `npm run build` zöld (meglévő gate-ek); CI-ban docker + helm lépések.
 
+### Iteráció 53 — k3s / home-lab telepítés mélyítés ✅
+**Cél:** a **52**-ben lévő Helm chart **élesíthető**: ne maradjon demó `emptyDir` + fix JWT string a `values.yaml`-ban.
+
+**Deliverables**
+- ✅ Helm: **Secret** (`jwt-signing-key`; SQL Server mód: `tenant-connection-string`), **`backend.secrets.existingSecret`**; **PVC** alapból (`backend.dataVolume.type`: `pvc` \| `emptyDir`); **`backend.database.tenantProvider`**: `sqlite` \| `sqlserver` + `ensureCreated` → `LCP_SQLSERVER_ENSURE_CREATED`.
+- ✅ **arm64 / Pi:** CI változatlan (amd64); **`docker buildx --platform linux/arm64`** dokumentálva [`k3s-home-lab.md`](k3s-home-lab.md)-ban.
+- ✅ Doc: [`k3s-home-lab.md`](k3s-home-lab.md) + [`container-deploy.md`](container-deploy.md) frissítve; chart `0.2.0`.
+
+**DoD**
+- ✅ `helm lint` / `helm template` (CI); `dotnet test` + `npm run build` változatlan gate-ek.
+
+### Iteráció 54 — workflow ütemezés MVP ✅
+**Cél:** időalapú indítás **tenantenként**, a meglévő runnerrel; külső cron nélkül, egy példányon.
+
+**Deliverables**
+- ✅ DB: `workflow_definition.schedule_enabled`, `schedule_cron`, `schedule_next_due_utc` + index + EF migráció (`20260327183620_AddWorkflowSchedule`).
+- ✅ `WorkflowRestrictedCron` (UTC, 5 mező; nap/hó/hét csak `*`; perc/óra minták: minden perc, `*/N`, óránként `M * * * *`, naponta `M H * * *`).
+- ✅ `WorkflowScheduleHostedService` (~15 s tick, multi-tenant `TenantRegistryService.ListAsync`); `LCP_WORKFLOW_SCHEDULE_DISABLED=1`; **Testing** környezetben kikapcsolva.
+- ✅ `PUT /api/workflows/{id}/schedule` + DTO mezők a `GET` részletekben; audit `workflow_schedule_updated`.
+- ✅ Frontend workflow details: schedule blokk + **Save schedule**; doc [`workflow-schedule.md`](workflow-schedule.md).
+
+**DoD**
+- ✅ `dotnet test` + `npm run build` zöld.
+
+### Iteráció 55 — step timeout / cancellation hardening ✅
+**Cél:** `timeoutMs` + retry hurkok **konzisztensek** legyenek; beágyazott lépések is védettek; timeout **error path** a run details-ben.
+
+**Deliverables**
+- ✅ `TryExecuteStepWithRetryAndTimeoutAsync` + `ExecuteNestedStepWithPolicyOrThrowAsync` — `foreach` / `switch` belső `do` ugyanazt a policy-t kapja, mint a top-level lépések.
+- ✅ Időtúllépés: `lastErrorConfigPath` kiegészítés **`$.timeoutMs`** (ha nincs specifikusabb).
+- ✅ Integrációs tesztek: top-level timeout → `lastErrorConfigPath`; **foreach belső** `timeoutMs` → run `workflow_step_timed_out`.
+- ✅ Doc: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); [`workflow-step-retry.md`](workflow-step-retry.md) frissítve (beágyazott lépések).
+
+**DoD**
+- ✅ `dotnet test` + `npm run build` zöld.
+
 ### Stratégiai irány + javasolt következő iterációk (48+)
 
-**Miért ez a sorrend?** A platform differenciáló része a **low-code workflow + tenant-izolált futtatás + megfigyelhetőség**. A **home-lab / k3s** és a **Pi** értékes, de *párhuzamos* pálya: addig is érdemes a **terméket mélyíteni** (futások átláthatósága, ellenállóság, enterprise adatbázis), hogy legyen mit konténerbe tenni. A **második providernek SQL Server (MSSQL)** az elsődleges cél (gyorsabb onboarding a csapat ismeretei miatt); **PostgreSQL** későbbi hullámban jöhet. A **tenant-szintű run lista** üzemeltetői érték kevés API-felületen.
+**Miért ez a sorrend?** A **52** után a legjobb következő lépés: a **már meglévő** Docker/Helm baseline **élesíthetővé** tétele (Secret, perzisztens adat, opcionális **arm64** a Pi-hez), *azután* új workflow-funkció (**ütemezett futás**), majd **motor-hardening** (timeout/cancel), végül **SQL Server migrációk** (provider-specifikus EF), hogy az enterprise pálya ne maradjon csak `EnsureCreated` szinten. A **vizuális drag&drop builder** szándékosan hátrébb marad.
 
 **WIP=1:** egyszerre egy ACTIVE iteráció; az alábbiak **ütemterv**, nem párhuzamos kötelező csomag.
 
+#### Lezárt (48–55) — összkép
+
 | Iter | Fókusz | Érték / kockázat |
 |------|--------|------------------|
-| **48** | **Tenant-wide workflow run lista** — `GET /api/workflows/runs` (lapozás, opcionális szűrés: `workflowDefinitionId`, `state`, időablak) + minimális frontend lista (vagy meglévő workflow UI bővítés) | Magas láthatóság: nem csak definition-enként kell bóklászni a futásokhoz. Közepes kockázat (új endpoint + indexek). |
-| **49** | ~~**Második DB provider: SQL Server (MSSQL)**~~ ✅ — platform tenant DB: connection string + `UseSqlServer` / `UseSqlite`; greenfield bootstrap `EnsureCreated` (`LCP_SQLSERVER_ENSURE_CREATED=1`); később: provider-specifikus migrációk | Első hullám kész (iter 49); további migráció-stratégia külön milestone lehet. |
-| **50** | ~~**Step-level retry / backoff**~~ ✅ — `WorkflowStepRetryPolicy` + runner; linter (`workflow_retry_config_invalid`, `workflow_step_timeout_invalid`); Viewer + unit teszt; [`docs/live/workflow-step-retry.md`](workflow-step-retry.md) | Meglévő motor kiegészítése; tesztek a backoff + linterre. |
-| **51** | ~~**Workflow indítás API-n kívülről (MVP)**~~ ✅ — inbound webhook: [`docs/live/workflow-inbound-trigger.md`](workflow-inbound-trigger.md) | Webhook-first; schedule külön. |
-| **52** | ~~**Deploy / Helm chart + CI image**~~ ✅ — `deploy/docker/*`, `deploy/helm/lowcode-platform`, CI docker + helm template; [`docs/live/container-deploy.md`](container-deploy.md) | SQLite emptyDir / compose volume demó; éles: Secret + SQL Server / PVC. |
+| **48** | ~~**Tenant-wide workflow run lista**~~ ✅ | Lásd fenti iteráció-blokk. |
+| **49** | ~~**SQL Server (MSSQL) platform DB**~~ ✅ — [`docs/live/sqlserver-platform.md`](sqlserver-platform.md) | Első hullám kész; teljes migráció-stratégia külön iteráció (lásd **56**). |
+| **50** | ~~**Step retry / backoff**~~ ✅ — [`docs/live/workflow-step-retry.md`](workflow-step-retry.md) | |
+| **51** | ~~**Inbound webhook**~~ ✅ — [`docs/live/workflow-inbound-trigger.md`](workflow-inbound-trigger.md) | |
+| **52** | ~~**Docker + Helm + CI**~~ ✅ — [`docs/live/container-deploy.md`](container-deploy.md) | |
+| **53** | ~~**Helm Secret + PVC + SQL Server values + k3s doc**~~ ✅ — [`k3s-home-lab.md`](k3s-home-lab.md) | |
+| **54** | ~~**Workflow ütemezés MVP**~~ ✅ — [`workflow-schedule.md`](workflow-schedule.md) | |
+| **55** | ~~**Timeout / cancel hardening + nested policy**~~ ✅ — [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md) | |
 
-**Szándékosan hátrébb:** tisztán **vizuális workflow builder** (drag&drop) — amíg a séma + linter + futó motor stabil, addig a JSON-alapú szerkesztés + viewer kevesebb UI-adósságot hagy.
+#### Ütemterv 56+ (javasolt sorrend)
 
-**Következő konkrét ACTIVE (stratégiai):** home-lab / **k3s** / **Pi** telepítési vonal — részletek a fájl alján („Következő konkrét lépések (ajánlott)” / arch/infra). **52** lezárva: [`docs/live/container-deploy.md`](container-deploy.md).
+| Iter | Fókusz | Érték / kockázat |
+|------|--------|------------------|
+| **56** | **SQL Server: provider-specifikus EF migrációk** — fázisok **56a–56d** ✅ (lásd § *Iteráció 56 — részletes ütem*); [`sqlserver-platform.md`](sqlserver-platform.md) | **49** „második hullám”; **EnsureCreated** escape hatch marad. |
+| **57** | **Helm: backup CronJob + minimal ops** — ✅ chart **0.3.0** `backup.enabled`; SS backup doc [`sqlserver-platform.md`](sqlserver-platform.md) | Üzemeltethetőség; opcionális **Ingress** TLS minta (már a chartban). |
+| **58** | **Vizuális workflow builder** (drag&drop) — *csak* ha a JSON-szerkesztő + Viewer stabil marad | Nagy UI-adósság; **szándékosan** a motor és a deploy után. |
+| **59** | ~~**Workflow run cancel API**~~ ✅ — `POST /api/workflows/runs/{runId}/cancel` + kooperatív leállás (registry / CTS); run details **Cancel run** | Üzemeltetés + UX; összefüggés: ütemezett / háttér futások (54) és hosszú runok. |
+| **60** | **Megfigyelhetőség / üzemeltethetőség** — **60a** ✅ admin observability: tenant workflow `pending`/`running` számlálók; következő szeletek: opcionális OpenTelemetry, egységes **health** bővítés | Prod readiness; alacsony–közepes kockázat, jól szeletelhető. |
+| **61** | **Workflow definition import/export** — JSON csomag + opcionális verzió mező / „compat” jelzés | Csapatok közötti megosztás; kevés backend + minimál UI. |
+| **62** | **Auth bővítés (opcionális)** — külső IdP / OAuth2 client credentials minta *vagy* API key tenant szinten | Enterprise; nagyobb biztonsági felület → külön PR-kra bontandó. |
+
+**Miért 59–62 ez a sorrend?** A **56–58** az **adat-séma**, **deploy** és a **szerkesztő-élmény** alapját rendezi. Utána a **legnagyobb üzemeltetői lyuk** a **hosszú / háttér futás leállítása** (59), majd **láthatóság** (60), **tartalom-megosztás** (61), végül **auth** (62), mert az utóbbi gyakran szervezeti függő.
+
+**Szándékosan hátrébb:** tisztán **vizuális workflow builder** — amíg a séma + linter + futó motor + deploy stabil, addig a JSON + Viewer kevesebb adósságot hagy.
+
+### Iteráció 56 — SQL Server EF migrációk — részletes ütem (56a–56d) ✅
+
+**56a — Terv + repo szerkezet** ✅  
+- Döntés (rögzítve): **két migrációs lánc**, két **`DbContext`** típus (SQLite: `PlatformDbContext`; SQL Server: `PlatformSqlServerDbContext` leszármazott — részletek: [`sqlserver-ef-migrations-plan.md`](sqlserver-ef-migrations-plan.md)).  
+- CI: `dotnet ef` validáció mindkét irányra (SQLite marad a default gate; SQL Server: LocalDB / SQL Server Docker **opcionális** job) — **56d** / maintainer dönti el.  
+- Doc: [`sqlserver-platform.md`](sqlserver-platform.md) + [`sqlserver-ef-migrations-plan.md`](sqlserver-ef-migrations-plan.md).
+
+**56b — Baseline SQL Server** ✅  
+- `PlatformSqlServerDbContext`, `Data/Migrations/PlatformSqlServer` (`InitialPlatformSqlServer`), `DesignTimePlatformSqlServerDbContextFactory`.
+
+**56c — Runtime** ✅  
+- `PlatformDatabaseProvider.CreatePlatformDbContext`, `Program.cs` `AddScoped<PlatformDbContext>`, `TenantMigrationService`: SQL Server → **`MigrateAsync`** a SS láncra; **`LCP_SQLSERVER_ENSURE_CREATED`** opcionális escape hatch.  
+- `PlatformSqliteSchemaRepair` marad SQLite-only (már így van).
+
+**56d — Gate** ✅  
+- `PlatformSqlServerMigrationsTests` + `LCP_TEST_SQLSERVER_MASTER_CONNECTION_STRING` (master CS) — opcionális futtatás; doc: [`sqlserver-platform.md`](sqlserver-platform.md).
+
+**57 — Helm backup** ✅  
+- Chart **0.3.0**: `templates/backup.yaml` — opcionális SQLite `kubectl cp` CronJob + RBAC + backup PVC; doc: [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
+
+**Következő konkrét ACTIVE:** **Iteráció 60** — **60a** kész (lásd ACTIVE blokk fent); **60** további szeletek: OTel / health. **58b** backlog. **55** lezárva: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md). **54** ütemezés: [`workflow-schedule.md`](workflow-schedule.md).
 
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.
 - Ezt a fájlt és a `docs/02_allapot.md`-t **minden lezárt milestone után** frissítjük.
 - WIP limit: egyszerre **pontosan 1** aktív fókusz lehet (WIP=1). Ha **biztonságosan összevonható** több kisebb feladat (alacsony kockázat, no behavior change jelleg, ugyanazon a területen), akkor összevonható egy menetbe. Az összevonást mindig automatikusan mérlegelni kell, és a döntést a fejlesztő asszisztens hozza meg, külön jóváhagyás kérése nélkül. Ha kockázatos, marad az 1 kijelölt feladat fejlesztése.
+
+### AI / Cursor — takarékos fejlesztés (token)
+
+- Összefoglaló + checklist: [`ai-cursor-token-efficiency.md`](ai-cursor-token-efficiency.md) · részletes szabályok: [`docs/DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) **§10**.
+- Repo: **`.cursorignore`** (build / `node_modules` / stb. zajszűrés az indexhez).
 
 ## Üzemeltetői gyorslinkek
 - Upgrade ops README: `docs/live/ops/upgrade.md`

@@ -7,6 +7,7 @@ Ez a dokumentum a projekt aktuális invariánsainak és működési megállapod�
 - A napi haladás / állapot követéséhez ezeket használd:
   - `docs/live/02_allapot.md`
   - `docs/live/03_kovetkezo_lepesek.md`
+  - `docs/live/ai-cursor-token-efficiency.md` (Cursor / AI: takarékos kontextus; lásd még `DEVELOPMENT_WORKFLOW.md` §10)
 
 ## Futási végpontok
 - **Backend**: `http://localhost:5002`
@@ -74,7 +75,7 @@ Ez a dokumentum a projekt aktuális invariánsainak és működési megállapod�
 
 ## Dokumentációs szabályok (anti-drift)
 - **Fejlesztési folyamat (PR, DoR/DoD, gate-ek, handoff):** `docs/DEVELOPMENT_WORKFLOW.md` (authoritative).
-- Cursor rövid szabályok (AI asszisztens): `.cursor/rules/*.mdc` — ugyanazt a folyamatot tükrözik; részletek a fenti dokumentumban.
+- Cursor rövid szabályok (AI asszisztens): `.cursor/rules/*.mdc` — ugyanazt a folyamatot tükrözik; részletek a fenti dokumentumban. A repo gyökerében **`.cursorignore`** csökkenti az indexelt zajt (build, `node_modules`, stb.).
 - `docs/00_truth_files_template/*` **read-only**.
 - Élő projekt docok:
   - `docs/live/02_allapot.md` (milestone-ok után frissül)

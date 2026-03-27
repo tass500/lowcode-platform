@@ -76,6 +76,8 @@ public sealed record ObservabilityResponse(
     Guid InstallationId,
     string EnforcementState,
     int DaysOutOfSupport,
+    int WorkflowRunsPendingCount,
+    int WorkflowRunsRunningCount,
     List<ObservabilityActiveRunDto> ActiveRuns,
     ObservabilityLastAuditDto? LastAudit);
 

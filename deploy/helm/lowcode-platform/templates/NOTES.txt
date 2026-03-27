@@ -5,4 +5,14 @@
 
 3. Default tenant slug is `default` (host-based tenancy; localhost resolves to default).
 
-4. For production: set Auth__Jwt__SigningKey via Secret, replace SQLite emptyDir with PVC or SQL Server connection strings.
+4. JWT signing key: stored in Secret key `jwt-signing-key` (chart-managed or `backend.secrets.existingSecret`).
+   Replace the default `values.yaml` key before any shared / production use.
+
+5. Data volume: `backend.dataVolume.type` is `pvc` by default (SQLite files under `/data`).
+   For throwaway demos only, set `backend.dataVolume.type=emptyDir`.
+
+6. SQL Server tenant DB: `helm upgrade ... --set backend.database.tenantProvider=sqlserver --set-string backend.secrets.sqlserverTenantConnectionString='Server=...;...'`
+   (or use `backend.secrets.existingSecret` with keys `jwt-signing-key` + `tenant-connection-string`).
+   See docs/live/sqlserver-platform.md and docs/live/k3s-home-lab.md.
+
+7. Optional SQLite file backup CronJob: `--set backup.enabled=true` (requires `backend.replicaCount=1`). Native SQL Server backup is documented separately (sqlserver-platform.md).

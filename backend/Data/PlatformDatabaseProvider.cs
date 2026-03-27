@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore;
 namespace LowCodePlatform.Backend.Data;
 
 /// <summary>
-/// Chooses SQLite vs SQL Server for the tenant <see cref="PlatformDbContext"/> connection string.
-/// Existing EF migrations under <c>Data/Migrations/Platform</c> are SQLite-specific; SQL Server greenfield
-/// bootstrap uses <see cref="PlatformTenantDatabaseBootstrap"/> when <c>LCP_SQLSERVER_ENSURE_CREATED=1</c>
-/// until provider-specific migrations exist (roadmap).
+/// Chooses SQLite vs SQL Server for the tenant platform connection string.
+/// SQLite: <c>Data/Migrations/Platform</c> via <see cref="PlatformDbContext"/>.
+/// SQL Server: <c>Data/Migrations/PlatformSqlServer</c> via <see cref="PlatformSqlServerDbContext"/> from <see cref="CreatePlatformDbContext"/>.
+/// Optional greenfield: <see cref="PlatformTenantDatabaseBootstrap"/> with <c>LCP_SQLSERVER_ENSURE_CREATED=1</c> uses <c>EnsureCreatedAsync</c>.
 /// </summary>
 public static class PlatformDatabaseProvider
 {
@@ -58,5 +58,25 @@ public static class PlatformDatabaseProvider
         {
             options.UseSqlite(connectionString);
         }
+    }
+
+    /// <summary>
+    /// Builds the tenant platform context: <see cref="PlatformSqlServerDbContext"/> for SQL Server (SS migration chain),
+    /// <see cref="PlatformDbContext"/> for SQLite.
+    /// </summary>
+    public static PlatformDbContext CreatePlatformDbContext(IServiceProvider serviceProvider, string connectionString)
+    {
+        if (IsSqlServerConnectionString(connectionString))
+        {
+            var builder = new DbContextOptionsBuilder<PlatformSqlServerDbContext>();
+            builder.UseApplicationServiceProvider(serviceProvider);
+            ConfigurePlatformDbContext(builder, connectionString);
+            return new PlatformSqlServerDbContext(builder.Options);
+        }
+
+        var sqliteBuilder = new DbContextOptionsBuilder<PlatformDbContext>();
+        sqliteBuilder.UseApplicationServiceProvider(serviceProvider);
+        ConfigurePlatformDbContext(sqliteBuilder, connectionString);
+        return new PlatformDbContext(sqliteBuilder.Options);
     }
 }

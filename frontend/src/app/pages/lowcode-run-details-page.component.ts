@@ -44,6 +44,15 @@ type WorkflowRunDetailsDto = {
         <a routerLink="/lowcode/workflows">← Workflows</a>
         <h2 style="margin:0;">Workflow run</h2>
         <button type="button" (click)="load()" [disabled]="loading">Refresh</button>
+        <button
+          *ngIf="run && isRunCancelable(run.state)"
+          type="button"
+          (click)="cancelRun()"
+          [disabled]="canceling || loading"
+          style="color:#b00020;"
+        >
+          {{ canceling ? 'Canceling…' : 'Cancel run' }}
+        </button>
         <div *ngIf="polling" style="color:#444;">Polling...</div>
         <div *ngIf="loading">Loading...</div>
         <div *ngIf="error" style="color:#b00020;">{{ error }}</div>
@@ -194,6 +203,7 @@ export class LowCodeRunDetailsPageComponent implements OnInit, OnDestroy {
 
   run: WorkflowRunDetailsDto | null = null;
   loading = false;
+  canceling = false;
   error: string | null = null;
 
   polling = false;
@@ -247,6 +257,25 @@ export class LowCodeRunDetailsPageComponent implements OnInit, OnDestroy {
 
   private get runId(): string {
     return String(this.route.snapshot.paramMap.get('runId') ?? '').trim();
+  }
+
+  isRunCancelable(state: string | undefined | null): boolean {
+    const s = String(state ?? '').toLowerCase();
+    return s === 'running' || s === 'pending';
+  }
+
+  async cancelRun(): Promise<void> {
+    if (!this.run) return;
+    this.canceling = true;
+    this.error = null;
+    try {
+      await firstValueFrom(this.http.post(`/api/workflows/runs/${this.run.workflowRunId}/cancel`, null));
+      await this.load();
+    } catch (e: any) {
+      this.error = e?.error?.message ?? e?.message ?? 'Cancel failed.';
+    } finally {
+      this.canceling = false;
+    }
   }
 
   async load(): Promise<void> {
