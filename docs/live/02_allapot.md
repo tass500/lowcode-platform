@@ -22,14 +22,15 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `require`
     - `domainCommand`
     - `unstable`
-  - Utolsó lezárt roadmap iteráció: **41** — workflow lint: **`workflow_step_output_unused`**, **`workflow_context_likely_typo`** + `WorkflowDefinitionLinter`; következő ACTIVE: **42** — error response detail egységesítés (`docs/live/03_kovetkezo_lepesek.md`).
+  - Utolsó lezárt roadmap iteráció: **42** — workflow + workflow-runs hibák: egységes `details` (`path`, `code`, `message`, `severity`) `name_missing` / `definition_missing` / `workflow_not_found` / `workflow_run_not_found` esetén; `ErrorDetail.Single` helper; következő ACTIVE: **43** (`docs/live/03_kovetkezo_lepesek.md`).
     - unknown step type → warning
     - context var referencia ismeretlen step key-re → warning
     - kihasználatlan `set`/`map`/ismert `domainCommand` kimenet → warning
-  - Workflow create/update validációs hibák egységes `details` struktúrát adnak:
+  - Workflow create/update (és kapcsolódó 404) hibák egységes `details` struktúrát adnak:
     - `path`
     - `code`
     - `message`
+    - `severity`
 
 
 - **Frontend (Angular)**

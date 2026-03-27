@@ -208,7 +208,11 @@ public sealed class WorkflowsController : ControllerBase
     {
         var wf = await _db.WorkflowDefinitions.FirstOrDefaultAsync(x => x.WorkflowDefinitionId == id, ct);
         if (wf is null)
-            return Problem(StatusCodes.Status404NotFound, "workflow_not_found", "Workflow not found.");
+            return Problem(
+                StatusCodes.Status404NotFound,
+                "workflow_not_found",
+                "Workflow not found.",
+                ErrorDetail.Single("$.workflowDefinitionId", "workflow_not_found", "Workflow not found."));
 
         var lintWarnings = WorkflowDefinitionLinter.Lint(wf.DefinitionJson);
         return Ok(new WorkflowDefinitionDetailsDto(
@@ -224,10 +228,18 @@ public sealed class WorkflowsController : ControllerBase
     public async Task<ActionResult<WorkflowDefinitionDetailsDto>> Create([FromBody] CreateWorkflowRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req.Name))
-            return Problem(StatusCodes.Status400BadRequest, "name_missing", "Name is required.");
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                "name_missing",
+                "Name is required.",
+                ErrorDetail.Single("$.name", "name_missing", "Name is required."));
 
         if (string.IsNullOrWhiteSpace(req.DefinitionJson))
-            return Problem(StatusCodes.Status400BadRequest, "definition_missing", "DefinitionJson is required.");
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                "definition_missing",
+                "DefinitionJson is required.",
+                ErrorDetail.Single("$.definitionJson", "definition_missing", "DefinitionJson is required."));
 
         var schemaIssues = ValidateWorkflowDefinitionSchema(req.DefinitionJson);
         if (schemaIssues.Count > 0)
@@ -283,10 +295,18 @@ public sealed class WorkflowsController : ControllerBase
     public async Task<ActionResult<WorkflowDefinitionDetailsDto>> Update([FromRoute] Guid id, [FromBody] UpdateWorkflowRequest req, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req.Name))
-            return Problem(StatusCodes.Status400BadRequest, "name_missing", "Name is required.");
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                "name_missing",
+                "Name is required.",
+                ErrorDetail.Single("$.name", "name_missing", "Name is required."));
 
         if (string.IsNullOrWhiteSpace(req.DefinitionJson))
-            return Problem(StatusCodes.Status400BadRequest, "definition_missing", "DefinitionJson is required.");
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                "definition_missing",
+                "DefinitionJson is required.",
+                ErrorDetail.Single("$.definitionJson", "definition_missing", "DefinitionJson is required."));
 
         var schemaIssues = ValidateWorkflowDefinitionSchema(req.DefinitionJson);
         if (schemaIssues.Count > 0)
@@ -308,7 +328,11 @@ public sealed class WorkflowsController : ControllerBase
 
         var wf = await _db.WorkflowDefinitions.FirstOrDefaultAsync(x => x.WorkflowDefinitionId == id, ct);
         if (wf is null)
-            return Problem(StatusCodes.Status404NotFound, "workflow_not_found", "Workflow not found.");
+            return Problem(
+                StatusCodes.Status404NotFound,
+                "workflow_not_found",
+                "Workflow not found.",
+                ErrorDetail.Single("$.workflowDefinitionId", "workflow_not_found", "Workflow not found."));
 
         wf.Name = req.Name.Trim();
         wf.DefinitionJson = req.DefinitionJson.Trim();
@@ -341,7 +365,11 @@ public sealed class WorkflowsController : ControllerBase
     {
         var wf = await _db.WorkflowDefinitions.FirstOrDefaultAsync(x => x.WorkflowDefinitionId == id, ct);
         if (wf is null)
-            return Problem(StatusCodes.Status404NotFound, "workflow_not_found", "Workflow not found.");
+            return Problem(
+                StatusCodes.Status404NotFound,
+                "workflow_not_found",
+                "Workflow not found.",
+                ErrorDetail.Single("$.workflowDefinitionId", "workflow_not_found", "Workflow not found."));
 
         _db.WorkflowDefinitions.Remove(wf);
         await _db.SaveChangesAsync(ct);
