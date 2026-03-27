@@ -1681,4 +1681,79 @@ public sealed class WorkflowRunEndpointsTests
         Assert.Equal(3, step000.GetProperty("attempt").GetInt32());
         Assert.Equal("unstable_failed", step000.GetProperty("lastErrorCode").GetString());
     }
+
+    [Fact]
+    public async Task Tenant_wide_workflow_runs_list_returns_items_with_workflow_name_and_total_count()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var c1 = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-list-a", definitionJson = "{\"steps\":[{\"type\":\"noop\"}]}" });
+        Assert.Equal(HttpStatusCode.OK, c1.StatusCode);
+        var w1 = await c1.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        var id1 = Guid.Parse(w1!["workflowDefinitionId"]!.ToString()!);
+
+        using var c2 = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-list-b", definitionJson = "{\"steps\":[{\"type\":\"noop\"}]}" });
+        Assert.Equal(HttpStatusCode.OK, c2.StatusCode);
+        var w2 = await c2.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        var id2 = Guid.Parse(w2!["workflowDefinitionId"]!.ToString()!);
+
+        using var s1 = await client.PostAsync($"/api/workflows/{id1}/runs", null);
+        using var s2 = await client.PostAsync($"/api/workflows/{id2}/runs", null);
+        Assert.Equal(HttpStatusCode.OK, s1.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, s2.StatusCode);
+
+        using var listResp = await client.GetAsync("/api/workflows/runs?take=20&skip=0");
+        Assert.Equal(HttpStatusCode.OK, listResp.StatusCode);
+        var json = await listResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.GetProperty("totalCount").GetInt32() >= 2);
+        var items = doc.RootElement.GetProperty("items");
+        var names = new List<string>();
+        foreach (var el in items.EnumerateArray())
+            names.Add(el.GetProperty("workflowName").GetString()!);
+        Assert.Contains("wf-list-a", names);
+        Assert.Contains("wf-list-b", names);
+    }
+
+    [Fact]
+    public async Task Tenant_wide_workflow_runs_list_invalid_take_returns_400()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var bad = await client.GetAsync("/api/workflows/runs?take=0");
+        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+    }
+
+    [Fact]
+    public async Task Tenant_wide_workflow_runs_list_invalid_state_returns_400()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var bad = await client.GetAsync("/api/workflows/runs?state=not_a_valid_state");
+        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+    }
 }

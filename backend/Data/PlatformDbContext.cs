@@ -126,6 +126,7 @@ public sealed class PlatformDbContext : DbContext
 
             e.HasIndex(x => x.WorkflowDefinitionId);
             e.HasIndex(x => x.State);
+            e.HasIndex(x => x.StartedAtUtc);
         });
 
         modelBuilder.Entity<WorkflowStepRun>(e =>

@@ -39,3 +39,20 @@ public sealed record WorkflowRunListItemDto(
     string? ErrorMessage);
 
 public sealed record WorkflowRunListResponse(DateTime ServerTimeUtc, List<WorkflowRunListItemDto> Items);
+
+/// <summary>Tenant-wide run list item (includes workflow definition name).</summary>
+public sealed record TenantWorkflowRunListItemDto(
+    Guid WorkflowRunId,
+    Guid WorkflowDefinitionId,
+    string WorkflowName,
+    string State,
+    DateTime? StartedAtUtc,
+    DateTime? FinishedAtUtc,
+    string TraceId,
+    string? ErrorCode,
+    string? ErrorMessage);
+
+public sealed record TenantWorkflowRunListResponse(
+    DateTime ServerTimeUtc,
+    List<TenantWorkflowRunListItemDto> Items,
+    int TotalCount);

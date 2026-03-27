@@ -5,7 +5,7 @@
 
 ## Workflow engine iterációs roadmap (kontextusvesztés-álló)
 
-**ACTIVE: Iteráció 47 — backend dev ergonomics (artifact cleanup + opcionális `FAST_BUILD`) — utolsó repo milestone: Iteráció 42 (workflow error `details`, PR #73); workflow UI roadmap 43–46 ✅ (lásd lent)**
+**ACTIVE: Iteráció 49 — második DB provider (SQL Server) — utolsó lezárt: Iteráció 48 (tenant-wide workflow run lista); előtte: 47 dev ergonomics + 42 error `details` + UI 43–46 ✅ (lásd lent)**
 
 > Iteráció 41: backend **`WorkflowDefinitionLinter`**: lint warning **`workflow_step_output_unused`** (`set` / `map` / `domainCommand` statikus kimenetek, ha nincs `${…}` hivatkozás); **`workflow_context_likely_typo`** (pl. `foreach.indx` → `foreach.index`); meglévő unknown step + missing step key — `WorkflowsController` a linterre delegál.  
 > Iteráció 40: workflow **New** + **details** JSON nézet: böngészős **datalist** autocomplete a context var javaslatokra; `switch` ág (`*.branch`) + belső map/set/domainCommand path-ok a javaslatokban; statikus `foreach.index` / `foreach.item`; **`scripts/iter-end.ps1` / `iter-end.sh`** + **`gh-pr-push-merge` `-BodyFile` / `pr-body.md`**.  
@@ -139,6 +139,36 @@
 **DoD**
 - ✅ `dotnet build` zöld (FAST_BUILD nélkül is).
 
+### Iteráció 48 — tenant-wide workflow run lista (backend + UI) ✅
+**Cél**: egy helyen látszanak a tenant összes workflow futása (nem csak definition-enként).
+
+**Deliverables**
+- ✅ `GET /api/workflows/runs` — `take` / `skip`, opcionális `workflowDefinitionId`, `state`, `startedAfterUtc`, `startedBeforeUtc` (UTC); válasz: `items` + `totalCount` + `workflowName` soronként; validációs hibák `details`-szel.
+- ✅ EF index: `workflow_run.started_at_utc` (lapozott lista + rendezés).
+- ✅ Integrációs tesztek: lista + `take` / `state` invalid.
+- ✅ Frontend: `/lowcode/workflow-runs` + link a Workflows oldalról (**All runs**).
+
+**DoD**
+- ✅ `dotnet test` + `npm run build` zöld.
+
+### Stratégiai irány + javasolt következő iterációk (48+)
+
+**Miért ez a sorrend?** A platform differenciáló része a **low-code workflow + tenant-izolált futtatás + megfigyelhetőség**. A **home-lab / k3s** és a **Pi** értékes, de *párhuzamos* pálya: addig is érdemes a **terméket mélyíteni** (futások átláthatósága, ellenállóság, enterprise adatbázis), hogy legyen mit konténerbe tenni. A **második providernek SQL Server (MSSQL)** az elsődleges cél (gyorsabb onboarding a csapat ismeretei miatt); **PostgreSQL** későbbi hullámban jöhet. A **tenant-szintű run lista** üzemeltetői érték kevés API-felületen.
+
+**WIP=1:** egyszerre egy ACTIVE iteráció; az alábbiak **ütemterv**, nem párhuzamos kötelező csomag.
+
+| Iter | Fókusz | Érték / kockázat |
+|------|--------|------------------|
+| **48** | **Tenant-wide workflow run lista** — `GET /api/workflows/runs` (lapozás, opcionális szűrés: `workflowDefinitionId`, `state`, időablak) + minimális frontend lista (vagy meglévő workflow UI bővítés) | Magas láthatóság: nem csak definition-enként kell bóklászni a futásokhoz. Közepes kockázat (új endpoint + indexek). |
+| **49** | **Második DB provider: SQL Server (MSSQL)** — dev: LocalDB vagy Docker `mssql/server`; connection string + EF migrációk stratégia (külön assembly vagy provider-feltételes pipeline); SQLite marad default gyors devhez; *PostgreSQL későbbi iterációban* | Enterprise / konténer-barát telepítés; a csapat MSSQL-t jobban ismeri → előbb ez, mint a Postgres. Magas munka, de egyszeri irányváltás. |
+| **50** | **Step-level retry / backoff** (korábbi roadmap **31** felvéve) — konfigurálható policy a step JSON-ben, runner viselkedés, tesztek | Megbízhatóság hosszú / instabil lépéseknél. Közepes–magas: runner core érintett. |
+| **51** | **Workflow indítás API-n kívülről (MVP)** — pl. **webhook** vagy **egyszeri schedule** (hosted service + per-tenant queue) *vagy* „run by external key” — szűk scope, egy választott út | Automatizálás; csak egyet válasszunk az MVP-ben, ne mindhárom. |
+| **52** | **Deploy / Helm chart + CI image** — `Dockerfile`, GitHub Actions build, opcionális Helm values (SQLite dev / **SQL Server** prod); *opcionálisan* Pi doc link | A 48–49 után érdemes: van mit kipróbálni k8s-en. |
+
+**Szándékosan hátrébb:** tisztán **vizuális workflow builder** (drag&drop) — amíg a séma + linter + futó motor stabil, addig a JSON-alapú szerkesztés + viewer kevesebb UI-adósságot hagy.
+
+**Következő konkrét ACTIVE:** Iteráció **49** (SQL Server második provider) — **48** lezárva.
+
 ## Rövid működési elv
 - A `docs/00_truth_files_template/*` fájlok **nem változnak**.
 - Ezt a fájlt és a `docs/02_allapot.md`-t **minden lezárt milestone után** frissítjük.
@@ -187,8 +217,8 @@
   - minimal ops baseline: ingress + (szükség esetén) TLS + DB backup (CronJob) + alap monitoring/log
 - Következő (backend): DB-agnosztikus irány enterprise felé.
   - dev környezetben jelenleg: SQLite (ha így van bekötve)
-  - cél provider: PostgreSQL + SQL Server
-  - megoldás: provider-specifikus EF Core migrations (külön migrations assembly Postgres/SQL Server)
+  - cél provider (sorrend): **SQL Server (MSSQL) első hullám**, **PostgreSQL** később (opcionális második hullám)
+  - megoldás: provider-specifikus EF Core migrations (külön migrations assembly providerenként)
 - Refaktor (WIP): upgrade-page további bontása kisebb helper/service egységekre (no behavior change).
   - ✅ Kész: type definíciók kiszervezése (`pages/upgrade/upgrade-types.ts`).
   - ✅ Kész: export/bundle builder-ek első szelete kiszervezve (`pages/upgrade/upgrade-export-builders.ts`).
