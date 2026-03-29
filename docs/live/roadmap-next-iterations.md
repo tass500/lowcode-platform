@@ -19,14 +19,18 @@
 | **63c** | **Local dev / onboarding** | Egy **A4-es** „Local dev” blokk: backend port, `ng serve` + proxy, opcionális BFF; hivatkozás: [`auth-bff-httponly.md`](auth-bff-httponly.md), [`CONTRIBUTING.md`](../../CONTRIBUTING.md) | `npm run build` + szöveges review; README / CONTRIBUTING koherencia |
 | **63d** *(opcionális)* | **E2e előkészület** | Playwright / más e2e: **csak** ha termék/CI igény van; külön PR, függőség-jóváhagyás | CI job + 1 smoke spec vagy dokumentált „nem most” döntés |
 
+## 63d — döntés (böngészős e2e)
+
+- **Státusz:** ✅ lezárva **dokumentált „nem most”** döntéssel (2026-03-29) — **PR #105**.  
+- **Indok:** integrációs lefedettség előbb (`Backend.Tests`); böngészős e2e külön **CI költség**, **flakiness** és **függőség** (Playwright) — csak akkor érdemes, ha a termék vagy a release folyamat **explicit** kéri.  
+- **Újraindítás:** külön milestone / PR, előzetes egyeztetés (lásd még [`DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md)).
+
 ## ACTIVE (aktuális fókusz)
 
-- **63c** — local dev / onboarding: README „Local development” + CONTRIBUTING összhang (`npm run build` gate) — **PR #104**.  
-- **63b** ✅ mergeelve (**PR #103**).  
-- **63a** ✅ mergeelve (**PR #102**).  
-- Rövid állapot: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
+- **Iter 63 (63a–d)** ✅ lezárva. Következő szállítási fókusz: **TBD** — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md), [`02_allapot.md`](02_allapot.md).  
+- **63c** ✅ mergeelve (**PR #104**). **63b** ✅ (**PR #103**). **63a** ✅ (**PR #102**).
 
 ## Megjegyzés
 
 - A **58c+ @angular/cdk** továbbra is **elhalasztva** — [`workflow-visual-builder.md`](workflow-visual-builder.md) § *Döntés*.  
-- **62c+ e2e** backlog: iter **63d** vagy külön milestone; nem blokkolja a **63a–c**-t.
+- **62c+ e2e** (böngésző): továbbra is backlog; **63d** döntés szerint **nem** kötelező következő lépés.

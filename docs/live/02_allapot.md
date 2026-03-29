@@ -45,7 +45,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `code`
     - `message`
     - `severity`
-  - **Következő stratégiai ütemterv:** **63a** ✅ (**PR #102**); **63b** ✅ (**PR #103**); **63c** local dev / onboarding — [`roadmap-next-iterations.md`](roadmap-next-iterations.md) (63d e2e opcionális); **62c** BFF + httpOnly ✅; **58c+** builder — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) + [`03_ARCHIVE.md`](03_ARCHIVE.md); SS + Helm: [`sqlserver-platform.md`](sqlserver-platform.md); timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); ütemezés: [`workflow-schedule.md`](workflow-schedule.md); konténer: [`container-deploy.md`](container-deploy.md), [`k3s-home-lab.md`](k3s-home-lab.md).
+  - **Következő stratégiai ütemterv:** **63** hullám ✅ (63a–c **PR #102–104**; 63d böngészős e2e *defer* — [`roadmap-next-iterations.md`](roadmap-next-iterations.md) § *63d — döntés*); következő fókusz **TBD** — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md); **62c** BFF + httpOnly ✅; **58c+** builder — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) + [`03_ARCHIVE.md`](03_ARCHIVE.md); SS + Helm: [`sqlserver-platform.md`](sqlserver-platform.md); timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); ütemezés: [`workflow-schedule.md`](workflow-schedule.md); konténer: [`container-deploy.md`](container-deploy.md), [`k3s-home-lab.md`](k3s-home-lab.md).
 
 
 - **Frontend (Angular)**
