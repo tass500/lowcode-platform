@@ -23,7 +23,7 @@ Ez a dokumentum a projekt aktuális invariánsainak és működési megállapod�
 
 - **Szimmetrikus JWT** + opcionális `iss`/`aud`: [`live/tenant-api-key.md`](live/tenant-api-key.md) (JWT szekció).
 - **Opcionális OIDC JWT** ugyanazon `Authorization: Bearer` fejléccel: [`live/oidc-jwt-bearer.md`](live/oidc-jwt-bearer.md).
-- **Auth keményítés (62c, folyamatban):** BFF + **httpOnly** session süti + login/callback végpontok — [`live/auth-bff-httponly.md`](live/auth-bff-httponly.md); a SPA tokenes út továbbra is opcionális (dev).
+- **Auth keményítés (62c, folyamatban):** BFF + **httpOnly** session süti, login/callback, **cookie→Bearer middleware** — [`live/auth-bff-httponly.md`](live/auth-bff-httponly.md); a SPA tokenes út továbbra is opcionális (dev); következő: Angular BFF integráció.
 
 ## Admin API konvenciók
 ### Trace korreláció
