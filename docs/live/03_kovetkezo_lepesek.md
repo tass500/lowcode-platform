@@ -9,7 +9,7 @@
 
 ## Workflow engine — ACTIVE
 
-**ACTIVE: Iteráció 62 — auth bővítés (opcionális)** — **61** import/export ✅ [`workflow-import-export.md`](workflow-import-export.md). **60** observability + health ✅. **59** cancel ✅. **58a–b** builder ✅ [`workflow-visual-builder.md`](workflow-visual-builder.md). Következő backlog: **58c** (CDK drag&drop) vagy **62** részletek.
+**ACTIVE: Iteráció 62 — auth bővítés** — **62a** tenant API key ✅ [`tenant-api-key.md`](tenant-api-key.md) (JWT alternatíva automatizáláshoz). **61** import/export ✅ [`workflow-import-export.md`](workflow-import-export.md). **60** observability + health ✅. **59** cancel ✅. **58a–b** builder ✅ [`workflow-visual-builder.md`](workflow-visual-builder.md). Backlog: **58c** (CDK drag&drop), **62b** (IdP / OAuth2, külön PR).
 
 > **56–57** lezárva: SQL Server EF + Helm backup — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 
@@ -23,7 +23,7 @@
 | **59** | Run cancel API ✅ | |
 | **60** | Observability + health ✅ | OTel opcionális |
 | **61** | Import/export ✅ | [`workflow-import-export.md`](workflow-import-export.md) |
-| **62** | Auth bővítés | külön PR-k |
+| **62** | Auth bővítés (62a tenant API key ✅) | 62b IdP / OAuth2 külön PR |
 
 Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) (§ *Ütemterv 56+*).
 

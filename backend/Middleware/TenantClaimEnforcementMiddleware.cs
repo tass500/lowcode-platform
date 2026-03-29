@@ -15,6 +15,13 @@ public sealed class TenantClaimEnforcementMiddleware
 
     public async Task Invoke(HttpContext ctx, TenantContext tenant)
     {
+        // Admin APIs are authenticated separately; tenant routing may be "default" on localhost while JWT carries an operator tenant.
+        if (ctx.Request.Path.StartsWithSegments("/api/admin", StringComparison.OrdinalIgnoreCase))
+        {
+            await _next(ctx);
+            return;
+        }
+
         // Only enforce for authenticated calls. Anonymous calls (health, swagger, dev-token) remain unaffected.
         if (ctx.User?.Identity?.IsAuthenticated == true)
         {
