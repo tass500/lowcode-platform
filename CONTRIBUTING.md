@@ -15,10 +15,13 @@ Thanks for your interest in contributing.
 
 - Install:
   - `cd frontend && npm ci`
+- Dev server (uses `proxy.conf.json` → backend `http://localhost:5002` for `/api`):
+  - `npm start` or `ng serve`
 - Lint:
   - `npm run lint`
 - Build:
   - `npm run build`
+- Optional **BFF OAuth** local flow (IdP registration, `redirect_uri`): [`docs/live/auth-bff-httponly.md`](docs/live/auth-bff-httponly.md) — section **62c+ — helyi dev smoke**.
 
 ## Pull requests
 
@@ -33,7 +36,7 @@ Thanks for your interest in contributing.
   - `docs/live/03_kovetkezo_lepesek.md`
 - Credit-aware batching & risk tiers: `docs/00_workmode.md`
 - Quality gates: `docs/01_quality_gates.md`
-- Standard git branch/commit/push/PR flow: `.windsurf/workflows/commit-and-pr.md`
+- Git / PR cadence and handoff: [`docs/DEVELOPMENT_WORKFLOW.md`](docs/DEVELOPMENT_WORKFLOW.md)
 
 Rule of thumb:
 - Work in iteration branches (feature/fix/docs), then open a PR to `main`.
