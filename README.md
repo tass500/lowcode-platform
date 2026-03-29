@@ -14,6 +14,7 @@ This repository was bootstrapped from the truth files template.
 
 - **Process, PRs, DoR/DoD, CI gates, handoff after context loss:** [`docs/DEVELOPMENT_WORKFLOW.md`](docs/DEVELOPMENT_WORKFLOW.md)
 - Ongoing iteration / WIP: [`docs/live/03_kovetkezo_lepesek.md`](docs/live/03_kovetkezo_lepesek.md)
+- **Next implementation iterations (63a+):** [`docs/live/roadmap-next-iterations.md`](docs/live/roadmap-next-iterations.md)
 
 ## Iteration sizing rule
 - For ongoing work, see `docs/live/03_kovetkezo_lepesek.md`:
