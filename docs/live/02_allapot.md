@@ -20,6 +20,7 @@ Drift-proof observability egy greenfield lowcode platformban.
   - **OIDC JWT (iter 62b, MVP):** opcionális `Auth:Oidc:Authority` (+ `Audience`, `MetadataAddress`, `ValidIssuers`, `RequireHttpsMetadata`) — ugyanaz a `Authorization: Bearer` fejléc; policy scheme (`LcpJwtForwarder`) az `iss` alapján választ szimmetrikus vs OIDC metadata validálás között; kötés `OidcJwtBearerPostConfigure`-szal — [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md).
   - **OIDC / SPA (iter 62b2):** `OidcJwtClaimMapping` (`TenantClaimSource`, `GrantAdminIfRoleContains`); `GET /api/auth/spa-oidc-config`; Angular **angular-oauth2-oidc** (code + PKCE), `/lowcode/auth/callback`; low-code session **`sessionStorage`** + opcionális refresh az interceptorban; CodeQL: `paths-ignore` a dedikált session fájlra — ugyanazon doc.
   - **BFF auth (iter 62c, Fázis B+C+D):** opcionális `Auth:Bff:Enabled` (+ környezeti kapu); `GET/POST /api/auth/bff/*` — login redirect, callback, Data Protection session süti, `meta` / `session` / `logout`; **`BffSessionBearerMiddleware`** — session süti → `Authorization: Bearer` ha nincs saját Bearer; OIDC: `Auth:Oidc:Authority` + `SpaClientId` — [`auth-bff-httponly.md`](auth-bff-httponly.md).
+  - **HTTP security baseline (iter 64a):** `SecurityHeadersMiddleware` — `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` (hibaválaszokra is); Production: **HSTS** + HTTPS redirect — [`security-http-headers.md`](security-http-headers.md).
 
 - **Low-code workflow engine (Backend + Frontend demo)**
   - Támogatott workflow step-ek:
@@ -45,7 +46,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `code`
     - `message`
     - `severity`
-  - **Következő stratégiai ütemterv:** **63** hullám ✅ (63a–c **PR #102–104**; 63d böngészős e2e *defer* — [`roadmap-next-iterations.md`](roadmap-next-iterations.md) § *63d — döntés*); következő fókusz **TBD** — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md); **62c** BFF + httpOnly ✅; **58c+** builder — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) + [`03_ARCHIVE.md`](03_ARCHIVE.md); SS + Helm: [`sqlserver-platform.md`](sqlserver-platform.md); timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); ütemezés: [`workflow-schedule.md`](workflow-schedule.md); konténer: [`container-deploy.md`](container-deploy.md), [`k3s-home-lab.md`](k3s-home-lab.md).
+  - **Következő stratégiai ütemterv:** **64+** enterprise keményítés — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) (**64a** security headers aktív); **63** hullám ✅ (**PR #102–105**) — [`roadmap-next-iterations.md`](roadmap-next-iterations.md); részletek: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md); **62c** BFF + httpOnly ✅; **58c+** builder — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) + [`03_ARCHIVE.md`](03_ARCHIVE.md); SS + Helm: [`sqlserver-platform.md`](sqlserver-platform.md); timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); ütemezés: [`workflow-schedule.md`](workflow-schedule.md); konténer: [`container-deploy.md`](container-deploy.md), [`k3s-home-lab.md`](k3s-home-lab.md).
 
 
 - **Frontend (Angular)**

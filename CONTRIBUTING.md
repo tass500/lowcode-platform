@@ -38,7 +38,7 @@ Thanks for your interest in contributing.
 - Ground truth (what is done / what is next):
   - `docs/live/02_allapot.md`
   - `docs/live/03_kovetkezo_lepesek.md`
-  - Roadmap / completed iter 63 + next focus: [`docs/live/roadmap-next-iterations.md`](docs/live/roadmap-next-iterations.md)
+  - Roadmap iter 63 (closed): [`docs/live/roadmap-next-iterations.md`](docs/live/roadmap-next-iterations.md) · iter 64+ (enterprise): [`docs/live/roadmap-iter-64-plus.md`](docs/live/roadmap-iter-64-plus.md)
 - Credit-aware batching & risk tiers: `docs/00_workmode.md`
 - Quality gates: `docs/01_quality_gates.md`
 - Git / PR cadence and handoff: [`docs/DEVELOPMENT_WORKFLOW.md`](docs/DEVELOPMENT_WORKFLOW.md)

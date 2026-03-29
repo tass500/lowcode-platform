@@ -190,9 +190,14 @@ if (app.Environment.IsDevelopment())
 }
 
 if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHsts();
     app.UseHttpsRedirection();
+}
 
 app.UseMiddleware<TraceIdMiddleware>();
+
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
