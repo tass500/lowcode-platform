@@ -389,7 +389,9 @@ public sealed class WorkflowsController : ControllerBase
             SourceWorkflowDefinitionId: wf.WorkflowDefinitionId));
     }
 
+    /// <summary>Workflow import (large JSON); must fit within Kestrel <c>MaxRequestBodySize</c> (see <c>Kestrel:Limits</c> in configuration, default 10 MiB).</summary>
     [HttpPost("import")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<ActionResult<WorkflowDefinitionDetailsDto>> Import([FromBody] ImportWorkflowRequest req, CancellationToken ct)
     {
         if (req.ExportFormatVersion is not null && req.ExportFormatVersion != WorkflowExportFormatVersion)
