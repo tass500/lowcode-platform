@@ -18,6 +18,7 @@ Drift-proof observability egy greenfield lowcode platformban.
   - **Health (iter 60b):** `/health`, `/api/health`, `/health/live` — JSON: `status`, `service` (`lowcode-platform-backend`), `version` (assembly); `/health/ready` ugyanígy + `managementDb: ok` ha a management DB kapcsolódik, különben **503**.
   - **JWT Bearer (iter 62, szigorítás):** `Auth:Jwt:SigningKey` + opcionálisan nem üres `Auth:Jwt:Issuer` / `Auth:Jwt:Audience` → a Bearer validálás ellenőrzi az `iss`/`aud` mezőket (a `dev-token` ugyanebből a konfigból írja őket). A kulcs és az iss/aud szabályok `IPostConfigureOptions<JwtBearerOptions>`-szel kötődnek, hogy a **WebApplicationFactory** in-memory konfigja és az éles provider sorrendje is helyes legyen — [`tenant-api-key.md`](tenant-api-key.md) (JWT szekció).
   - **OIDC JWT (iter 62b, MVP):** opcionális `Auth:Oidc:Authority` (+ `Audience`, `MetadataAddress`, `ValidIssuers`, `RequireHttpsMetadata`) — ugyanaz a `Authorization: Bearer` fejléc; policy scheme (`LcpJwtForwarder`) az `iss` alapján választ szimmetrikus vs OIDC metadata validálás között; kötés `OidcJwtBearerPostConfigure`-szal — [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md).
+  - **OIDC / SPA (iter 62b2):** `OidcJwtClaimMapping` (`TenantClaimSource`, `GrantAdminIfRoleContains`); `GET /api/auth/spa-oidc-config`; Angular **angular-oauth2-oidc** (code + PKCE), `/lowcode/auth/callback`; low-code session **`sessionStorage`** + opcionális refresh az interceptorban; CodeQL: `paths-ignore` a dedikált session fájlra — ugyanazon doc. **Következő keményítés (62c):** [`auth-bff-httponly.md`](auth-bff-httponly.md).
 
 - **Low-code workflow engine (Backend + Frontend demo)**
   - Támogatott workflow step-ek:
@@ -43,10 +44,11 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `code`
     - `message`
     - `severity`
-  - **Következő stratégiai ütemterv:** **62** auth (opcionális), **58c** builder — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) (táblázat) + részletes múlt: [`03_ARCHIVE.md`](03_ARCHIVE.md); SS + Helm: [`sqlserver-platform.md`](sqlserver-platform.md); timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); ütemezés: [`workflow-schedule.md`](workflow-schedule.md); konténer: [`container-deploy.md`](container-deploy.md), [`k3s-home-lab.md`](k3s-home-lab.md).
+  - **Következő stratégiai ütemterv:** **62c** BFF + httpOnly ([`auth-bff-httponly.md`](auth-bff-httponly.md)), **58c+** builder — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) (táblázat) + részletes múlt: [`03_ARCHIVE.md`](03_ARCHIVE.md); SS + Helm: [`sqlserver-platform.md`](sqlserver-platform.md); timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); ütemezés: [`workflow-schedule.md`](workflow-schedule.md); konténer: [`container-deploy.md`](container-deploy.md), [`k3s-home-lab.md`](k3s-home-lab.md).
 
 
 - **Frontend (Angular)**
+  - Low-code **auth** (`/lowcode/auth`, `/lowcode/auth/callback`): dev token + opcionális **OIDC** (PKCE), ha a backend `spa-oidc-config` elérhető — [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md); keményített modell terv: [`auth-bff-httponly.md`](auth-bff-httponly.md).
   - Workflow details oldalon a read-only **Viewer v2** működik (kártyák + nyilak): step típus szerinti alcím / összefoglaló, `foreach`/`switch` branch előnézet, **JSON →** ugrás a JSON szerkesztőhöz; közös `lowcode-workflow-viewer-utils` + unit teszt; a JSON/Viewer nézet váltása stabil. **Builder** (iter 58a + **58b** New workflow + **58c** natív drag&drop fogó): lépés **palette**, **↑↓** + **húzd–ejtés** sorrend, törlés, JSON szinkron — [`workflow-visual-builder.md`](workflow-visual-builder.md), `lowcode-workflow-builder-utils` + teszt (`moveBuilderStepToSlot`); **New** oldalon **Builder | JSON** váltó + Prettify/Minify a JSON nézetben.
   - Workflow **lint warnings** UI: összesen hány warning, **code szerinti csoportosítás** (×darab), hosszú üzenetek törése; create + details oldalon; közös `groupLintWarningsByCode` helper + unit teszt.
   - Workflow Viewer-ben a lint warningok lépésenként is látszanak (step badge + warning részlet), így gyorsabb a hibakeresés.
