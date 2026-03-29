@@ -5,6 +5,7 @@ Drift-proof observability egy greenfield lowcode platformban.
 
 ## Folyamat — AI / Cursor (takarékos mód)
 - Irányelvek: [`ai-cursor-token-efficiency.md`](ai-cursor-token-efficiency.md), [`docs/DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) §10; `.cursorignore` a repo gyökerében.
+- Git: alapértelmezett trunk **`main`** (PR base, `scripts/gh-pr-push-merge.*`, `iter-end`); új branch mindig **`main`**-ről. A remote-on maradhat történeti **`master`** védett szabállyal — új PR-ok **`main`**-re mennek.
 
 ## Jelenlegi állapot – kész
 - **Backend (ASP.NET Core)**

@@ -17,7 +17,7 @@ Canonical process + security + handoff: **`docs/DEVELOPMENT_WORKFLOW.md`**.
 
 - Prefer **SOLID**, **DRY**, and patterns already used in this repo; **composition over inheritance** unless existing code uses inheritance.
 - Prefer **minimal, isolated** changes; preserve **public HTTP contracts** and existing behavior unless the user asks to change semantics.
-- Align with **`docs/PROJECT_CONTEXT.md`**, **`docs/live/*`**, and **`.windsurf/workflows/*`** (protected `master`, live docs updates).
+- Align with **`docs/PROJECT_CONTEXT.md`**, **`docs/live/*`**, and **`.windsurf/workflows/*`** (protected `main`, live docs updates).
 
 # Code style
 

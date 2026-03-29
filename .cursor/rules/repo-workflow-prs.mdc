@@ -1,5 +1,5 @@
 ---
-description: Protected master workflow (branch/commit/PR cadence)
+description: Protected main workflow (branch/commit/PR cadence)
 alwaysApply: true
 ---
 
@@ -7,13 +7,13 @@ alwaysApply: true
 
 Details: **`docs/DEVELOPMENT_WORKFLOW.md`** (sections 4–6; **§5a** milestone vs iteration cadence).
 
-## Protected `master`
-- Never push directly to `master`. All changes go through a PR.
-- If changes were accidentally committed on `master`, create a branch from HEAD and open a PR (do not rewrite history).
+## Protected `main`
+- Never push directly to `main`. All changes go through a PR.
+- If changes were accidentally committed on `main`, create a branch from HEAD and open a PR (do not rewrite history).
 
 ## Branching
-- Always branch off the latest `master`:
-  - `git switch master && git pull --ff-only`
+- Always branch off the latest `main`:
+  - `git switch main && git pull --ff-only`
   - `git switch -c <branch>`
 - Naming:
   - `feat/<topic>`
@@ -42,7 +42,7 @@ Details: **`docs/DEVELOPMENT_WORKFLOW.md`** (sections 4–6; **§5a** milestone 
 
 ## Proposed PR block (assistant output format)
 When ready for PR, provide:
-- base: `master`
+- base: `main`
 - head: `<branch>`
 - title: short, scoped
 - summary: 1–3 bullets
