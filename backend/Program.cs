@@ -17,6 +17,15 @@ using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var maxRequestBodyBytes = builder.Configuration.GetValue<long?>("Kestrel:Limits:MaxRequestBodySize");
+if (maxRequestBodyBytes is > 0)
+{
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.Limits.MaxRequestBodySize = maxRequestBodyBytes.Value;
+    });
+}
+
 if (builder.Environment.IsEnvironment("Testing"))
 {
     builder.Logging.SetMinimumLevel(LogLevel.Warning);
