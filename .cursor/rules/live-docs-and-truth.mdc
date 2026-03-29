@@ -14,7 +14,9 @@ Full process (DoR/DoD, PR, handoff): **`docs/DEVELOPMENT_WORKFLOW.md`**.
 ## Live docs are the ground truth across context resets
 Update automatically after every meaningful implementation:
 - `docs/live/02_allapot.md` (done/current facts)
-- `docs/live/03_kovetkezo_lepesek.md` (next steps / active focus)
+- `docs/live/03_kovetkezo_lepesek.md` (next steps / active focus — **keep short**; long history lives in `docs/live/03_ARCHIVE.md`)
+
+**Token frugality:** In new chats, prefer **`03` (slim) + `02`**; attach **`03_ARCHIVE.md` only** when old iteration or upgrade checklist detail is needed.
 
 Rules:
 - Keep updates short, factual, and actionable.
@@ -22,7 +24,7 @@ Rules:
 - Keep exactly one active focus (WIP=1) unless explicitly doing a safe bundle.
 
 ## Context reset procedure (assistant)
-- Re-read both live docs first.
-- Continue from `docs/live/03_kovetkezo_lepesek.md`.
+- Re-read **`docs/live/03_kovetkezo_lepesek.md`** (slim) and **`docs/live/02_allapot.md`** first.
+- Open **`docs/live/03_ARCHIVE.md` only** if you need archived iteration / upgrade checklist detail.
 - Do not invent scope; align work with the active iteration.
 

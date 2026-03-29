@@ -9,7 +9,7 @@ A Cursor / „Auto” használat **token-alapon** számolódik. A repó minősé
 ## Projekt-szintű beállítások (repo)
 
 - **`.cursorignore`** — build output, `node_modules`, nagy artefaktok: ne kerüljenek feleslegesen az indexbe / keresésbe (lásd repo gyökér).
-- **Live docok** — kontextus reset után: `02` + `03` ACTIVE sor, ne a teljes beszélgetés.
+- **Live docok** — kontextus reset után: **[`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md)** (karcsú) + [`02_allapot.md`](02_allapot.md); a régi, hosszú napló: [`03_ARCHIVE.md`](03_ARCHIVE.md) — **ne** húzd be alapból a chatbe.
 
 ## Checklist (fejlesztő + asszisztens)
 

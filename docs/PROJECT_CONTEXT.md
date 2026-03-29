@@ -75,6 +75,7 @@ Ez a dokumentum a projekt aktuális invariánsainak és működési megállapod�
 
 ## Dokumentációs szabályok (anti-drift)
 - **Fejlesztési folyamat (PR, DoR/DoD, gate-ek, handoff):** `docs/DEVELOPMENT_WORKFLOW.md` (authoritative). **Több iteráció egy ágon, egy PR / milestone:** ugyanott **§5a** (alapértelmezett ritmus emberek + AI).
+- **Live doc takarékosság:** `docs/live/03_kovetkezo_lepesek.md` = rövid ACTIVE + checklist; régi, hosszú napló: `docs/live/03_ARCHIVE.md` (ne legyen alapból teljes kontextusban).
 - Cursor rövid szabályok (AI asszisztens): `.cursor/rules/*.mdc` — ugyanazt a folyamatot tükrözik; részletek a fenti dokumentumban. A repo gyökerében **`.cursorignore`** csökkenti az indexelt zajt (build, `node_modules`, stb.).
 - `docs/00_truth_files_template/*` **read-only**.
 - Élő projekt docok:
