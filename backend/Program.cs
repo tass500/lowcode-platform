@@ -14,6 +14,8 @@ using LowCodePlatform.Backend.Swagger;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -139,6 +141,45 @@ builder.Services.AddAuthorization(o =>
     o.AddPolicy("admin", p => p.RequireRole("admin"));
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    var rateLimitOffInTests = builder.Environment.IsEnvironment("Testing")
+                              && !builder.Configuration.GetValue("RateLimiting:Enabled", false);
+    if (rateLimitOffInTests)
+    {
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(_ =>
+            RateLimitPartition.GetNoLimiter<string>("test"));
+        return;
+    }
+
+    var permitLimit = builder.Configuration.GetValue("RateLimiting:PermitLimit", 400);
+    var windowSeconds = builder.Configuration.GetValue("RateLimiting:WindowSeconds", 60);
+    if (permitLimit <= 0 || windowSeconds <= 0)
+    {
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(_ =>
+            RateLimitPartition.GetNoLimiter<string>("disabled"));
+        return;
+    }
+
+    var window = TimeSpan.FromSeconds(windowSeconds);
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            ip,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = permitLimit,
+                Window = window,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0,
+            });
+    });
+});
+
 builder.Services.AddDbContext<ManagementDbContext>((sp, o) =>
 {
     var cfg = sp.GetRequiredService<IConfiguration>();
@@ -224,19 +265,21 @@ app.UseMiddleware<TenantClaimEnforcementMiddleware>();
 
 app.UseAuthorization();
 
+app.UseRateLimiter();
+
 app.UseMiddleware<AccessLogMiddleware>();
 
-app.MapGet("/health", () => Results.Ok(HealthPayloadBuilder.Live()));
-app.MapGet("/api/health", () => Results.Ok(HealthPayloadBuilder.Live()));
+app.MapGet("/health", () => Results.Ok(HealthPayloadBuilder.Live())).DisableRateLimiting();
+app.MapGet("/api/health", () => Results.Ok(HealthPayloadBuilder.Live())).DisableRateLimiting();
 
-app.MapGet("/health/live", () => Results.Ok(HealthPayloadBuilder.Live()));
+app.MapGet("/health/live", () => Results.Ok(HealthPayloadBuilder.Live())).DisableRateLimiting();
 app.MapGet("/health/ready", async (ManagementDbContext db) =>
 {
     var ok = await db.Database.CanConnectAsync();
     return ok
         ? Results.Ok(HealthPayloadBuilder.Ready())
         : Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable);
-});
+}).DisableRateLimiting();
 
 app.MapControllers();
 
