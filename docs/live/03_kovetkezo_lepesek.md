@@ -9,7 +9,7 @@
 
 ## Workflow engine — ACTIVE
 
-**ACTIVE (javasolt következő, WIP=1):** **62c+** hátralévő: opcionális **teszt IdP** / **minimális e2e**; **alternatíva backlog:** **58c+** (builder CDK / touch). **62c+ helyi smoke** ✅ — [`auth-bff-httponly.md`](auth-bff-httponly.md) § *62c+ — helyi dev smoke* — merge **PR #95** (proxy `changeOrigin`). **62c — BFF + httpOnly** ✅ — **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
+**ACTIVE (javasolt következő, WIP=1):** **62c+** hátralévő: opcionális **e2e automatizálás** (Playwright stb.); **alternatíva backlog:** **58c+** (builder CDK / touch). **62c+** jegyzetek ✅ — [`auth-bff-httponly.md`](auth-bff-httponly.md): § *helyi dev smoke* (**PR #95**), § *teszt IdP regisztráció*. **62c — BFF + httpOnly** ✅ — **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
 
 > **56–57** lezárva: SQL Server EF + Helm backup — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 
