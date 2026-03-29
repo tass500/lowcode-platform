@@ -18,12 +18,13 @@
 | **64a** | **HTTP security headers + HSTS** | `SecurityHeadersMiddleware`; Production: `UseHsts` + meglévő HTTPS redirect; live doc | `dotnet test …Backend.Tests` zöld; [`security-http-headers.md`](security-http-headers.md) |
 | **64b** | **Kestrel request limits** | `MaxRequestBodySize` / központi limit nagy JSON import ellen; konfigurálható | [`kestrel-request-limits.md`](kestrel-request-limits.md); `dotnet test` zöld |
 | **64c** | **Rate limiting** | IP szerinti fix ablak; health kizárva; `Testing`-ben alapból ki (`RateLimiting:Enabled`) | [`rate-limiting.md`](rate-limiting.md); `dotnet test` zöld |
-| **64d** | **Security / audit logging** | Egységes séma (pl. auth failure, admin kulcs) — hol van, mit bővítünk | doc + minimális kódbővítés |
+| **64d** | **Security / audit logging** | `SecurityAuditLogger` + admin/tenant kulcs elutasítás; access + DB audit összefoglaló | [`security-audit-logging.md`](security-audit-logging.md); `dotnet test` zöld |
 | **64e** | **CI / repo hygiene** | Opcionális: `dotnet format --verify`, SBOM — csapatdöntés | CI zöld, zaj elfogadva |
 
 ## ACTIVE
 
-- **64c** — rate limiting — **PR #108** — [`rate-limiting.md`](rate-limiting.md). Aktuális sor: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).  
+- **64d** — security audit log sorok — [`security-audit-logging.md`](security-audit-logging.md). Aktuális sor: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).  
+- **64c** ✅ — [`rate-limiting.md`](rate-limiting.md) (**PR #108**).  
 - **64b** ✅ — [`kestrel-request-limits.md`](kestrel-request-limits.md) (**PR #107**).  
 - **64a** ✅ — [`security-http-headers.md`](security-http-headers.md) (**PR #106**).  
 - Előző hullám (63): [`roadmap-next-iterations.md`](roadmap-next-iterations.md).
