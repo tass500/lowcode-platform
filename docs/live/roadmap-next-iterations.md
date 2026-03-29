@@ -21,7 +21,8 @@
 
 ## ACTIVE (aktuális fókusz)
 
-- **63b** — integrációs keményítés (`BffAuthEndpointsTests`: BFF `logout` 404/200) — **PR #103**.  
+- **63c** — local dev / onboarding: README „Local development” + CONTRIBUTING összhang (`npm run build` gate).  
+- **63b** ✅ mergeelve (**PR #103**).  
 - **63a** ✅ mergeelve (**PR #102**).  
 - Rövid állapot: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
 
