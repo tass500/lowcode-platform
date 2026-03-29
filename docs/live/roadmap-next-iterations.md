@@ -21,7 +21,7 @@
 
 ## ACTIVE (aktuális fókusz)
 
-- **63b** — integrációs keményítés (`BffAuthEndpointsTests`: BFF `logout` 404/200).  
+- **63b** — integrációs keményítés (`BffAuthEndpointsTests`: BFF `logout` 404/200) — **PR #103**.  
 - **63a** ✅ mergeelve (**PR #102**).  
 - Rövid állapot: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
 
