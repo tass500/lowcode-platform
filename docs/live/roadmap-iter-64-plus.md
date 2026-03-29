@@ -23,7 +23,7 @@
 
 ## ACTIVE
 
-- **64d** — security audit log sorok — [`security-audit-logging.md`](security-audit-logging.md). Aktuális sor: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).  
+- **64d** — security audit log sorok — **PR #109** — [`security-audit-logging.md`](security-audit-logging.md). Aktuális sor: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).  
 - **64c** ✅ — [`rate-limiting.md`](rate-limiting.md) (**PR #108**).  
 - **64b** ✅ — [`kestrel-request-limits.md`](kestrel-request-limits.md) (**PR #107**).  
 - **64a** ✅ — [`security-http-headers.md`](security-http-headers.md) (**PR #106**).  
