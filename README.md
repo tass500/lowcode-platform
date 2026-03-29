@@ -23,4 +23,5 @@ This repository was bootstrapped from the truth files template.
 
 - **Tenant automation:** optional header `X-Tenant-Api-Key` (provisioned via admin API); details and errors: [`docs/live/tenant-api-key.md`](docs/live/tenant-api-key.md).
 - **JWT (dev):** `POST /api/auth/dev-token` (Development / Testing only). Optional strict `iss` / `aud` when `Auth:Jwt:Issuer` and `Auth:Jwt:Audience` are set — same doc, JWT section.
+- **OIDC (optional):** when `Auth:Oidc:Authority` is set, the same `Bearer` header can carry IdP-issued JWTs (metadata validation). See [`docs/live/oidc-jwt-bearer.md`](docs/live/oidc-jwt-bearer.md).
 

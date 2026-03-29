@@ -10,7 +10,9 @@ using System.Text;
 using System.Diagnostics;
 using Microsoft.Data.Sqlite;
 using LowCodePlatform.Backend.Swagger;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,7 +35,9 @@ builder.Services.AddSwaggerGen(o =>
     {
         Title = "LowCodePlatform Backend API",
         Version = "v1",
-        Description = "Tenant routing: prefer host-based tenancy (e.g. http://t1.localhost:PORT). In Development you can also use the X-Tenant-Id header.",
+        Description = "Tenant routing: prefer host-based tenancy (e.g. http://t1.localhost:PORT). In Development you can also use the X-Tenant-Id header. "
+                      + "Bearer JWT: symmetric signing key (dev-token) and/or, when Auth:Oidc:Authority is set, tokens validated via OIDC metadata. "
+                      + "`tenant_user` requires a `tenant` claim.",
     });
 
     if (builder.Environment.IsDevelopment())
@@ -65,19 +69,52 @@ builder.Services.AddSwaggerGen(o =>
     });
 });
 
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(o =>
+Action<JwtBearerOptions> configureSymmetricJwt = o =>
+{
+    o.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.FromMinutes(2),
+    };
+};
+
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = LcpAuthenticationSchemeNames.JwtForwarder;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddPolicyScheme(LcpAuthenticationSchemeNames.JwtForwarder, "JWT forwarder", opt =>
+    {
+        opt.ForwardDefaultSelector = ctx =>
+        {
+            var cfg = ctx.RequestServices.GetRequiredService<IConfiguration>();
+            var auth = cfg["Auth:Oidc:Authority"]?.Trim();
+            string[]? extra = null;
+            var rawIssuers = cfg["Auth:Oidc:ValidIssuers"];
+            if (!string.IsNullOrWhiteSpace(rawIssuers))
+            {
+                var split = rawIssuers.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                extra = split.Length == 0 ? null : split;
+            }
+
+            return LcpJwtForwardSelector.SelectScheme(ctx, auth, extra);
+        };
+    })
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, configureSymmetricJwt)
+    .AddJwtBearer(LcpAuthenticationSchemeNames.OidcJwt, o =>
     {
         o.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuerSigningKey = true,
+            NameClaimType = ClaimTypes.NameIdentifier,
+            RoleClaimType = ClaimTypes.Role,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(2),
         };
     });
 
 builder.Services.AddSingleton<IPostConfigureOptions<JwtBearerOptions>, JwtBearerIssuerAudiencePostConfigure>();
+builder.Services.AddSingleton<IPostConfigureOptions<JwtBearerOptions>, OidcJwtBearerPostConfigure>();
 
 builder.Services.AddAuthorization(o =>
 {

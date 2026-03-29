@@ -17,6 +17,7 @@ Drift-proof observability egy greenfield lowcode platformban.
   - Külön **observability endpoint**: `GET /api/admin/observability` (upgrade **active** runs + tenant **workflow** `pending`/`running` darabszám + last audit + enforcement summary + `serverTimeUtc`).
   - **Health (iter 60b):** `/health`, `/api/health`, `/health/live` — JSON: `status`, `service` (`lowcode-platform-backend`), `version` (assembly); `/health/ready` ugyanígy + `managementDb: ok` ha a management DB kapcsolódik, különben **503**.
   - **JWT Bearer (iter 62, szigorítás):** `Auth:Jwt:SigningKey` + opcionálisan nem üres `Auth:Jwt:Issuer` / `Auth:Jwt:Audience` → a Bearer validálás ellenőrzi az `iss`/`aud` mezőket (a `dev-token` ugyanebből a konfigból írja őket). A kulcs és az iss/aud szabályok `IPostConfigureOptions<JwtBearerOptions>`-szel kötődnek, hogy a **WebApplicationFactory** in-memory konfigja és az éles provider sorrendje is helyes legyen — [`tenant-api-key.md`](tenant-api-key.md) (JWT szekció).
+  - **OIDC JWT (iter 62b, MVP):** opcionális `Auth:Oidc:Authority` (+ `Audience`, `MetadataAddress`, `ValidIssuers`, `RequireHttpsMetadata`) — ugyanaz a `Authorization: Bearer` fejléc; policy scheme (`LcpJwtForwarder`) az `iss` alapján választ szimmetrikus vs OIDC metadata validálás között; kötés `OidcJwtBearerPostConfigure`-szal — [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md).
 
 - **Low-code workflow engine (Backend + Frontend demo)**
   - Támogatott workflow step-ek:
