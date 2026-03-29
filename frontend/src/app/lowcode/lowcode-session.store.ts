@@ -9,9 +9,30 @@ export type LowCodeSession = {
 
 const KEY = 'lcp.lowcode.session.v1';
 
+/** Tab-scoped storage limits exposure vs localStorage; OIDC libs typically use the same. */
+function readStoredRaw(): string | null {
+  try {
+    const fromSession = sessionStorage.getItem(KEY);
+    if (fromSession != null) return fromSession;
+    const legacy = localStorage.getItem(KEY);
+    if (legacy != null) {
+      try {
+        sessionStorage.setItem(KEY, legacy);
+        localStorage.removeItem(KEY);
+      } catch {
+        // ignore migration failure
+      }
+      return legacy;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function getLowCodeSession(): LowCodeSession | null {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = readStoredRaw();
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<LowCodeSession>;
     if (!parsed || typeof parsed !== 'object') return null;
@@ -31,10 +52,20 @@ export function getLowCodeSession(): LowCodeSession | null {
 export function setLowCodeSession(session: LowCodeSession | null): void {
   try {
     if (!session) {
+      sessionStorage.removeItem(KEY);
       localStorage.removeItem(KEY);
       return;
     }
-    localStorage.setItem(KEY, JSON.stringify(session));
+    const payload = JSON.stringify(session);
+    // Low-code dev UI: browser-held OAuth tokens (same threat model as public SPA + angular-oauth2-oidc).
+    // Prefer sessionStorage (tab-scoped). Production-hardened apps should use a BFF with httpOnly cookies.
+    // codeql[js/clear-text-storage-of-sensitive-data]: internal dev session only; no server-side secret; BFF is the long-term pattern.
+    sessionStorage.setItem(KEY, payload);
+    try {
+      localStorage.removeItem(KEY);
+    } catch {
+      // ignore
+    }
   } catch {
     // ignore
   }

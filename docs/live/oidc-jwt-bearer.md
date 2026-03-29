@@ -31,7 +31,7 @@ Ha **`Auth:Oidc:Authority` üres**, az OIDC JWT séma regisztrálva marad, de **
 ## SPA (frontend, code + PKCE)
 
 - **`GET /api/auth/spa-oidc-config`**: nem titkos mezők (`authority`, `clientId`, `scope`, `redirectPath`, `tenantClaimSources`) — csak ha Development, Testing, vagy `Auth:SpaOidcConfig:Enabled`, **és** be van állítva `Auth:Oidc:Authority` + `Auth:Oidc:SpaClientId`.
-- Útvonal: **`/lowcode/auth`** (gomb) → IdP → **`/lowcode/auth/callback`** → munkamenet (`localStorage`) + opcionális **refresh token** + token endpoint az interceptor számára.
+- Útvonal: **`/lowcode/auth`** (gomb) → IdP → **`/lowcode/auth/callback`** → munkamenet (**`sessionStorage`**, tab hatókör) + opcionális **refresh token** + token endpoint az interceptor számára (régi `localStorage` kulcs egyszer átmásolódik).
 - Ha az id tokenben nincs tenant a konfigurált claim források szerint, a **`tenantSlug` üres** maradhat; a low-code auth oldalon kézzel megadható, majd „Save token” / dev token flow frissíti.
 
 ## Üzemeltetői megjegyzések
