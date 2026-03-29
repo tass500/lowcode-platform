@@ -9,7 +9,7 @@
 
 ## Workflow engine — ACTIVE
 
-**ACTIVE (javasolt következő, WIP=1):** **58c+** — opcionális **@angular/cdk** a workflow builderben (touch / lista UX); előtte egyeztesd a függőség-policyt — [`workflow-visual-builder.md`](workflow-visual-builder.md). **Backlog (opcionális):** **62c+ e2e** (Playwright stb.). **62c+** doksi ✅ — [`auth-bff-httponly.md`](auth-bff-httponly.md) § *helyi dev smoke* (**PR #95**), § *teszt IdP regisztráció* (**PR #97**). **62c — BFF + httpOnly** ✅ **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
+**ACTIVE (javasolt következő, WIP=1):** **62c+ e2e** (Playwright stb., opcionális) vagy következő **termék / backlog** tétel — válassz egyet. **58c+ `@angular/cdk`:** **elhalasztva** (dokumentált döntés) — [`workflow-visual-builder.md`](workflow-visual-builder.md) § *Döntés: @angular/cdk*. **62c+** doksi ✅ — [`auth-bff-httponly.md`](auth-bff-httponly.md) § *helyi dev smoke* (**PR #95**), § *teszt IdP regisztráció* (**PR #97**). **62c — BFF + httpOnly** ✅ **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
 
 > **56–57** lezárva: SQL Server EF + Helm backup — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 
@@ -19,7 +19,7 @@
 |------|--------|------------|
 | **56** | SQL Server EF migrációk ✅ | [`sqlserver-platform.md`](sqlserver-platform.md) |
 | **57** | Helm backup CronJob ✅ | chart 0.3.0 |
-| **58** | Vizuális builder (58a–b ✅, 58c natív DnD ✅) | CDK opcionális |
+| **58** | Vizuális builder (58a–b ✅, 58c natív DnD ✅) | CDK elhalasztva — [`workflow-visual-builder.md`](workflow-visual-builder.md) |
 | **59** | Run cancel API ✅ | |
 | **60** | Observability + health ✅ | OTel opcionális |
 | **61** | Import/export ✅ | [`workflow-import-export.md`](workflow-import-export.md) |
@@ -31,7 +31,7 @@ Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) 
 
 - **PR / iteráció ritmus:** [`DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) **§5a**
 - Branch: `feat/<topic>` a legfrissebb `main`-ről
-- ACTIVE: **58c+** (builder CDK) vagy **62c+ e2e**; **62c** + **62c+ doksi** (**PR #93**, **PR #95**, **PR #97**); **62b2** mergeelve; **62** / **61** lezárva
+- ACTIVE: **62c+ e2e** vagy következő backlog; **58c+ CDK** elhalasztva — [`workflow-visual-builder.md`](workflow-visual-builder.md); **62c** + **62c+ doksi** (**PR #93**, **PR #95**, **PR #97**); **62b2** mergeelve; **62** / **61** lezárva
 - `git status` → staged / unstaged
 - `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 
