@@ -88,3 +88,42 @@ A **meglévő** workflow/entity API-k változatlan `[Authorize]` / policy mellet
 - **Fázis D (frontend):** `frontend/src/app/lowcode/bff-auth-state.service.ts`, `frontend/src/app/app.config.ts` (`APP_INITIALIZER`), `frontend/src/app/lowcode/api-auth.interceptor.ts`, `frontend/src/app/pages/lowcode-auth-page.component.ts`.
 
 **Megjegyzés:** élesben a **Data Protection** kulcsok perzisztenciája kötelező (különben restart után érvénytelenek a sütik) — lásd ASP.NET Data Protection key ring.
+
+## 62c+ — helyi dev smoke (Angular proxy + opcionális IdP)
+
+Cél: **ugyanazon böngésző-origin** alatt legyen az SPA és az `/api/*` hívás, hogy a **httpOnly** session süti (`Path=/`) a `localhost:4200`-hoz tartozzon és minden API kérésnél menjen (`withCredentials`).
+
+### 1. Backend (Development)
+
+- Indítás: `dotnet run` a `backend` mappból (alap URL: `http://localhost:5002` — `Properties/launchSettings.json`, profil `http`).
+- **BFF kapcsoló:** `Auth:Bff:Enabled` = `true` (pl. `appsettings.Development.json`, vagy **User Secrets** / env, hogy ne kerüljön fel a repóba az éles IdP adat).
+- **OIDC a BFF loginhez** (hogy a `GET /api/auth/bff/meta` **`configured: true`** legyen): ugyanaz a három, mint a SPA-hoz: `Auth:Oidc:Authority`, `Auth:Oidc:SpaClientId`, `Auth:Oidc:SpaScope` (opcionálisan `Auth:Oidc:TenantClaimSource` stb. — lásd [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md)).
+
+### 2. Angular dev szerver + proxy
+
+- A repo `frontend/angular.json` már beállítja: `serve` → `proxyConfig`: `proxy.conf.json` (a `/api` kérések továbbítva a backendre, pl. `http://localhost:5002`).
+- Indítás: `npm start` vagy `ng serve` a `frontend` mappból → tipikusan `http://localhost:4200`.
+
+### 3. OAuth `redirect_uri` és a dev proxy `Host` fejléce
+
+A BFF a **`Host` fejléc** alapján építi a `redirect_uri`-t (`BffAuthController`: `PublicBaseUrl()` + `CallbackPath`).
+
+- A repo **`frontend/proxy.conf.json`** beállítása: **`changeOrigin: false`** az `/api` proxynál. Így a backend a böngésző által látott hostot kapja (tipikusan `localhost:4200`), ezért a **`redirect_uri`**:
+
+  `http://localhost:4200/api/auth/bff/callback`
+
+  Ezt kell az IdP alkalmazásban (publikus SPA client, PKCE) **szerepeltetni**.
+
+- Ha valaki **`changeOrigin: true`**-ra állítja a proxyt, a backend gyakran **`localhost:5002`**-t lát `Host`-ként → a `redirect_uri` **`http://localhost:5002/api/auth/bff/callback`** lesz; akkor **azt** kell az IdP-n regisztrálni, és a callback is a **5002**-re érkezik (nem keverendő a **4200**-as SPA originnel).
+
+- Közvetlenül a backendre (`http://localhost:5002/...`) böngészve — proxy nélkül — szintén a **5002**-es `redirect_uri` érvényes.
+
+### 4. Smoke checklist
+
+1. Backend fut + `GET http://localhost:5002/api/auth/bff/meta` (vagy proxyn át `4200`-ról) → `enabled` / `configured` elvárás szerint.
+2. SPA: `http://localhost:4200/lowcode/auth` → BFF szekció, **„Belépés BFF-fel”** (ha `configured`), majd IdP → callback → süti → `POST /api/auth/bff/session` / UI „Session infó”.
+3. **BFF kijelentkezés** után a süti törlődik; workflow API-k újra 401, amíg nincs más auth.
+
+### 5. IdP nélküli gyors ellenőrzés
+
+- `Auth:Bff:Enabled` = `true`, de OIDC hiányzik → `meta.configured` = `false`, BFF login link nem aktív — ezzel is ellenőrizhető, hogy a végpontok és kapu működnek, **teljes OAuth nélkül**.
