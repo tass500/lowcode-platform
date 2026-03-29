@@ -1,4 +1,5 @@
 using LowCodePlatform.Backend.Contracts;
+using LowCodePlatform.Backend.Logging;
 using System.Security.Claims;
 
 namespace LowCodePlatform.Backend.Middleware;
@@ -10,12 +11,14 @@ public sealed class AdminApiKeyMiddleware
     private readonly RequestDelegate _next;
     private readonly IConfiguration _cfg;
     private readonly IHostEnvironment _env;
+    private readonly ILogger _securityAudit;
 
-    public AdminApiKeyMiddleware(RequestDelegate next, IConfiguration cfg, IHostEnvironment env)
+    public AdminApiKeyMiddleware(RequestDelegate next, IConfiguration cfg, IHostEnvironment env, ILoggerFactory loggerFactory)
     {
         _next = next;
         _cfg = cfg;
         _env = env;
+        _securityAudit = loggerFactory.CreateLogger(SecurityAuditLogger.CategoryName);
     }
 
     public async Task Invoke(HttpContext ctx)
@@ -61,6 +64,7 @@ public sealed class AdminApiKeyMiddleware
                 return;
             }
 
+            SecurityAuditLogger.LogSecurityConfigError(_securityAudit, "admin_api_key_not_configured", ctx);
             ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
             ctx.Response.ContentType = "application/json";
             await ctx.Response.WriteAsJsonAsync(new ErrorResponse(
@@ -75,6 +79,7 @@ public sealed class AdminApiKeyMiddleware
 
         if (!string.Equals(provided, configured.Trim(), StringComparison.Ordinal))
         {
+            SecurityAuditLogger.LogAuthDenied(_securityAudit, "admin_unauthorized", ctx);
             ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
             ctx.Response.ContentType = "application/json";
             await ctx.Response.WriteAsJsonAsync(new ErrorResponse(
