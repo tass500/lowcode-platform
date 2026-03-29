@@ -23,6 +23,6 @@
 
 ## ACTIVE
 
-- **64b** — Kestrel `MaxRequestBodySize` + import `RequestSizeLimit` — [`kestrel-request-limits.md`](kestrel-request-limits.md). Aktuális sor: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).  
+- **64b** — Kestrel `MaxRequestBodySize` + import `RequestSizeLimit` — **PR #107** — [`kestrel-request-limits.md`](kestrel-request-limits.md). Aktuális sor: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).  
 - **64a** ✅ — [`security-http-headers.md`](security-http-headers.md) (**PR #106**).  
 - Előző hullám (63): [`roadmap-next-iterations.md`](roadmap-next-iterations.md).
