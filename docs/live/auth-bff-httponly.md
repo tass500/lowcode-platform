@@ -1,6 +1,6 @@
 # BFF + httpOnly cookie session (iter **62c**)
 
-> **Állapot:** **Fázis B (részben) kész** a backendben: `BffAuthController` — login redirect, callback, **Data Protection**-tal titkosított session süti, `meta` / `session` / `logout`. A **workflow API-k** még **nem** olvassák a BFF sütit (következő: **Fázis C** middleware). Összhang: [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md) § keményítés, [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) **ACTIVE 62c**.
+> **Állapot:** **Fázis B + C kész** a backendben: `BffAuthController` (login / callback / session / meta / logout), **Data Protection** session süti, és **`BffSessionBearerMiddleware`** — ha nincs `Authorization` fejléc, a session sütiből **Bearer** kerül a kérésre → meglévő JWT pipeline. **Fázis D:** Angular (`meta`, `withCredentials`). Összhang: [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md) § keményítés, [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) **ACTIVE 62c**.
 
 ## Cél
 
@@ -47,7 +47,7 @@ OIDC paraméterek: ugyanazok mint a SPA-hoz: `Auth:Oidc:Authority`, `Auth:Oidc:S
 | `GET /api/auth/bff/session` | `{ authenticated, accessTokenExpiresAtUtc, tenantHint, subjectHint }` — **nem** ad vissza nyers tokent. |
 | `POST /api/auth/bff/logout` | Session süti törlése. |
 
-A **meglévő** workflow/entity API-k továbbra is a jelenlegi **`tenant_user`** / JWT elvárásokat használhatják: a BFF (vagy egy közös middleware) a süti alapján **feltölti** a `HttpContext.User`-t vagy továbbításkor ráteszi a **Bearer** tokent **belső** hívásra (localhost / pod hálózat).
+A **meglévő** workflow/entity API-k változatlan `[Authorize]` / policy mellett működnek: a **`BffSessionBearerMiddleware`** (authentication **előtt**) beállítja a `Authorization: Bearer …` fejlécet a httpOnly session sütiből, ha a kliens nem küldött saját Bearert (explicit header **nyer**).
 
 ## Süti és biztonság — checklist
 
@@ -73,7 +73,7 @@ A **meglévő** workflow/entity API-k továbbra is a jelenlegi **`tenant_user`**
 
 1. **Fázis A** — dokumentáció + konfig séma ✅
 2. **Fázis B** — BFF login / callback / session süti / `meta` / `session` / `logout` + integrációs tesztek ✅ (`BffAuthEndpointsTests`)
-3. **Fázis C** — middleware vagy handler: BFF session sütiből **Bearer** a meglévő JWT pipeline felé (`tenant_user` működjön cookie alapján is).
+3. **Fázis C** — `BffSessionBearerMiddleware` + `IBffSessionReader` / `BffSessionReader`; integrációs teszt: cookie → `/api/workflows` ✅ (`BffSessionBearerWorkflowTests`)
 4. **Fázis D** — Angular: `meta` alapján BFF login gomb, `withCredentials`, SPA token UI opcionális elrejtése BFF módban.
 
 ## DoD (implementáció PR-hez)
@@ -84,7 +84,7 @@ A **meglévő** workflow/entity API-k továbbra is a jelenlegi **`tenant_user`**
 
 ## Kapcsolódó kód
 
-- **BFF:** `backend/Controllers/BffAuthController.cs`, `backend/Auth/Bff/*`, `Program.cs` (`BffAuthOptions`, `IOidcHttpForBff`).
-- **További (Fázis C–D):** `AuthController`, `frontend/.../api-auth.interceptor.ts`, `lowcode-session.store.ts`, `lowcode-auth-*.component.ts`.
+- **BFF:** `backend/Controllers/BffAuthController.cs`, `backend/Auth/Bff/*`, `backend/Middleware/BffSessionBearerMiddleware.cs`, `Program.cs` (`BffAuthOptions`, `IOidcHttpForBff`, `IBffSessionReader`).
+- **Fázis D (frontend):** `frontend/.../api-auth.interceptor.ts`, `lowcode-session.store.ts`, `lowcode-auth-*.component.ts`.
 
 **Megjegyzés:** élesben a **Data Protection** kulcsok perzisztenciája kötelező (különben restart után érvénytelenek a sütik) — lásd ASP.NET Data Protection key ring.

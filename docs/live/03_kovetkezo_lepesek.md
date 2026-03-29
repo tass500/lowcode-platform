@@ -9,7 +9,7 @@
 
 ## Workflow engine — ACTIVE
 
-**ACTIVE: 62c — BFF + httpOnly** — **Fázis B** backend (`/api/auth/bff/*`, httpOnly session süti) ✅ [`auth-bff-httponly.md`](auth-bff-httponly.md); **következő PR (Fázis C):** middleware — BFF sütiből Bearer a JWT pipeline felé; **Fázis D:** Angular `meta` + `withCredentials`. **62b2** (SPA OIDC PKCE + claim mapping + `spa-oidc-config`) ✅ merge [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** OIDC Bearer MVP ✅. **62** (62a–a2, 62a1) ✅. **61** import/export ✅. **60–58** ✅. Backlog: **58c+** (opcionális CDK / touch); **62c+** opcionális teszt IdP / e2e a BFF után.
+**ACTIVE: 62c — BFF + httpOnly** — **Fázis B + C** backend ✅ [`auth-bff-httponly.md`](auth-bff-httponly.md) (`BffSessionBearerMiddleware`); **következő PR (Fázis D):** Angular `meta` + `withCredentials` + opcionális SPA token UI csökkentése. **62b2** (SPA OIDC PKCE + claim mapping + `spa-oidc-config`) ✅ merge [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** OIDC Bearer MVP ✅. **62** (62a–a2, 62a1) ✅. **61** import/export ✅. **60–58** ✅. Backlog: **58c+** (opcionális CDK / touch); **62c+** opcionális teszt IdP / e2e a BFF után.
 
 > **56–57** lezárva: SQL Server EF + Helm backup — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 
@@ -23,7 +23,7 @@
 | **59** | Run cancel API ✅ | |
 | **60** | Observability + health ✅ | OTel opcionális |
 | **61** | Import/export ✅ | [`workflow-import-export.md`](workflow-import-export.md) |
-| **62** | Auth (62a–a2 ✅, 62a1 ✅) | **62b** MVP ✅, **62b2** SPA+claims ✅, **62c** BFF Fázis B ✅ → Fázis C [`auth-bff-httponly.md`](auth-bff-httponly.md) |
+| **62** | Auth (62a–a2 ✅, 62a1 ✅) | **62b** MVP ✅, **62b2** SPA+claims ✅, **62c** BFF B+C ✅ → Fázis D [`auth-bff-httponly.md`](auth-bff-httponly.md) |
 
 Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) (§ *Ütemterv 56+*).
 
@@ -31,7 +31,7 @@ Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) 
 
 - **PR / iteráció ritmus:** [`DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) **§5a**
 - Branch: `feat/<topic>` a legfrissebb `main`-ről
-- ACTIVE: **62c** (Fázis B backend kész → Fázis C middleware); **62b2** mergeelve; **62** lezárva; **61** lezárva
+- ACTIVE: **62c** (Fázis D frontend); **62b2** mergeelve; **62** lezárva; **61** lezárva
 - `git status` → staged / unstaged
 - `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 

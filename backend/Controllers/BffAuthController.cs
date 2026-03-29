@@ -23,19 +23,22 @@ public sealed class BffAuthController : ControllerBase
     private readonly BffAuthOptions _options;
     private readonly IOidcHttpForBff _oidc;
     private readonly IDataProtector _protector;
+    private readonly IBffSessionReader _bffSessionReader;
 
     public BffAuthController(
         IConfiguration cfg,
         IHostEnvironment env,
         IOptions<BffAuthOptions> options,
         IOidcHttpForBff oidc,
-        IDataProtectionProvider dataProtection)
+        IDataProtectionProvider dataProtection,
+        IBffSessionReader bffSessionReader)
     {
         _cfg = cfg;
         _env = env;
         _options = options.Value;
         _oidc = oidc;
         _protector = dataProtection.CreateProtector("Lcp.BffSession.v1");
+        _bffSessionReader = bffSessionReader;
     }
 
     private ObjectResult Problem(int statusCode, string errorCode, string message)
@@ -45,10 +48,7 @@ public sealed class BffAuthController : ControllerBase
             TraceId: TraceIdMiddleware.GetTraceId(HttpContext),
             TimestampUtc: DateTime.UtcNow));
 
-    /// <summary>Whether BFF auth is available (feature flag + environment gate).</summary>
-    private bool IsBffFeatureOn() =>
-        _options.Enabled
-        && (_env.IsDevelopment() || _env.IsEnvironment("Testing") || _cfg.GetValue("Auth:Bff:AllowNonDevelopment", false));
+    private bool IsBffFeatureOn() => BffAuthFeature.IsEnabled(_options, _env, _cfg);
 
     private CookieOptions EphemeralPkceCookieOptions() =>
         new()
@@ -288,28 +288,13 @@ public sealed class BffAuthController : ControllerBase
         if (!IsBffFeatureOn())
             return NotFound();
 
-        if (!Request.Cookies.TryGetValue(_options.SessionCookieName, out var raw) || string.IsNullOrEmpty(raw))
+        if (!_bffSessionReader.TryGetValidPayload(HttpContext, out var payload))
             return Ok(new BffSessionResponseDto(false, null, null, null));
 
-        try
-        {
-            var bytes = _protector.Unprotect(Convert.FromBase64String(raw));
-            var payload = JsonSerializer.Deserialize<BffSessionCookiePayload>(Encoding.UTF8.GetString(bytes));
-            if (payload?.AccessToken is null || payload.AccessToken.Length == 0)
-                return Ok(new BffSessionResponseDto(false, null, null, null));
-
-            var expUtc = DateTimeOffset.FromUnixTimeSeconds(payload.ExpiresAtUnix).UtcDateTime;
-            if (expUtc <= DateTime.UtcNow)
-                return Ok(new BffSessionResponseDto(false, expUtc, null, null));
-
-            var tenantHint = ReadTenantHint(payload.AccessToken);
-            var subjectHint = ReadSubjectHint(payload.AccessToken);
-            return Ok(new BffSessionResponseDto(true, expUtc, tenantHint, subjectHint));
-        }
-        catch
-        {
-            return Ok(new BffSessionResponseDto(false, null, null, null));
-        }
+        var expUtc = DateTimeOffset.FromUnixTimeSeconds(payload.ExpiresAtUnix).UtcDateTime;
+        var tenantHint = ReadTenantHint(payload.AccessToken);
+        var subjectHint = ReadSubjectHint(payload.AccessToken);
+        return Ok(new BffSessionResponseDto(true, expUtc, tenantHint, subjectHint));
     }
 
     [HttpPost("logout")]
