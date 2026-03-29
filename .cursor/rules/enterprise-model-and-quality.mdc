@@ -41,7 +41,7 @@ Canonical process + security + handoff: **`docs/DEVELOPMENT_WORKFLOW.md`**.
 
 - Preserve behavior unless explicitly changing it (“no behavior change” when stated).
 - **Do not** add new dependencies/libraries without explicit user approval.
-- Prefer **small, reversible** steps; split large work across milestones (WIP=1).
+- Prefer **small, reversible** steps; split large work across milestones (WIP=1). PR / multi-iteration branch cadence: **`docs/DEVELOPMENT_WORKFLOW.md` §5a**.
 
 # Documentation
 

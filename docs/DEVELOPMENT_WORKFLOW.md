@@ -50,6 +50,23 @@ A **`.windsurf/` könyvtár nem authoritative** (lásd alul).
 - PR megnyitható **Draft**-ként is; a további commitok ugyanabba a PR-ba mennek.
 - Merge után: lokális feature branch **törölhető** (`git branch -d`).
 
+### 5a) Több iteráció egy feature ágon — alapértelmezett ritmus (emberek + AI)
+
+A roadmap **iterációi** és a **PR-ok** nem feltétlenül 1:1-ben esnek egybe. **Optimalizált alapértelmezés** ebben a repóban:
+
+- **Egy PR = egy lezárható milestone** (egy üzletileg / technikailag összefüggő egység). **Nem** cél: a teljes backlog egy PR-ban; **nem** kötelező minden apró szelethez külön PR.
+- **Ugyanazon a feature ágon** több roadmap-iteráció is végrehajtható **egymás után**: iterációnként (vagy rétegenként) **külön commit**, majd **egy PR**, amikor a milestone **kész** és a diff még **ésszerűen reviewolható**.
+- **Commit-sorrend** ugyanazon a PR-on belül: tipikusan **iterációnként 1 commit**; ha egy iteráció több réteget érint, marad a **1–3 commit / egység** minta (backend+teszt → frontend → docs+chore).
+- **Vágd több PR-ra**, ha:
+  - a diff **túl nagy** ahhoz, hogy jó review jöjjön belőle;
+  - **keverednek a témák** (pl. nagy auth / biztonság + független feature);
+  - **eltérő kockázat** indokolja a szétválasztást (példa: **import/export** és **auth bővítés** külön PR).
+- **Kerülendő:** hetek vagy hónapok munkája egyetlen PR-ban; egy PR-ban **auth** + össze nem függő nagy feature.
+
+**AI / Cursor:** ha a felhasználó **nem ad másik** utasítást, ezt a ritmust kövesse (egy milestone ↔ egy branch, több commit, egy PR a milestone lezárásakor; szétvágás a fenti feltételek szerint). **Explicit kérés** felülírja (pl. „minden iteráció külön PR”, „csak egy commit az egészre”).
+
+**Megjegyzés:** A szkriptek (`iter-end`, `gh-pr-push-merge`) **nem** döntenek helyettünk milestone vs. PR szétvágásról — a fenti szabályt a **doksi + review** rögzíti; a szkriptek a már eldöntött ágat viszik végig (push, PR, gate-ek).
+
 ---
 
 ## 6) GitHub CLI (`gh`) és token
@@ -187,7 +204,7 @@ A Cursor UI-ban állítod. Irányelv: **Auto / gyorsabb modell** a napi kis munk
 | Cél | Hogyan segít |
 |-----|----------------|
 | Kevesebb „ismételd el a kontextust” | §7 Handoff, `03` ACTIVE, branch név, `ai-cursor-token-efficiency.md` |
-| Kevesebb véletlen nagy diff | WIP=1, 1 PR ≈ 1 milestone (§2, §5) |
+| Kevesebb véletlen nagy diff | WIP=1, 1 PR ≈ 1 milestone (§2, §5, **§5a**); szétvágás ha túl nagy / kevert téma |
 | Kevesebb manuális PR-csevegés | §6b `iter-end`, `pr-body.md`, `gh` |
 | Kevesebb indexelt / véletlen kontextus | `.cursorignore` (build, `node_modules`, stb.) |
 
