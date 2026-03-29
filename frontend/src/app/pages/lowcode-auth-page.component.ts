@@ -2,8 +2,10 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { OAuthService } from 'angular-oauth2-oidc';
 import { firstValueFrom } from 'rxjs';
+import { BffAuthStateService } from '../lowcode/bff-auth-state.service';
 import { configureOAuthForSpa } from '../lowcode/lowcode-oidc.configure';
 import type { SpaOidcConfig } from '../lowcode/lowcode-oidc.types';
 import { getLowCodeSession, setLowCodeSession } from '../lowcode/lowcode-session.store';
@@ -14,6 +16,13 @@ type DevTokenResponse = {
   expiresAtUtc: string;
 };
 
+type BffSessionResponse = {
+  authenticated: boolean;
+  accessTokenExpiresAtUtc: string | null;
+  tenantHint: string | null;
+  subjectHint: string | null;
+};
+
 @Component({
   selector: 'app-lowcode-auth-page',
   standalone: true,
@@ -22,8 +31,38 @@ type DevTokenResponse = {
     <main style="padding: 16px; max-width: 980px; margin: 0 auto;">
       <h2>Low-code Auth (dev)</h2>
 
+      <div *ngIf="bffError" style="margin-top: 12px; padding: 10px; border-radius: 8px; background: #ffebee; color: #b00020;">
+        BFF login error: <code>{{ bffError }}</code>
+      </div>
+
       <section
-        *ngIf="oidcCfg"
+        *ngIf="bff.meta()?.enabled"
+        style="margin-top: 12px; padding: 12px; border: 1px solid #063; border-radius: 8px; background: #f0fff4;"
+      >
+        <h3 style="margin: 0 0 8px; font-size: 1.05rem;">Server-side login (BFF, httpOnly cookie)</h3>
+        <p style="color:#444; margin: 0 0 8px;">
+          Ha a backend BFF auth be van kapcsolva és az OIDC kliens be van állítva, a böngésző a JWT-t httpOnly sütiben
+          tartja; az API hívások <code>withCredentials</code>-szel mennek, és nem küldünk <code>Authorization</code>-t a
+          sessionStorage-ból (nehogy felülírjuk a sütit).
+        </p>
+        <p *ngIf="bff.meta()?.enabled && !bff.useCookieAuth()" style="color:#666; margin: 0 0 8px;">
+          A szerver szerint a BFF be van kapcsolva, de hiányzik az OIDC authority + SPA client id — a BFF login nem elérhető,
+          amíg ezek nincsenek beállítva.
+        </p>
+        <a *ngIf="bffLoginHref" [href]="bffLoginHref" style="display: inline-block; margin-right: 12px;">Belépés BFF-fel (IdP)</a>
+        <ng-container *ngIf="bff.useCookieAuth()">
+          <button type="button" (click)="loadBffSession()" [disabled]="bffSessionLoading">Session infó frissítése</button>
+          <button type="button" (click)="bffLogout()" style="margin-left: 8px;">BFF kijelentkezés (süti törlése)</button>
+          <div *ngIf="bffSessionLoading" style="margin-top: 8px;">Betöltés…</div>
+          <pre
+            *ngIf="bffSessionText"
+            style="margin-top: 10px; padding: 8px; background: #fff; border: 1px solid #ccc; border-radius: 6px; overflow: auto;"
+            >{{ bffSessionText }}</pre>
+        </ng-container>
+      </section>
+
+      <section
+        *ngIf="oidcCfg && !bff.useCookieAuth()"
         style="margin-top: 12px; padding: 12px; border: 1px solid #cce; border-radius: 8px; background: #f8fbff;"
       >
         <h3 style="margin: 0 0 8px; font-size: 1.05rem;">OpenID Connect (code + PKCE)</h3>
@@ -37,6 +76,10 @@ type DevTokenResponse = {
       </section>
 
       <section style="margin-top: 12px; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
+        <div *ngIf="bff.useCookieAuth()" style="margin-bottom: 10px; padding: 8px; background: #fff8e1; border-radius: 6px; color: #5d4e00;">
+          BFF mód: a dev / beillesztett Bearer token <strong>nem</strong> kerül az API-kra — a süti azonosít. Tenant
+          override-hoz (dev) a tenant mező továbbra is küldi az <code>X-Tenant-Id</code> fejlécet, ha kitöltöd.
+        </div>
         <div style="color:#444; margin-bottom: 8px;">
           A low-code API-khoz kell token + tenant. Devben kérhetsz tokent a backendből, vagy beilleszthetsz egyet.
         </div>
@@ -83,9 +126,15 @@ type DevTokenResponse = {
 export class LowCodeAuthPageComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly oauth = inject(OAuthService);
+  private readonly route = inject(ActivatedRoute);
+  readonly bff = inject(BffAuthStateService);
 
   oidcCfg: SpaOidcConfig | null = null;
   oidcLoginLoading = false;
+
+  bffError: string | null = null;
+  bffSessionText: string | null = null;
+  bffSessionLoading = false;
 
   form = new FormGroup({
     tenantSlug: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -98,12 +147,53 @@ export class LowCodeAuthPageComponent implements OnInit {
   mintLoading = false;
   error: string | null = null;
 
+  get bffLoginHref(): string | null {
+    const m = this.bff.meta();
+    if (!m?.enabled || !m.loginPath?.trim()) return null;
+    const p = m.loginPath.startsWith('/') ? m.loginPath : `/${m.loginPath}`;
+    return p;
+  }
+
   async ngOnInit(): Promise<void> {
+    const q = this.route.snapshot.queryParamMap;
+    this.bffError = q.get('bff_error') ?? q.get('Bff_error');
     try {
       this.oidcCfg = await firstValueFrom(this.http.get<SpaOidcConfig>('/api/auth/spa-oidc-config'));
     } catch {
       this.oidcCfg = null;
     }
+    if (this.bff.useCookieAuth()) {
+      await this.loadBffSession();
+    }
+  }
+
+  async loadBffSession(): Promise<void> {
+    if (!this.bff.useCookieAuth()) return;
+    this.bffSessionLoading = true;
+    this.bffSessionText = null;
+    try {
+      const s = await firstValueFrom(
+        this.http.get<BffSessionResponse>('/api/auth/bff/session', { withCredentials: true })
+      );
+      this.bffSessionText = JSON.stringify(s, null, 2);
+    } catch (e: unknown) {
+      const anyErr = e as { error?: { message?: string }; message?: string };
+      this.bffSessionText = anyErr?.error?.message ?? anyErr?.message ?? 'Failed to load BFF session.';
+    } finally {
+      this.bffSessionLoading = false;
+    }
+  }
+
+  async bffLogout(): Promise<void> {
+    if (!this.bff.useCookieAuth()) return;
+    try {
+      await firstValueFrom(this.http.post('/api/auth/bff/logout', {}, { withCredentials: true }));
+    } catch {
+      /* still clear local hints */
+    }
+    setLowCodeSession(null);
+    this.bffSessionText = null;
+    await this.loadBffSession();
   }
 
   async oidcLogin(): Promise<void> {
