@@ -10,6 +10,7 @@ import { minifyWorkflowDefinitionJson, prettifyWorkflowDefinitionJson } from './
 import {
   appendBuilderStep,
   moveBuilderStep,
+  moveBuilderStepToSlot,
   parseBuilderStepSummaries,
   removeBuilderStepAt,
   WORKFLOW_BUILDER_PALETTE,
@@ -225,7 +226,7 @@ type ApiErrorDetail = {
             <ng-container *ngIf="!viewerError">
               <p style="font-size: 13px; color:#555; margin: 0 0 12px 0; line-height: 1.45;">
                 Steps run top to bottom. Runtime keys are <code>000</code>, <code>001</code>, … by order.
-                Reordering or adding steps can break references to other steps (context paths) — switch to JSON to adjust.
+                Drag the handle to reorder (or use ↑↓). Reordering or adding steps can break references to other steps (context paths) — switch to JSON to adjust.
               </p>
               <div style="margin-bottom: 12px;">
                 <div style="font-weight: 600; margin-bottom: 6px;">Add step</div>
@@ -237,8 +238,21 @@ type ApiErrorDetail = {
               <div *ngIf="builderStepRows.length > 0" style="display:flex; flex-direction: column; gap: 8px;">
                 <div
                   *ngFor="let row of builderStepRows"
+                  (dragover)="onBuilderRowDragOver($event, row.index)"
+                  (dragleave)="onBuilderRowDragLeave($event, row.index)"
+                  (drop)="onBuilderRowDrop($event, row.index)"
+                  [style.outline]="builderDragHighlightRow === row.index ? '2px solid #0b5394' : 'none'"
+                  [style.outline-offset]="'2px'"
                   style="display:flex; align-items:center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa;"
                 >
+                  <span
+                    draggable="true"
+                    title="Drag to reorder"
+                    (dragstart)="onBuilderRowDragStart($event, row.index)"
+                    (dragend)="onBuilderRowDragEnd()"
+                    style="cursor: grab; user-select: none; color: #888; font-size: 16px; line-height: 1; padding: 2px 4px;"
+                    aria-label="Drag to reorder step"
+                    >⋮⋮</span>
                   <span style="font-family: monospace; color:#666;">{{ formatBuilderStepKey(row.index) }}</span>
                   <span style="font-family: monospace;"><b>{{ row.type }}</b></span>
                   <span style="flex:1"></span>
@@ -365,6 +379,9 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
 
   readonly builderPalette = WORKFLOW_BUILDER_PALETTE;
 
+  /** Row index receiving drag-over highlight (native HTML5 DnD). */
+  builderDragHighlightRow: number | null = null;
+
   get builderStepRows(): Array<{ index: number; type: string }> {
     return parseBuilderStepSummaries(String(this.form.controls.definitionJson.value ?? ''));
   }
@@ -411,6 +428,52 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
       this.jsonFormatError = e?.message ?? 'Invalid JSON.';
     }
   }
+
+  onBuilderRowDragStart(ev: DragEvent, fromIndex: number): void {
+    ev.dataTransfer?.setData('text/plain', String(fromIndex));
+    if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move';
+  }
+
+  onBuilderRowDragOver(ev: DragEvent, rowIndex: number): void {
+    ev.preventDefault();
+    if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
+    this.builderDragHighlightRow = rowIndex;
+  }
+
+  onBuilderRowDragLeave(ev: DragEvent, rowIndex: number): void {
+    const next = ev.relatedTarget as Node | null;
+    if (next && (ev.currentTarget as HTMLElement).contains(next)) return;
+    if (this.builderDragHighlightRow === rowIndex) this.builderDragHighlightRow = null;
+  }
+
+  onBuilderRowDrop(ev: DragEvent, rowIndex: number): void {
+    ev.preventDefault();
+    this.builderDragHighlightRow = null;
+    const fromStr = ev.dataTransfer?.getData('text/plain') ?? '';
+    const from = Number.parseInt(fromStr, 10);
+    const n = this.builderStepRows.length;
+    if (!Number.isFinite(from) || from < 0 || from >= n) return;
+    const rowEl = ev.currentTarget as HTMLElement;
+    const r = rowEl.getBoundingClientRect();
+    const before = ev.clientY < r.top + r.height / 2;
+    const targetSlot = before ? rowIndex : rowIndex + 1;
+    this.applyBuilderMoveToSlot(from, targetSlot, n);
+  }
+
+  onBuilderRowDragEnd(): void {
+    this.builderDragHighlightRow = null;
+  }
+
+  private applyBuilderMoveToSlot(from: number, targetSlot: number, stepCount: number): void {
+    this.jsonFormatError = null;
+    try {
+      const raw = String(this.form.controls.definitionJson.value ?? '');
+      this.form.controls.definitionJson.setValue(moveBuilderStepToSlot(raw, from, targetSlot, stepCount));
+    } catch (e: any) {
+      this.jsonFormatError = e?.message ?? 'Invalid JSON.';
+    }
+  }
+
   tab: 'definition' | 'runs' = 'definition';
 
   runs: WorkflowRunListItemDto[] = [];

@@ -19,3 +19,8 @@ This repository was bootstrapped from the truth files template.
 - For ongoing work, see `docs/live/03_kovetkezo_lepesek.md`:
   - Credit-aware iteration sizing (1 Q/A = 1 credit)
 
+## API authentication (pointers)
+
+- **Tenant automation:** optional header `X-Tenant-Api-Key` (provisioned via admin API); details and errors: [`docs/live/tenant-api-key.md`](docs/live/tenant-api-key.md).
+- **JWT (dev):** `POST /api/auth/dev-token` (Development / Testing only). Optional strict `iss` / `aud` when `Auth:Jwt:Issuer` and `Auth:Jwt:Audience` are set — same doc, JWT section.
+
