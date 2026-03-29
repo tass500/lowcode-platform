@@ -163,7 +163,8 @@ type ApiErrorDetail = {
         <ng-container *ngIf="!viewerError">
           <p style="font-size: 13px; color:#555; margin: 0 0 12px 0; line-height: 1.45;">
             Steps run top to bottom. Runtime keys are <code>000</code>, <code>001</code>, … by order.
-            Drag the handle to reorder (or use ↑↓). Reordering or adding steps can break references to other steps — switch to JSON to adjust.
+            Drag the <strong>⋮⋮</strong> handle to reorder, or use <strong>↑↓</strong> (preferred on touch — native HTML5 drag is pointer-first).
+            Reordering or adding steps can break references to other steps — switch to JSON to adjust.
           </p>
           <div style="margin-bottom: 12px;">
             <div style="font-weight: 600; margin-bottom: 6px;">Add step</div>
@@ -184,17 +185,17 @@ type ApiErrorDetail = {
             >
               <span
                 draggable="true"
-                title="Drag to reorder"
+                title="Drag to reorder (pointer); on touch use ↑↓"
                 (dragstart)="onBuilderRowDragStart($event, row.index)"
                 (dragend)="onBuilderRowDragEnd()"
-                style="cursor: grab; user-select: none; color: #888; font-size: 16px; line-height: 1; padding: 2px 4px;"
+                style="cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; color: #555; font-size: 18px; line-height: 1; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1px dashed #ccc; border-radius: 6px; background: #f0f0f0;"
                 aria-label="Drag to reorder step"
                 >⋮⋮</span>
               <span style="font-family: monospace; color:#666;">{{ formatBuilderStepKey(row.index) }}</span>
               <span style="font-family: monospace;"><b>{{ row.type }}</b></span>
               <span style="flex:1"></span>
-              <button type="button" (click)="moveBuilderStepUp(row.index)" [disabled]="row.index === 0">↑</button>
-              <button type="button" (click)="moveBuilderStepDown(row.index)" [disabled]="row.index === builderStepRows.length - 1">↓</button>
+              <button type="button" (click)="moveBuilderStepUp(row.index)" [disabled]="row.index === 0" style="min-width: 44px; min-height: 44px;">↑</button>
+              <button type="button" (click)="moveBuilderStepDown(row.index)" [disabled]="row.index === builderStepRows.length - 1" style="min-width: 44px; min-height: 44px;">↓</button>
               <button type="button" (click)="removeBuilderStep(row.index)" style="color:#b00020;">Remove</button>
               <button type="button" (click)="jumpToJsonStep(row.index)">JSON →</button>
             </div>

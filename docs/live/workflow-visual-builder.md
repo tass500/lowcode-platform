@@ -25,6 +25,7 @@ A JSON definíció marad az igazság forrása; a **Builder** nézet a workflow *
 ## Korlátok / következő lépések
 
 - **58c (MVP):** sorrend **natív HTML5** drag&drop a builderben (`⋮⋮` fogó; sor fele felett/alatt ejtés = elé / mögé); **új dependency nélkül**. ~~Opcionális később: `@angular/cdk`~~ — lásd fenti **Döntés** blokk.
+- **58c+ (touch / UX, dependency nélkül):** nagyobb **érintési cél** a fogón és az **↑↓** gombokon (~44px), `touch-action: none` a fogón, szöveg: érintőn az **↑↓** az elsődleges (a böngészők HTML5 DnD-je pointer-központú).
 - Átrendezés után a **`${000.*}`** hivatkozások elcsúszhatnak — a szöveg ezt jelzi; finomhangolás továbbra is **JSON** nézetben.
 - **New workflow** (58b): Builder + JSON váltó, template gombok továbbra is a `definitionJson`-t írják; további szelet: jobb mobil UX (CDK nélkül vagy később, lásd **Döntés**).
 
