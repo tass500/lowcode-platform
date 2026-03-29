@@ -9,7 +9,7 @@
 
 ## Workflow engine — ACTIVE
 
-**ACTIVE (WIP=1):** **Következő milestone TBD** — **Iter 63** ✅ (**63a** **PR #102**, **63b** **PR #103**, **63c** **PR #104**; **63d** böngészős e2e *nem most* — **PR #105** — [`roadmap-next-iterations.md`](roadmap-next-iterations.md) § *63d — döntés*). **62c+ e2e** hátrasorolva (nem blokkoló). **58c+** touch UX ✅ **PR #99** — [`workflow-visual-builder.md`](workflow-visual-builder.md). **58c+ `@angular/cdk`:** elhalasztva — ugyanott § *Döntés*. **62c+** doksi ✅ — [`auth-bff-httponly.md`](auth-bff-httponly.md) (**PR #95**, **PR #97**). **62c — BFF** ✅ **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
+**ACTIVE (WIP=1):** **64a** — HTTP security headers + HSTS (enterprise baseline) — **PR #106** — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md). **Iter 63** ✅ (**63a–d**, **PR #102–105** — [`roadmap-next-iterations.md`](roadmap-next-iterations.md)). **62c+ e2e** hátrasorolva (nem blokkoló). **58c+** touch UX ✅ **PR #99** — [`workflow-visual-builder.md`](workflow-visual-builder.md). **58c+ `@angular/cdk`:** elhalasztva — ugyanott § *Döntés*. **62c+** doksi ✅ — [`auth-bff-httponly.md`](auth-bff-httponly.md) (**PR #95**, **PR #97**). **62c — BFF** ✅ **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
 
 > **56–57** lezárva: SQL Server EF + Helm backup — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 
@@ -32,12 +32,13 @@ Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) 
 
 - **PR / iteráció ritmus:** [`DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) **§5a**
 - Branch: `feat/<topic>` a legfrissebb `main`-ről
-- ACTIVE: következő milestone **TBD** — [`roadmap-next-iterations.md`](roadmap-next-iterations.md) (**63** ✅, 63d döntés); **63a–c** **PR #102–104**; **62c+ e2e** backlog; **58c+** touch (**PR #99**); **58c+ CDK** defer — [`workflow-visual-builder.md`](workflow-visual-builder.md); **62c** + **62c+ doksi** (**PR #93**, **PR #95**, **PR #97**); **62b2** mergeelve; **62** / **61** lezárva
+- ACTIVE: **64a** → **64b**… — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md); **63** ✅ (**PR #102–105**); **62c+ e2e** backlog; **58c+** touch (**PR #99**); **58c+ CDK** defer — [`workflow-visual-builder.md`](workflow-visual-builder.md); **62c** + **62c+ doksi** (**PR #93**, **PR #95**, **PR #97**); **62b2** mergeelve; **62** / **61** lezárva
 - `git status` → staged / unstaged
 - `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 
 ## Kapcsolódó live docok
 
+- Enterprise 64+ ütem: [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) · HTTP fejlécek: [`security-http-headers.md`](security-http-headers.md)
 - OIDC JWT Bearer: [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md) · BFF / httpOnly terv (**62c**): [`auth-bff-httponly.md`](auth-bff-httponly.md) · tenant API key: [`tenant-api-key.md`](tenant-api-key.md)
 - Ütemezés: [`workflow-schedule.md`](workflow-schedule.md) · timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md)
 
