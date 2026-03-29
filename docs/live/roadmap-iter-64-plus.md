@@ -23,5 +23,5 @@
 
 ## ACTIVE
 
-- **64a** — HTTP security headers + HSTS — részletek: [`security-http-headers.md`](security-http-headers.md). Aktuális sor: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).  
+- **64a** — HTTP security headers + HSTS — **PR #106** — részletek: [`security-http-headers.md`](security-http-headers.md). Aktuális sor: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).  
 - Előző hullám (63): [`roadmap-next-iterations.md`](roadmap-next-iterations.md).
