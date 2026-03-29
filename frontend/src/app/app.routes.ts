@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 
 import { UpgradePageComponent } from './pages/upgrade-page.component';
+import { LowcodeAuthCallbackComponent } from './pages/lowcode-auth-callback.component';
 import { LowCodeAuthPageComponent } from './pages/lowcode-auth-page.component';
 import { LowCodeWorkflowsPageComponent } from './pages/lowcode-workflows-page.component';
 import { LowCodeEntitiesPageComponent } from './pages/lowcode-entities-page.component';
@@ -17,6 +18,7 @@ export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'upgrade' },
   { path: 'upgrade', component: UpgradePageComponent },
   { path: 'lowcode/auth', component: LowCodeAuthPageComponent },
+  { path: 'lowcode/auth/callback', component: LowcodeAuthCallbackComponent },
   { path: 'lowcode/admin/tenants', component: LowCodeAdminTenantsPageComponent },
   { path: 'lowcode/workflows', component: LowCodeWorkflowsPageComponent },
   { path: 'lowcode/workflow-runs', component: LowCodeWorkflowRunsPageComponent },

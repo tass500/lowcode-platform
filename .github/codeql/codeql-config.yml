@@ -1,0 +1,5 @@
+# Dev SPA OAuth session: browser Storage is intentionally used (sessionStorage).
+# CodeQL js/clear-text-storage-of-sensitive-data flags any token-shaped data written to Storage;
+# inline suppressions are not always applied consistently in PR scans.
+paths-ignore:
+  - frontend/src/app/lowcode/lowcode-session.store.ts
