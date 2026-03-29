@@ -1,4 +1,5 @@
 using LowCodePlatform.Backend;
+using LowCodePlatform.Backend.Auth.Bff;
 using LowCodePlatform.Backend.Data;
 using LowCodePlatform.Backend.Middleware;
 using LowCodePlatform.Backend.Services;
@@ -26,6 +27,10 @@ if (builder.Environment.IsEnvironment("Testing"))
     if (!enableEfConnectionLogs)
         builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Connection", LogLevel.None);
 }
+
+builder.Services.Configure<BffAuthOptions>(builder.Configuration.GetSection(BffAuthOptions.SectionName));
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<IOidcHttpForBff, OidcHttpForBff>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
