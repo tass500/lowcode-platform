@@ -1,6 +1,6 @@
 # BFF + httpOnly cookie session (iter **62c**)
 
-> **Állapot:** **Fázis B + C kész** a backendben: `BffAuthController` (login / callback / session / meta / logout), **Data Protection** session süti, és **`BffSessionBearerMiddleware`** — ha nincs `Authorization` fejléc, a session sütiből **Bearer** kerül a kérésre → meglévő JWT pipeline. **Fázis D:** Angular (`meta`, `withCredentials`). Összhang: [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md) § keményítés, [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) **ACTIVE 62c**.
+> **Állapot:** **Fázis B + C + D kész:** backend (`BffAuthController`, session süti, **`BffSessionBearerMiddleware`**) + Angular: **`BffAuthStateService`** + **`APP_INITIALIZER`** → `GET /api/auth/bff/meta`; **`api-auth.interceptor`**: BFF módban **`withCredentials: true`**, **nem** küld `Authorization`-t `sessionStorage`-ból, opcionálisan **`X-Tenant-Id`** ha van tenant a session store-ban; **`/lowcode/auth`**: BFF login link, session infó, logout, `bff_error` query. Összhang: [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md), [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
 
 ## Cél
 
@@ -58,11 +58,11 @@ A **meglévő** workflow/entity API-k változatlan `[Authorize]` / policy mellet
 - **CSRF:** ha a süti **automatikus** megy `POST` API-kra ugyanazon originon, kell **anti-forgery** (double-submit cookie vagy synchronizer token) a **state-changing** BFF végpontokra; **GET** callback csak `state` + PKCE ellenőrzéssel.
 - **Titkok:** client secret csak szerveren; SPA-ban továbbra is csak **publikus** client id.
 
-## Frontend (Angular) — irány
+## Frontend (Angular) — megvalósítás (Fázis D)
 
-- OIDC redirect helyett / mellett: **teljes oldalas** navigáció a BFF login URL-re; callback **nem** Angular route-on tartja a tokeneket, hanem a szerver válaszában **Set-Cookie**.
-- `api-auth.interceptor`: `withCredentials: true` a saját API felé; **ne** másoljon `Authorization`-t `sessionStorage`-ból, ha BFF mód aktív.
-- Konfig: pl. `environment.useBffAuth` vagy backend `GET` feature flag — egy helyen döntsön a kliens.
+- **`bff-auth-state.service.ts`:** induláskor `GET /api/auth/bff/meta` → `useCookieAuth()` = `enabled && configured`.
+- **`api-auth.interceptor.ts`:** ha `useCookieAuth()`, minden `/api/*` kérés **`withCredentials: true`**; **nincs** `Authorization` a low-code session store-ból; ha van **`tenantSlug`** a store-ban, megy az **`X-Tenant-Id`** (dev override).
+- **`lowcode-auth-page.component.ts`:** BFF szekció (login link a `meta.loginPath`-ra), session JSON (`GET /api/auth/bff/session` + credentials), **`POST /api/auth/bff/logout`**; SPA OIDC blokk **elrejtve** BFF módban; figyelmeztetés, hogy a dev / paste token nem megy az API-ra BFF módban.
 
 ## Együttélés a jelenlegi rendszerrel
 
@@ -74,7 +74,7 @@ A **meglévő** workflow/entity API-k változatlan `[Authorize]` / policy mellet
 1. **Fázis A** — dokumentáció + konfig séma ✅
 2. **Fázis B** — BFF login / callback / session süti / `meta` / `session` / `logout` + integrációs tesztek ✅ (`BffAuthEndpointsTests`)
 3. **Fázis C** — `BffSessionBearerMiddleware` + `IBffSessionReader` / `BffSessionReader`; integrációs teszt: cookie → `/api/workflows` ✅ (`BffSessionBearerWorkflowTests`)
-4. **Fázis D** — Angular: `meta` alapján BFF login gomb, `withCredentials`, SPA token UI opcionális elrejtése BFF módban.
+4. **Fázis D** — Angular: `meta` + `APP_INITIALIZER`, `withCredentials`, BFF login / session / logout UI, SPA OIDC elrejtése BFF módban ✅
 
 ## DoD (implementáció PR-hez)
 
@@ -85,6 +85,6 @@ A **meglévő** workflow/entity API-k változatlan `[Authorize]` / policy mellet
 ## Kapcsolódó kód
 
 - **BFF:** `backend/Controllers/BffAuthController.cs`, `backend/Auth/Bff/*`, `backend/Middleware/BffSessionBearerMiddleware.cs`, `Program.cs` (`BffAuthOptions`, `IOidcHttpForBff`, `IBffSessionReader`).
-- **Fázis D (frontend):** `frontend/.../api-auth.interceptor.ts`, `lowcode-session.store.ts`, `lowcode-auth-*.component.ts`.
+- **Fázis D (frontend):** `frontend/src/app/lowcode/bff-auth-state.service.ts`, `frontend/src/app/app.config.ts` (`APP_INITIALIZER`), `frontend/src/app/lowcode/api-auth.interceptor.ts`, `frontend/src/app/pages/lowcode-auth-page.component.ts`.
 
 **Megjegyzés:** élesben a **Data Protection** kulcsok perzisztenciája kötelező (különben restart után érvénytelenek a sütik) — lásd ASP.NET Data Protection key ring.

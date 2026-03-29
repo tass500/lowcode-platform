@@ -1,6 +1,7 @@
 import { HttpClient, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, map, of, switchMap } from 'rxjs';
+import { BffAuthStateService } from './bff-auth-state.service';
 import { decodeJwtExpSec } from './jwt-exp';
 import { getLowCodeSession, setLowCodeSession, type LowCodeSession } from './lowcode-session.store';
 
@@ -11,9 +12,22 @@ function needsOidcRefresh(session: LowCodeSession): boolean {
   return exp * 1000 <= Date.now() + 60_000;
 }
 
+function withCookieAuth(req: HttpRequest<unknown>): HttpRequest<unknown> {
+  const session = getLowCodeSession();
+  if (!session?.tenantSlug) {
+    return req.clone({ withCredentials: true });
+  }
+  return req.clone({ withCredentials: true, setHeaders: { 'X-Tenant-Id': session.tenantSlug } });
+}
+
 export const apiAuthInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith('/api/')) {
     return next(req);
+  }
+
+  const bff = inject(BffAuthStateService);
+  if (bff.useCookieAuth()) {
+    return next(withCookieAuth(req));
   }
 
   const http = inject(HttpClient);
