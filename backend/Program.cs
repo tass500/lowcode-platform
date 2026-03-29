@@ -4,6 +4,7 @@ using LowCodePlatform.Backend.Middleware;
 using LowCodePlatform.Backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Diagnostics;
@@ -70,15 +71,13 @@ builder.Services
     {
         o.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = false,
-            ValidateAudience = false,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-                builder.Configuration["Auth:Jwt:SigningKey"] ?? "dev-insecure-signing-key-change-me")),
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(2),
         };
     });
+
+builder.Services.AddSingleton<IPostConfigureOptions<JwtBearerOptions>, JwtBearerIssuerAudiencePostConfigure>();
 
 builder.Services.AddAuthorization(o =>
 {

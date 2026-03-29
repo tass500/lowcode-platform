@@ -110,6 +110,24 @@ export function moveBuilderStep(rawJson: string, fromIndex: number, toIndex: num
   });
 }
 
+/**
+ * Reorder using a "slot" before indices 0..n (n = stepCount means after the last step).
+ * Used by builder drag-and-drop: drop above row midpoint → slot = rowIndex; below → slot = rowIndex + 1.
+ */
+export function moveBuilderStepToSlot(
+  rawJson: string,
+  fromIndex: number,
+  targetSlot: number,
+  stepCount: number,
+): string {
+  const n = stepCount;
+  if (n <= 0 || fromIndex < 0 || fromIndex >= n) return rawJson;
+  const slot = Math.max(0, Math.min(targetSlot, n));
+  const insertIndex = fromIndex < slot ? slot - 1 : slot;
+  if (insertIndex === fromIndex) return rawJson;
+  return moveBuilderStep(rawJson, fromIndex, insertIndex);
+}
+
 export function parseBuilderStepSummaries(rawJson: string): Array<{ index: number; type: string }> {
   try {
     const parsed = JSON.parse(rawJson) as { steps?: unknown };

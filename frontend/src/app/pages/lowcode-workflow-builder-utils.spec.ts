@@ -2,6 +2,7 @@ import {
   appendBuilderStep,
   buildMinimalStep,
   moveBuilderStep,
+  moveBuilderStepToSlot,
   mutateWorkflowDefinitionSteps,
   parseBuilderStepSummaries,
   removeBuilderStepAt,
@@ -42,6 +43,21 @@ describe('lowcode-workflow-builder-utils', () => {
     const next = moveBuilderStep(raw, 2, 0);
     const p = JSON.parse(next) as { steps: { type: string }[] };
     expect(p.steps.map(x => x.type).join(',')).toBe('c,a,b');
+  });
+
+  it('moveBuilderStepToSlot moves before slot (DnD semantics)', () => {
+    const raw = '{"steps":[{"type":"a"},{"type":"b"},{"type":"c"},{"type":"d"}]}';
+    const n = 4;
+    const next = moveBuilderStepToSlot(raw, 1, 3, n);
+    const p = JSON.parse(next) as { steps: { type: string }[] };
+    expect(p.steps.map(x => x.type).join(',')).toBe('a,c,b,d');
+  });
+
+  it('moveBuilderStepToSlot can move to end slot', () => {
+    const raw = '{"steps":[{"type":"a"},{"type":"b"},{"type":"c"}]}';
+    const next = moveBuilderStepToSlot(raw, 0, 3, 3);
+    const p = JSON.parse(next) as { steps: { type: string }[] };
+    expect(p.steps.map(x => x.type).join(',')).toBe('b,c,a');
   });
 
   it('parseBuilderStepSummaries reads types', () => {
