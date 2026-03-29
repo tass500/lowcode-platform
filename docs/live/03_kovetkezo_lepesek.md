@@ -9,7 +9,7 @@
 
 ## Workflow engine — ACTIVE
 
-**ACTIVE: Iteráció 62b — IdP JWT (MVP)** — **62b1** opcionális OIDC Bearer (`Auth:Oidc:*`) + forwarder séma + `OidcJwtBearerPostConfigure` ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62** (62a–a2, 62a1) lezárva ✅. **61** import/export ✅ [`workflow-import-export.md`](workflow-import-export.md). **60** observability + health ✅. **59** cancel ✅. **58a–b** builder ✅ [`workflow-visual-builder.md`](workflow-visual-builder.md). **58c** builder sorrend natív DnD ✅ (fogó + ejtés). Backlog: **58c+** (opcionális CDK / touch), **62b2+** (SPA login redirect, refresh token, claim mapping, teszt IdP).
+**ACTIVE: 62c — BFF + httpOnly** — implementációs **terv** ✅ [`auth-bff-httponly.md`](auth-bff-httponly.md); következő PR: végpontok / süti / Angular kapcsoló (WIP=1). **62b2** (SPA OIDC PKCE + claim mapping + `spa-oidc-config`) ✅ merge [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** OIDC Bearer MVP ✅. **62** (62a–a2, 62a1) ✅. **61** import/export ✅. **60–58** ✅. Backlog: **58c+** (opcionális CDK / touch); **62c+** opcionális teszt IdP / e2e a BFF után.
 
 > **56–57** lezárva: SQL Server EF + Helm backup — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 
@@ -23,7 +23,7 @@
 | **59** | Run cancel API ✅ | |
 | **60** | Observability + health ✅ | OTel opcionális |
 | **61** | Import/export ✅ | [`workflow-import-export.md`](workflow-import-export.md) |
-| **62** | Auth (62a–a2 ✅, 62a1 ✅) | **62b** OIDC JWT MVP ✅ → 62b2+ backlog |
+| **62** | Auth (62a–a2 ✅, 62a1 ✅) | **62b** MVP ✅, **62b2** SPA+claims ✅ → **62c** BFF [`auth-bff-httponly.md`](auth-bff-httponly.md) |
 
 Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) (§ *Ütemterv 56+*).
 
@@ -31,13 +31,13 @@ Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) 
 
 - **PR / iteráció ritmus:** [`DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) **§5a**
 - Branch: `feat/<topic>` a legfrissebb `main`-ről
-- ACTIVE: **62b**; **62** (62a–a2 / 62a1) lezárva; **61** lezárva
+- ACTIVE: **62c** (BFF terv → implementáció); **62b2** mergeelve; **62** lezárva; **61** lezárva
 - `git status` → staged / unstaged
 - `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 
 ## Kapcsolódó live docok
 
-- OIDC JWT Bearer: [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md) · tenant API key: [`tenant-api-key.md`](tenant-api-key.md)
+- OIDC JWT Bearer: [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md) · BFF / httpOnly terv (**62c**): [`auth-bff-httponly.md`](auth-bff-httponly.md) · tenant API key: [`tenant-api-key.md`](tenant-api-key.md)
 - Ütemezés: [`workflow-schedule.md`](workflow-schedule.md) · timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md)
 
 ## Rövid működési elv
