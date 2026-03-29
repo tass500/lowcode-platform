@@ -19,11 +19,12 @@
 | **64b** | **Kestrel request limits** | `MaxRequestBodySize` / központi limit nagy JSON import ellen; konfigurálható | [`kestrel-request-limits.md`](kestrel-request-limits.md); `dotnet test` zöld |
 | **64c** | **Rate limiting** | IP szerinti fix ablak; health kizárva; `Testing`-ben alapból ki (`RateLimiting:Enabled`) | [`rate-limiting.md`](rate-limiting.md); `dotnet test` zöld |
 | **64d** | **Security / audit logging** | `SecurityAuditLogger` + admin/tenant kulcs elutasítás; access + DB audit összefoglaló | [`security-audit-logging.md`](security-audit-logging.md); `dotnet test` zöld |
-| **64e** | **CI / repo hygiene** | Opcionális: `dotnet format --verify`, SBOM — csapatdöntés | CI zöld, zaj elfogadva |
+| **64e** | **CI / repo hygiene** | `dotnet format --verify` a CI-ban (backend + teszt projekt); SBOM továbbra is opcionális / külön döntés | CI zöld; [`ci-dotnet-format.md`](ci-dotnet-format.md) |
 
 ## ACTIVE
 
-- **64d** — security audit log sorok — **PR #109** — [`security-audit-logging.md`](security-audit-logging.md). Aktuális sor: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).  
+- **64e** — CI `dotnet format` — [`ci-dotnet-format.md`](ci-dotnet-format.md). Aktuális sor: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).  
+- **64d** ✅ — [`security-audit-logging.md`](security-audit-logging.md) (**PR #109**).  
 - **64c** ✅ — [`rate-limiting.md`](rate-limiting.md) (**PR #108**).  
 - **64b** ✅ — [`kestrel-request-limits.md`](kestrel-request-limits.md) (**PR #107**).  
 - **64a** ✅ — [`security-http-headers.md`](security-http-headers.md) (**PR #106**).  

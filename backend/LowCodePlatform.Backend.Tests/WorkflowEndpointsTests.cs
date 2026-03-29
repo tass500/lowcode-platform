@@ -514,7 +514,7 @@ public sealed class WorkflowEndpointsTests
         foreach (var w in warningsEl.EnumerateArray())
         {
             if (w.TryGetProperty("code", out var c) && c.GetString() == "workflow_step_output_unused")
-                Assert.True(false, "Did not expect workflow_step_output_unused when output is referenced.");
+                Assert.Fail("Did not expect workflow_step_output_unused when output is referenced.");
         }
     }
 

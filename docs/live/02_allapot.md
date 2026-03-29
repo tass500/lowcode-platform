@@ -24,6 +24,7 @@ Drift-proof observability egy greenfield lowcode platformban.
   - **Kestrel request limit (iter 64b):** `Kestrel:Limits:MaxRequestBodySize` (alap 10 MiB); `POST /api/workflows/import` — `RequestSizeLimit` — [`kestrel-request-limits.md`](kestrel-request-limits.md).
   - **Rate limiting (iter 64c):** globális fix ablak / IP (`RateLimiting:PermitLimit`, `WindowSeconds`); health végpontok **kizárva**; `Testing` + integrációs teszt: `RateLimiting:Enabled` — [`rate-limiting.md`](rate-limiting.md).
   - **Security audit log (iter 64d):** strukturált `security_auth_denied` / `security_config_error` (kategória `LowCodePlatform.Backend.SecurityAudit`); admin + tenant API kulcs elutasítás; titkok nélkül — [`security-audit-logging.md`](security-audit-logging.md).
+  - **CI `dotnet format` (iter 64e):** GitHub Actions `backend-format` — `dotnet format --verify-no-changes` a fő és a teszt `.csproj`-on; lokális parancsok — [`ci-dotnet-format.md`](ci-dotnet-format.md).
 
 - **Low-code workflow engine (Backend + Frontend demo)**
   - Támogatott workflow step-ek:
@@ -49,7 +50,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `code`
     - `message`
     - `severity`
-  - **Következő stratégiai ütemterv:** **64+** enterprise keményítés — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) (**64d** security audit logging aktív); **63** hullám ✅ (**PR #102–105**) — [`roadmap-next-iterations.md`](roadmap-next-iterations.md); részletek: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md); **62c** BFF + httpOnly ✅; **58c+** builder — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) + [`03_ARCHIVE.md`](03_ARCHIVE.md); SS + Helm: [`sqlserver-platform.md`](sqlserver-platform.md); timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); ütemezés: [`workflow-schedule.md`](workflow-schedule.md); konténer: [`container-deploy.md`](container-deploy.md), [`k3s-home-lab.md`](k3s-home-lab.md).
+  - **Következő stratégiai ütemterv:** **64+** enterprise keményítés — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) (**64e** CI format aktív); **63** hullám ✅ (**PR #102–105**) — [`roadmap-next-iterations.md`](roadmap-next-iterations.md); részletek: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md); **62c** BFF + httpOnly ✅; **58c+** builder — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) + [`03_ARCHIVE.md`](03_ARCHIVE.md); SS + Helm: [`sqlserver-platform.md`](sqlserver-platform.md); timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); ütemezés: [`workflow-schedule.md`](workflow-schedule.md); konténer: [`container-deploy.md`](container-deploy.md), [`k3s-home-lab.md`](k3s-home-lab.md).
 
 
 - **Frontend (Angular)**

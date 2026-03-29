@@ -9,7 +9,7 @@
 
 ## Workflow engine — ACTIVE
 
-**ACTIVE (WIP=1):** **64d** — security audit logging (`security_auth_denied` / `security_config_error`) — **PR #109** — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) · [`security-audit-logging.md`](security-audit-logging.md). **64c** ✅ **PR #108** — [`rate-limiting.md`](rate-limiting.md). **64b** ✅ **PR #107** — [`kestrel-request-limits.md`](kestrel-request-limits.md). **64a** ✅ **PR #106** — [`security-http-headers.md`](security-http-headers.md). **Iter 63** ✅ (**63a–d**, **PR #102–105** — [`roadmap-next-iterations.md`](roadmap-next-iterations.md)). **62c+ e2e** hátrasorolva (nem blokkoló). **58c+** touch UX ✅ **PR #99** — [`workflow-visual-builder.md`](workflow-visual-builder.md). **58c+ `@angular/cdk`:** elhalasztva — ugyanott § *Döntés*. **62c+** doksi ✅ — [`auth-bff-httponly.md`](auth-bff-httponly.md) (**PR #95**, **PR #97**). **62c — BFF** ✅ **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
+**ACTIVE (WIP=1):** **64e** — CI `dotnet format --verify` (backend + teszt projekt) — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) · [`ci-dotnet-format.md`](ci-dotnet-format.md). **64d** ✅ **PR #109** — [`security-audit-logging.md`](security-audit-logging.md). **64c** ✅ **PR #108** — [`rate-limiting.md`](rate-limiting.md). **64b** ✅ **PR #107** — [`kestrel-request-limits.md`](kestrel-request-limits.md). **64a** ✅ **PR #106** — [`security-http-headers.md`](security-http-headers.md). **Iter 63** ✅ (**63a–d**, **PR #102–105** — [`roadmap-next-iterations.md`](roadmap-next-iterations.md)). **62c+ e2e** hátrasorolva (nem blokkoló). **58c+** touch UX ✅ **PR #99** — [`workflow-visual-builder.md`](workflow-visual-builder.md). **58c+ `@angular/cdk`:** elhalasztva — ugyanott § *Döntés*. **62c+** doksi ✅ — [`auth-bff-httponly.md`](auth-bff-httponly.md) (**PR #95**, **PR #97**). **62c — BFF** ✅ **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
 
 > **56–57** lezárva: SQL Server EF + Helm backup — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 
@@ -39,7 +39,7 @@ Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) 
 
 ## Kapcsolódó live docok
 
-- Enterprise 64+ ütem: [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) · HTTP fejlécek: [`security-http-headers.md`](security-http-headers.md) · Kestrel limit: [`kestrel-request-limits.md`](kestrel-request-limits.md) · Rate limit: [`rate-limiting.md`](rate-limiting.md) · Security audit log: [`security-audit-logging.md`](security-audit-logging.md)
+- Enterprise 64+ ütem: [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) · HTTP fejlécek: [`security-http-headers.md`](security-http-headers.md) · Kestrel limit: [`kestrel-request-limits.md`](kestrel-request-limits.md) · Rate limit: [`rate-limiting.md`](rate-limiting.md) · Security audit log: [`security-audit-logging.md`](security-audit-logging.md) · CI format: [`ci-dotnet-format.md`](ci-dotnet-format.md)
 - OIDC JWT Bearer: [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md) · BFF / httpOnly terv (**62c**): [`auth-bff-httponly.md`](auth-bff-httponly.md) · tenant API key: [`tenant-api-key.md`](tenant-api-key.md)
 - Ütemezés: [`workflow-schedule.md`](workflow-schedule.md) · timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md)
 
