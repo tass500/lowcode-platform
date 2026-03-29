@@ -30,7 +30,7 @@ Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) 
 ## Minichecklist (kontextusvesztés után)
 
 - **PR / iteráció ritmus:** [`DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) **§5a**
-- Branch: `feat/<topic>` a legfrissebb `master`-ről
+- Branch: `feat/<topic>` a legfrissebb `main`-ről
 - ACTIVE: **62**; **61** lezárva
 - `git status` → staged / unstaged
 - `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`

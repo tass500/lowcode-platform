@@ -1,6 +1,6 @@
 <!--
   Használat: másold a repo gyökerébe `pr-body.md` névre (gitignore-olt), töltsd ki, majd:
-  gh pr create --base master --head <branch-nev> --title "..." --body-file pr-body.md
+  gh pr create --base main --head <branch-nev> --title "..." --body-file pr-body.md
 
   A GitHub webes „New PR” űrlap ugyanezt a struktúrát kapja: lásd .github/PULL_REQUEST_TEMPLATE.md
 -->

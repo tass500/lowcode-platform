@@ -40,7 +40,7 @@ param(
   [switch]$SkipTests,
   [switch]$SkipFrontendBuild,
   [string]$BodyFile = "",
-  [string]$Base = "master",
+  [string]$Base = "main",
   [switch]$NoMerge,
   [switch]$Squash,
   [switch]$Draft

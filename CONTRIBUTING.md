@@ -36,7 +36,7 @@ Thanks for your interest in contributing.
 - Standard git branch/commit/push/PR flow: `.windsurf/workflows/commit-and-pr.md`
 
 Rule of thumb:
-- Work in iteration branches (feature/fix/docs), then open a PR to `master`.
+- Work in iteration branches (feature/fix/docs), then open a PR to `main`.
 - After each completed milestone, update the two live docs above so progress survives context resets.
 
 ## Reporting issues

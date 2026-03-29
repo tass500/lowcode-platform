@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-This is a learning / personal project. Only the `master` branch is considered supported.
+This is a learning / personal project. Only the `main` branch is considered supported.
 
 ## Reporting a Vulnerability
 
