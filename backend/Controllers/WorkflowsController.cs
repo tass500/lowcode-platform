@@ -368,6 +368,95 @@ public sealed class WorkflowsController : ControllerBase
         return Ok(ToDetailsDto(wf));
     }
 
+    private const int WorkflowExportFormatVersion = 1;
+
+    [HttpGet("{id:guid}/export")]
+    public async Task<ActionResult<WorkflowDefinitionExportDto>> Export([FromRoute] Guid id, CancellationToken ct)
+    {
+        var wf = await _db.WorkflowDefinitions.FirstOrDefaultAsync(x => x.WorkflowDefinitionId == id, ct);
+        if (wf is null)
+            return Problem(
+                StatusCodes.Status404NotFound,
+                "workflow_not_found",
+                "Workflow not found.",
+                ErrorDetail.Single("$.workflowDefinitionId", "workflow_not_found", "Workflow not found."));
+
+        return Ok(new WorkflowDefinitionExportDto(
+            ExportFormatVersion: WorkflowExportFormatVersion,
+            Name: wf.Name,
+            DefinitionJson: wf.DefinitionJson,
+            ExportedAtUtc: DateTime.UtcNow,
+            SourceWorkflowDefinitionId: wf.WorkflowDefinitionId));
+    }
+
+    [HttpPost("import")]
+    public async Task<ActionResult<WorkflowDefinitionDetailsDto>> Import([FromBody] ImportWorkflowRequest req, CancellationToken ct)
+    {
+        if (req.ExportFormatVersion is not null && req.ExportFormatVersion != WorkflowExportFormatVersion)
+        {
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                "workflow_import_format_unsupported",
+                $"ExportFormatVersion {req.ExportFormatVersion} is not supported. Use {WorkflowExportFormatVersion} or omit the field for a plain name+definition import.",
+                ErrorDetail.Single("$.exportFormatVersion", "workflow_import_format_unsupported", "Unsupported export format version."));
+        }
+
+        if (string.IsNullOrWhiteSpace(req.Name))
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                "name_missing",
+                "Name is required.",
+                ErrorDetail.Single("$.name", "name_missing", "Name is required."));
+
+        if (string.IsNullOrWhiteSpace(req.DefinitionJson))
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                "definition_missing",
+                "DefinitionJson is required.",
+                ErrorDetail.Single("$.definitionJson", "definition_missing", "DefinitionJson is required."));
+
+        var schemaIssues = ValidateWorkflowDefinitionSchema(req.DefinitionJson);
+        if (schemaIssues.Count > 0)
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                "workflow_definition_invalid",
+                schemaIssues[0].Message,
+                ToErrorDetails(schemaIssues));
+
+        var syntaxIssues = ValidateContextVarSyntax(req.DefinitionJson);
+        if (syntaxIssues.Count > 0)
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                "context_var_syntax_invalid",
+                syntaxIssues[0].Message,
+                ToErrorDetails(syntaxIssues));
+
+        var wf = new Models.WorkflowDefinition
+        {
+            WorkflowDefinitionId = Guid.NewGuid(),
+            Name = req.Name.Trim(),
+            DefinitionJson = req.DefinitionJson.Trim(),
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow,
+        };
+
+        _db.WorkflowDefinitions.Add(wf);
+        await _db.SaveChangesAsync(ct);
+
+        var tenantId = await TryResolveTenantIdAsync(ct);
+        await _audit.WriteAsync(
+            actor: "system",
+            action: "workflow_imported",
+            target: wf.WorkflowDefinitionId.ToString(),
+            installationId: null,
+            tenantId: tenantId,
+            traceId: TraceIdMiddleware.GetTraceId(HttpContext),
+            detailsJson: null,
+            ct: ct);
+
+        return Ok(ToDetailsDto(wf));
+    }
+
     [HttpPut("{id:guid}/schedule")]
     public async Task<ActionResult<WorkflowDefinitionDetailsDto>> SetSchedule([FromRoute] Guid id, [FromBody] SetWorkflowScheduleRequest req, CancellationToken ct)
     {
