@@ -23,12 +23,15 @@ Details: **`docs/DEVELOPMENT_WORKFLOW.md`** (sections 4–6).
   - `chore/<topic>`
 
 ## PR cadence
-- Prefer **1 PR per milestone/iteration** that is reviewable end-to-end.
-- If the diff gets too large, split into 2 PRs within the same topic (still milestone-scoped).
+- Prefer **1 PR per closable milestone** (one coherent unit), reviewable end-to-end. This is **not** 1:1 with every roadmap “iteration” line unless each iteration is its own milestone.
+- **Multiple iterations on one feature branch** is OK: **commit per iteration** (or per layer), then **one PR** when the milestone is done—unless split criteria below apply.
+- **Split into 2+ PRs** when: diff is too large to review well; **mixed themes** (e.g. auth + unrelated feature); **risk** warrants isolation (e.g. import/export vs auth expansion).
+- Avoid: weeks of work in a single PR; **auth + unrelated** large feature in one PR.
+- **Assistant default:** follow the above unless the user explicitly overrides (e.g. “separate PR per iteration”). Canonical text: **`docs/DEVELOPMENT_WORKFLOW.md` §5a**.
 - Draft PR is OK as soon as the branch is pushed; keep committing into the same PR.
 
 ## Commit guidance
-- Keep commits review-friendly. Prefer 1–3 commits per PR:
+- Keep commits review-friendly. Prefer **1 commit per iteration** on the branch, or **1–3 commits per PR** when one change spans layers:
   - backend + tests
   - frontend
   - docs/tooling

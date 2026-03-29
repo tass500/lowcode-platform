@@ -32,7 +32,8 @@
 
 **Ha itt folytatod kontextusvesztés után (minichecklist)**
 
-- Branch (következő PR): `feat/iter-58-visual-workflow-builder` (nagyobb) vagy karbantartó PR-k
+- **PR / iteráció ritmus (alapértelmezés):** [`docs/DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) **§5a** — egy milestone ↔ egy branch, több iteráció lehet egymás után commitokkal, egy PR a milestone végén (szétvágás ha túl nagy / kevert téma).
+- Branch: `feat/<topic>` a legfrissebb `master`-ről; nagyobb téma lehet több commit / egy PR.
 - ACTIVE iteráció: **60** (megfigyelhetőség) — **59** (run cancel API) lezárva — **56** + **57** lezárva — § *Ütemterv 56+*
 - Status: `git status` → staged / unstaged változások
 - Tesztek: `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
