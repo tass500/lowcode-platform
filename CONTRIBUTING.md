@@ -21,7 +21,7 @@ Thanks for your interest in contributing.
   - `npm run lint`
 - Build:
   - `npm run build`
-- Optional **BFF OAuth** local flow (IdP registration, `redirect_uri`): [`docs/live/auth-bff-httponly.md`](docs/live/auth-bff-httponly.md) — section **62c+ — helyi dev smoke**.
+- Optional **BFF OAuth** local flow: [`docs/live/auth-bff-httponly.md`](docs/live/auth-bff-httponly.md) — **62c+ — helyi dev smoke** (proxy, `redirect_uri`) and **62c+ — teszt IdP regisztráció** (IdP app / PKCE checklist).
 
 ## Pull requests
 
