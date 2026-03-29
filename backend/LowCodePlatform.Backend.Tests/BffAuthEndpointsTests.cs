@@ -110,6 +110,26 @@ public sealed class BffAuthEndpointsTests
     }
 
     [Fact]
+    public async Task Bff_logout_when_disabled_returns_404()
+    {
+        await using var factory = new FactoryBffOff();
+        using var client = factory.CreateClient();
+
+        using var resp = await client.PostAsync("/api/auth/bff/logout", null);
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task Bff_logout_when_enabled_returns_ok()
+    {
+        await using var factory = new FactoryBffOn();
+        using var client = factory.CreateClient();
+
+        using var resp = await client.PostAsync("/api/auth/bff/logout", null);
+        resp.EnsureSuccessStatusCode();
+    }
+
+    [Fact]
     public async Task Bff_meta_when_enabled_and_oidc_configured_reports_configured()
     {
         await using var factory = new FactoryBffOn();
