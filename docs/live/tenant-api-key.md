@@ -40,3 +40,4 @@ Ha a shellben **`LCP_EF_DESIGN_TIME=1`** maradt egy `dotnet ef` parancs után, a
 - Konfig: `Auth:Jwt:SigningKey` (kötelező élesben / teszten); **opcionális** `Auth:Jwt:Issuer`, `Auth:Jwt:Audience` — ha valamelyik nincs üresen beállítva, a JWT validálás az adott mezőt szigorúan ellenőrzi.
 - **Development** `POST /api/auth/dev-token` a fenti `Issuer` / `Audience` értékeket írja a tokenbe (ha vannak).
 - Megvalósítás: `JwtBearerIssuerAudiencePostConfigure` (`IPostConfigureOptions<JwtBearerOptions>`) — egy helyen köti a **signing key**-t és az iss/aud szabályokat, így az integrációs tesztek in-memory `Auth:Jwt:*` felülírásai is egyeznek a `dev-token` aláírásával.
+- Külső IdP (OAuth2 / OIDC) JWT ugyanazzal a Bearer fejléccel: [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md).
