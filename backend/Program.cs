@@ -107,7 +107,9 @@ var isEfDesignTime = string.Equals(Environment.GetEnvironmentVariable("LCP_EF_DE
                      || Process.GetCurrentProcess().ProcessName.Contains("dotnet-ef", StringComparison.OrdinalIgnoreCase)
                      || Environment.GetCommandLineArgs().Any(a => a.Contains("dotnet-ef", StringComparison.OrdinalIgnoreCase));
 
-if (isEfDesignTime)
+// Integration tests use environment "Testing" and must keep tenant-resolved PlatformDbContext even if
+// LCP_EF_DESIGN_TIME=1 leaked into the process from a prior `dotnet ef` invocation in the same shell.
+if (isEfDesignTime && !builder.Environment.IsEnvironment("Testing"))
 {
     var designTimeTenantCs = builder.Configuration["Tenancy:DesignTimeTenantConnectionString"]
                              ?? "Data Source=tenant-default.db";
@@ -157,6 +159,8 @@ app.UseAuthentication();
 app.UseMiddleware<AdminApiKeyMiddleware>();
 
 app.UseMiddleware<TenantResolutionMiddleware>();
+
+app.UseMiddleware<TenantApiKeyAuthenticationMiddleware>();
 
 app.UseMiddleware<TenantClaimEnforcementMiddleware>();
 
@@ -295,6 +299,9 @@ static async Task RepairStaleManagementSqliteSchemaAsync(ManagementDbContext db,
 
     if (!existingColumns.Contains("connection_string_secret_ref"))
         await db.Database.ExecuteSqlRawAsync("ALTER TABLE tenant ADD COLUMN connection_string_secret_ref TEXT NULL;", ct);
+
+    if (!existingColumns.Contains("tenant_api_key_sha256_hex"))
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE tenant ADD COLUMN tenant_api_key_sha256_hex TEXT NULL;", ct);
 
     // If the old schema has connection_string NOT NULL, make it nullable by table rebuild.
     // SQLite doesn't support ALTER COLUMN, so we do a safe no-op if it's already nullable.

@@ -47,4 +47,42 @@ public sealed class TenantRegistryService
         await _db.SaveChangesAsync(ct);
         return tenant;
     }
+
+    public async Task<string> ProvisionTenantApiKeyAsync(string slug, string? plaintextApiKey, CancellationToken ct)
+    {
+        var normalized = NormalizeSlug(slug);
+
+        var tenant = await _db.Tenants.FirstOrDefaultAsync(x => x.Slug == normalized, ct)
+                     ?? throw new InvalidOperationException("tenant_not_found");
+
+        var apiKey = string.IsNullOrWhiteSpace(plaintextApiKey)
+            ? TenantApiKeyHasher.GenerateRandomApiKey()
+            : plaintextApiKey.Trim();
+
+        if (apiKey.Length < 24)
+            throw new InvalidOperationException("tenant_api_key_too_short");
+
+        tenant.TenantApiKeySha256Hex = TenantApiKeyHasher.HashToHex(apiKey);
+        await _db.SaveChangesAsync(ct);
+        return apiKey;
+    }
+
+    public async Task ClearTenantApiKeyAsync(string slug, CancellationToken ct)
+    {
+        var normalized = NormalizeSlug(slug);
+
+        var tenant = await _db.Tenants.FirstOrDefaultAsync(x => x.Slug == normalized, ct)
+                     ?? throw new InvalidOperationException("tenant_not_found");
+
+        tenant.TenantApiKeySha256Hex = null;
+        await _db.SaveChangesAsync(ct);
+    }
+
+    private static string NormalizeSlug(string slug)
+    {
+        if (string.IsNullOrWhiteSpace(slug))
+            throw new InvalidOperationException("tenant_slug_missing");
+
+        return slug.Trim().ToLowerInvariant();
+    }
 }

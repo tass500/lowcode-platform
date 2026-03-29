@@ -8,5 +8,8 @@ public sealed class Tenant
     public string? ConnectionStringSecretRef { get; set; }
     public string? ConnectionString { get; set; }
 
+    /// <summary>SHA-256 hex (64 chars) of UTF-8 tenant API key; null if disabled.</summary>
+    public string? TenantApiKeySha256Hex { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }

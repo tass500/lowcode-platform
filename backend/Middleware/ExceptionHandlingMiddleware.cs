@@ -1,4 +1,5 @@
 using LowCodePlatform.Backend.Contracts;
+using Microsoft.EntityFrameworkCore;
 
 namespace LowCodePlatform.Backend.Middleware;
 
@@ -40,7 +41,11 @@ public sealed class ExceptionHandlingMiddleware
             ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
             ctx.Response.ContentType = "application/json";
 
-            var message = _env.IsDevelopment() ? ex.Message : "An unexpected error occurred.";
+            var message = (_env.IsDevelopment() || _env.IsEnvironment("Testing"))
+                ? (ex is DbUpdateException dbEx
+                    ? dbEx.InnerException?.Message ?? dbEx.Message
+                    : ex.Message)
+                : "An unexpected error occurred.";
 
             var res = new ErrorResponse(
                 ErrorCode: "unhandled_exception",

@@ -44,6 +44,7 @@ public sealed class AdminTenantsController : ControllerBase
         string Slug,
         string? ConnectionStringSecretRef,
         string? ConnectionString,
+        bool TenantApiKeyConfigured,
         DateTime CreatedAtUtc);
 
     public sealed record TenantListResponse(DateTime ServerTimeUtc, List<TenantListItemDto> Items);
@@ -61,6 +62,7 @@ public sealed class AdminTenantsController : ControllerBase
                     x.Slug,
                     x.ConnectionStringSecretRef,
                     x.ConnectionString,
+                    !string.IsNullOrWhiteSpace(x.TenantApiKeySha256Hex),
                     x.CreatedAtUtc))
                 .ToList()));
     }
@@ -93,6 +95,58 @@ public sealed class AdminTenantsController : ControllerBase
         catch (Exception ex)
         {
             return Problem(StatusCodes.Status500InternalServerError, "tenant_create_failed", ex.Message);
+        }
+    }
+
+    public sealed record SetTenantApiKeyRequest(string? ApiKey);
+
+    public sealed record TenantApiKeyProvisionedResponse(DateTime ServerTimeUtc, string ApiKey);
+
+    [HttpPost("{slug}/tenant-api-key")]
+    public async Task<ActionResult<TenantApiKeyProvisionedResponse>> ProvisionTenantApiKey(
+        [FromRoute] string slug,
+        [FromBody] SetTenantApiKeyRequest? body,
+        CancellationToken ct)
+    {
+        try
+        {
+            var key = await _registry.ProvisionTenantApiKeyAsync(slug, body?.ApiKey, ct);
+            return Ok(new TenantApiKeyProvisionedResponse(ServerTimeUtc: DateTime.UtcNow, ApiKey: key));
+        }
+        catch (InvalidOperationException ex) when (string.Equals(ex.Message, "tenant_not_found", StringComparison.OrdinalIgnoreCase))
+        {
+            return Problem(StatusCodes.Status404NotFound, ex.Message, ex.Message);
+        }
+        catch (InvalidOperationException ex) when (string.Equals(ex.Message, "tenant_slug_missing", StringComparison.OrdinalIgnoreCase)
+                                                   || string.Equals(ex.Message, "tenant_api_key_too_short", StringComparison.OrdinalIgnoreCase))
+        {
+            return Problem(StatusCodes.Status400BadRequest, ex.Message, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return Problem(StatusCodes.Status500InternalServerError, "tenant_api_key_provision_failed", ex.Message);
+        }
+    }
+
+    [HttpDelete("{slug}/tenant-api-key")]
+    public async Task<ActionResult> ClearTenantApiKey([FromRoute] string slug, CancellationToken ct)
+    {
+        try
+        {
+            await _registry.ClearTenantApiKeyAsync(slug, ct);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex) when (string.Equals(ex.Message, "tenant_not_found", StringComparison.OrdinalIgnoreCase))
+        {
+            return Problem(StatusCodes.Status404NotFound, ex.Message, ex.Message);
+        }
+        catch (InvalidOperationException ex) when (string.Equals(ex.Message, "tenant_slug_missing", StringComparison.OrdinalIgnoreCase))
+        {
+            return Problem(StatusCodes.Status400BadRequest, ex.Message, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return Problem(StatusCodes.Status500InternalServerError, "tenant_api_key_clear_failed", ex.Message);
         }
     }
 
