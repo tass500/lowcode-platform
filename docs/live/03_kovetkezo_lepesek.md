@@ -9,7 +9,7 @@
 
 ## Workflow engine — ACTIVE
 
-**ACTIVE (javasolt következő, WIP=1):** **62c+** — hátralévő: opcionális **teszt IdP** / **minimális e2e** (nem dokumentáció); alternatíva backlog: **58c+** (builder CDK / touch). **62c+ jegyzet:** helyi BFF smoke + proxy `Host` / `redirect_uri` — [`auth-bff-httponly.md`](auth-bff-httponly.md) § *62c+ — helyi dev smoke*. **62c — BFF + httpOnly** ✅ **Fázis B + C + D** — **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
+**ACTIVE (javasolt következő, WIP=1):** **62c+** hátralévő: opcionális **teszt IdP** / **minimális e2e**; **alternatíva backlog:** **58c+** (builder CDK / touch). **62c+ helyi smoke** ✅ — [`auth-bff-httponly.md`](auth-bff-httponly.md) § *62c+ — helyi dev smoke* — merge **PR #95** (proxy `changeOrigin`). **62c — BFF + httpOnly** ✅ — **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
 
 > **56–57** lezárva: SQL Server EF + Helm backup — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 
@@ -31,7 +31,7 @@ Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) 
 
 - **PR / iteráció ritmus:** [`DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) **§5a**
 - Branch: `feat/<topic>` a legfrissebb `main`-ről
-- ACTIVE: **62c+** (opcionális) vagy **58c+**; **62c** teljes (**PR #93**); **62b2** mergeelve; **62** / **61** lezárva
+- ACTIVE: **62c+** (IdP/e2e opcionális) vagy **58c+**; **62c** + **62c+ smoke** (**PR #93**, **PR #95**); **62b2** mergeelve; **62** / **61** lezárva
 - `git status` → staged / unstaged
 - `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 
