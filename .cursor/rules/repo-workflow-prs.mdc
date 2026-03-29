@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Repo workflow: branches, commits, PRs
 
-Details: **`docs/DEVELOPMENT_WORKFLOW.md`** (sections 4–6).
+Details: **`docs/DEVELOPMENT_WORKFLOW.md`** (sections 4–6; **§5a** milestone vs iteration cadence).
 
 ## Protected `master`
 - Never push directly to `master`. All changes go through a PR.
