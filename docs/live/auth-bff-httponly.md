@@ -127,3 +127,18 @@ A BFF a **`Host` fejléc** alapján építi a `redirect_uri`-t (`BffAuthControll
 ### 5. IdP nélküli gyors ellenőrzés
 
 - `Auth:Bff:Enabled` = `true`, de OIDC hiányzik → `meta.configured` = `false`, BFF login link nem aktív — ezzel is ellenőrizhető, hogy a végpontok és kapu működnek, **teljes OAuth nélkül**.
+
+## 62c+ — teszt IdP regisztráció (dev, kötelező mezők)
+
+Ha **valódi** OAuth szeretnél a BFF loginhez, hozz létre egy **publikus** (browser) klienst az IdP admin felületén. A pontos név / menü szolgáltatónként változik; a LowCode backend **authorization code + PKCE (S256)** utat használ (`BffAuthController`).
+
+| Mit állíts | Megjegyzés |
+|------------|------------|
+| **Client típus** | Publikus SPA / „native” / PKCE-képes web kliens (client secret **nem** kell a BFF-nek a token cseréhez ebben a flow-ban). |
+| **Redirect URI (callback)** | Pontosan egyezzen a fenti **`redirect_uri`**-val (proxy + `Host` szerint **4200** vagy **5002** — lásd § 3). |
+| **Scopes** | Legalább `openid`; a backend alap scope: `openid profile offline_access` (vagy `Auth:Oidc:SpaScope`). |
+| **Authority / Issuer** | Ugyanaz kerül `Auth:Oidc:Authority`-ba, mint az IdP OIDC **issuer** / discovery base URL-je. |
+
+**Példa szolgáltatók (saját felelősségre, nem endorsement):** Auth0 / Okta / Azure Entra ID / Keycloak / Google Cloud Identity — mindegyikhez külön app regisztráció és **localhost** callback engedélyezés kell. Titkokat és tenant-specifikus URL-eket **ne** commitolj; használj User Secrets-et, env változókat vagy helyi `appsettings.*.json`-t (gitignored).
+
+**Minimális e2e automatizálás** (Playwright, stb.) külön PR / backlog tétel — a fenti táblázat + § *helyi dev smoke* elég a manuális ellenőrzéshez.
