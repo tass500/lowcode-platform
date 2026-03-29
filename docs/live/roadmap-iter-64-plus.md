@@ -23,7 +23,7 @@
 
 ## ACTIVE
 
-- **64c** — rate limiting — [`rate-limiting.md`](rate-limiting.md). Aktuális sor: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).  
+- **64c** — rate limiting — **PR #108** — [`rate-limiting.md`](rate-limiting.md). Aktuális sor: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).  
 - **64b** ✅ — [`kestrel-request-limits.md`](kestrel-request-limits.md) (**PR #107**).  
 - **64a** ✅ — [`security-http-headers.md`](security-http-headers.md) (**PR #106**).  
 - Előző hullám (63): [`roadmap-next-iterations.md`](roadmap-next-iterations.md).
