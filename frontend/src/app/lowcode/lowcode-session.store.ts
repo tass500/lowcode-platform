@@ -1,6 +1,10 @@
 export type LowCodeSession = {
+  /** May be empty after OIDC if the id token had no configured tenant claim; set manually on the auth page. */
   tenantSlug: string;
   accessToken: string;
+  refreshToken?: string;
+  oidcTokenEndpoint?: string;
+  oidcClientId?: string;
 };
 
 const KEY = 'lcp.lowcode.session.v1';
@@ -11,8 +15,14 @@ export function getLowCodeSession(): LowCodeSession | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<LowCodeSession>;
     if (!parsed || typeof parsed !== 'object') return null;
-    if (!parsed.tenantSlug || !parsed.accessToken) return null;
-    return { tenantSlug: String(parsed.tenantSlug), accessToken: String(parsed.accessToken) };
+    if (!parsed.accessToken) return null;
+    return {
+      tenantSlug: parsed.tenantSlug != null ? String(parsed.tenantSlug) : '',
+      accessToken: String(parsed.accessToken),
+      refreshToken: parsed.refreshToken ? String(parsed.refreshToken) : undefined,
+      oidcTokenEndpoint: parsed.oidcTokenEndpoint ? String(parsed.oidcTokenEndpoint) : undefined,
+      oidcClientId: parsed.oidcClientId ? String(parsed.oidcClientId) : undefined,
+    };
   } catch {
     return null;
   }

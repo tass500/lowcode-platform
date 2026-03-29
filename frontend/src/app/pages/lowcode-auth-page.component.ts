@@ -1,8 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { OAuthService } from 'angular-oauth2-oidc';
 import { firstValueFrom } from 'rxjs';
+import { configureOAuthForSpa } from '../lowcode/lowcode-oidc.configure';
+import type { SpaOidcConfig } from '../lowcode/lowcode-oidc.types';
 import { getLowCodeSession, setLowCodeSession } from '../lowcode/lowcode-session.store';
 
 type DevTokenResponse = {
@@ -18,6 +21,20 @@ type DevTokenResponse = {
   template: `
     <main style="padding: 16px; max-width: 980px; margin: 0 auto;">
       <h2>Low-code Auth (dev)</h2>
+
+      <section
+        *ngIf="oidcCfg"
+        style="margin-top: 12px; padding: 12px; border: 1px solid #cce; border-radius: 8px; background: #f8fbff;"
+      >
+        <h3 style="margin: 0 0 8px; font-size: 1.05rem;">OpenID Connect (code + PKCE)</h3>
+        <p style="color:#444; margin: 0 0 8px;">
+          Átirányítás az IdP-re. Ha az id tokenben nincs tenant claim, töltsd ki lent a tenant mezőt, majd mentsd a
+          munkamenetet (vagy kérj új dev tokent).
+        </p>
+        <button type="button" (click)="oidcLogin()" [disabled]="oidcLoginLoading">
+          {{ oidcLoginLoading ? 'Átirányítás…' : 'Belépés OIDC-vel' }}
+        </button>
+      </section>
 
       <section style="margin-top: 12px; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
         <div style="color:#444; margin-bottom: 8px;">
@@ -63,8 +80,12 @@ type DevTokenResponse = {
     </main>
   `,
 })
-export class LowCodeAuthPageComponent {
+export class LowCodeAuthPageComponent implements OnInit {
   private readonly http = inject(HttpClient);
+  private readonly oauth = inject(OAuthService);
+
+  oidcCfg: SpaOidcConfig | null = null;
+  oidcLoginLoading = false;
 
   form = new FormGroup({
     tenantSlug: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -76,6 +97,29 @@ export class LowCodeAuthPageComponent {
   pastedToken = '';
   mintLoading = false;
   error: string | null = null;
+
+  async ngOnInit(): Promise<void> {
+    try {
+      this.oidcCfg = await firstValueFrom(this.http.get<SpaOidcConfig>('/api/auth/spa-oidc-config'));
+    } catch {
+      this.oidcCfg = null;
+    }
+  }
+
+  async oidcLogin(): Promise<void> {
+    if (!this.oidcCfg) return;
+    this.oidcLoginLoading = true;
+    this.error = null;
+    try {
+      configureOAuthForSpa(this.oauth, this.oidcCfg);
+      await this.oauth.loadDiscoveryDocumentAndLogin();
+    } catch (e: unknown) {
+      const anyErr = e as { error?: { message?: string }; message?: string };
+      this.error = anyErr?.error?.message ?? anyErr?.message ?? 'OIDC login failed.';
+    } finally {
+      this.oidcLoginLoading = false;
+    }
+  }
 
   get hasSession(): boolean {
     return !!getLowCodeSession();

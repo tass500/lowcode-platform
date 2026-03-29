@@ -47,5 +47,25 @@ public sealed class OidcJwtBearerPostConfigure : IPostConfigureOptions<JwtBearer
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(2),
         };
+
+        var prior = options.Events;
+        var events = new JwtBearerEvents
+        {
+            OnTokenValidated = async ctx =>
+            {
+                OidcJwtClaimMapping.Apply(ctx.Principal, _configuration);
+                if (prior?.OnTokenValidated != null)
+                    await prior.OnTokenValidated(ctx).ConfigureAwait(false);
+            },
+        };
+        if (prior != null)
+        {
+            events.OnAuthenticationFailed = prior.OnAuthenticationFailed;
+            events.OnChallenge = prior.OnChallenge;
+            events.OnForbidden = prior.OnForbidden;
+            events.OnMessageReceived = prior.OnMessageReceived;
+        }
+
+        options.Events = events;
     }
 }
