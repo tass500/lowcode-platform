@@ -9,7 +9,7 @@
 
 ## Workflow engine — ACTIVE
 
-**ACTIVE:** következő backlog / új iteráció választás (62c lezárva). **62c — BFF + httpOnly** ✅ **Fázis B + C + D** — backend + Angular: [`auth-bff-httponly.md`](auth-bff-httponly.md) (`BffSessionBearerMiddleware`, `meta` / `withCredentials` / auth oldal). **62b2** (SPA OIDC PKCE + claim mapping + `spa-oidc-config`) ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** OIDC Bearer MVP ✅. **62** (62a–a2, 62a1) ✅. **61** import/export ✅. **60–58** ✅. Backlog: **58c+** (opcionális CDK / touch); **62c+** opcionális teszt IdP / e2e.
+**ACTIVE (javasolt következő, WIP=1):** **62c+** — opcionális **BFF smoke** / teszt IdP / minimális e2e jegyzet a [`auth-bff-httponly.md`](auth-bff-httponly.md) DoD-hoz; alternatíva backlog: **58c+** (builder CDK / touch). **62c — BFF + httpOnly** ✅ **Fázis B + C + D** — merge: **PR #93** (Angular: `meta`, `withCredentials`, auth oldal). **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** (62a–a2, 62a1) ✅. **61** ✅. **60–58** ✅.
 
 > **56–57** lezárva: SQL Server EF + Helm backup — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 
@@ -31,7 +31,7 @@ Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) 
 
 - **PR / iteráció ritmus:** [`DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) **§5a**
 - Branch: `feat/<topic>` a legfrissebb `main`-ről
-- ACTIVE: **62c** ✅ (BFF + Angular D); **62b2** mergeelve; **62** lezárva; **61** lezárva
+- ACTIVE: **62c+** (opcionális) vagy **58c+**; **62c** teljes (**PR #93**); **62b2** mergeelve; **62** / **61** lezárva
 - `git status` → staged / unstaged
 - `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 
