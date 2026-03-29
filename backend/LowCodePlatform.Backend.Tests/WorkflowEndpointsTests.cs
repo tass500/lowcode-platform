@@ -599,4 +599,79 @@ public sealed class WorkflowEndpointsTests
             Assert.Equal(JsonValueKind.Null, root.GetProperty("scheduleCron").ValueKind);
         }
     }
+
+    [Fact]
+    public async Task Workflows_export_should_return_portable_package()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var defJson = "{\"steps\":[{\"type\":\"noop\"}]}";
+        var createReq = new { name = "wf-export", definitionJson = defJson };
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", createReq);
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+
+        var created = await createResp.Content.ReadFromJsonAsync<JsonElement>();
+        var id = created.GetProperty("workflowDefinitionId").GetGuid();
+
+        using var exportResp = await client.GetAsync($"/api/workflows/{id}/export");
+        Assert.Equal(HttpStatusCode.OK, exportResp.StatusCode);
+
+        var pack = await exportResp.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(1, pack.GetProperty("exportFormatVersion").GetInt32());
+        Assert.Equal("wf-export", pack.GetProperty("name").GetString());
+        Assert.Equal(defJson, pack.GetProperty("definitionJson").GetString());
+        Assert.Equal(id, pack.GetProperty("sourceWorkflowDefinitionId").GetGuid());
+        Assert.True(pack.TryGetProperty("exportedAtUtc", out _));
+    }
+
+    [Fact]
+    public async Task Workflows_import_should_create_new_workflow_from_export_package()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var createReq = new { name = "wf-src", definitionJson = "{\"steps\":[{\"type\":\"delay\",\"ms\":1}]}" };
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", createReq);
+        createResp.EnsureSuccessStatusCode();
+        var created = await createResp.Content.ReadFromJsonAsync<JsonElement>();
+        var srcId = created.GetProperty("workflowDefinitionId").GetGuid();
+
+        using var exportResp = await client.GetAsync($"/api/workflows/{srcId}/export");
+        exportResp.EnsureSuccessStatusCode();
+        var pack = await exportResp.Content.ReadFromJsonAsync<JsonElement>();
+
+        var importBody = new
+        {
+            name = "wf-imported",
+            definitionJson = pack.GetProperty("definitionJson").GetString(),
+            exportFormatVersion = pack.GetProperty("exportFormatVersion").GetInt32(),
+        };
+
+        using var importResp = await client.PostAsJsonAsync("/api/workflows/import", importBody);
+        Assert.Equal(HttpStatusCode.OK, importResp.StatusCode);
+
+        var imported = await importResp.Content.ReadFromJsonAsync<JsonElement>();
+        var newId = imported.GetProperty("workflowDefinitionId").GetGuid();
+        Assert.NotEqual(srcId, newId);
+        Assert.Equal("wf-imported", imported.GetProperty("name").GetString());
+    }
 }

@@ -29,7 +29,8 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `domainCommand`
     - `unstable`
   - **Workflow run cancel (iter 59)**: `POST /api/workflows/runs/{runId}/cancel` (csak `pending`/`running`); kooperatív leállás; low-code **run details**: **Cancel run** gomb.
-  - Utolsó lezárt **repo** milestone (workflow vonal): **55** — **step timeout / cancellation hardening**: `foreach` / `switch` belső lépések ugyanazt a **`retry` / `timeoutMs`** policy-t kapják, mint a top-level lépések; timeout → `lastErrorConfigPath` **`$.timeoutMs`**; doc [`docs/live/workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md). Előtte **54** ütemezés [`workflow-schedule.md`](workflow-schedule.md). **Iteráció 56–57** lezárva: SQL Server EF (**56a–56d**, smoke teszt), Helm **0.3.0** backup CronJob — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md). **Következő:** **58** vizuális builder — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
+  - **Workflow import/export (iter 61):** `GET /api/workflows/{id}/export` (csomag `exportFormatVersion: 1`), `POST /api/workflows/import`; low-code **details** **Export JSON**, **Workflows** lista **Import** — [`workflow-import-export.md`](workflow-import-export.md).
+  - Utolsó lezárt **repo** milestone (workflow vonal): **55** — **step timeout / cancellation hardening**: `foreach` / `switch` belső lépések ugyanazt a **`retry` / `timeoutMs`** policy-t kapják, mint a top-level lépések; timeout → `lastErrorConfigPath` **`$.timeoutMs`**; doc [`docs/live/workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md). Előtte **54** ütemezés [`workflow-schedule.md`](workflow-schedule.md). **Iteráció 56–61** lezárva (56–57 SS + Helm; 58a–b builder; 59 cancel; 60 observability/health; **61** import/export) — részletek [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
     - unknown step type → warning
     - context var referencia ismeretlen step key-re → warning
     - kihasználatlan `set`/`map`/ismert `domainCommand` kimenet → warning
@@ -38,7 +39,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `code`
     - `message`
     - `severity`
-  - **Következő stratégiai ütemterv:** **58** vizuális builder, majd **59–62** — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) § *Ütemterv 56+*; SS + Helm: [`sqlserver-platform.md`](sqlserver-platform.md); timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); ütemezés: [`workflow-schedule.md`](workflow-schedule.md); konténer: [`container-deploy.md`](container-deploy.md), [`k3s-home-lab.md`](k3s-home-lab.md).
+  - **Következő stratégiai ütemterv:** **62** auth (opcionális), **58c** builder — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) (táblázat) + részletes múlt: [`03_ARCHIVE.md`](03_ARCHIVE.md); SS + Helm: [`sqlserver-platform.md`](sqlserver-platform.md); timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); ütemezés: [`workflow-schedule.md`](workflow-schedule.md); konténer: [`container-deploy.md`](container-deploy.md), [`k3s-home-lab.md`](k3s-home-lab.md).
 
 
 - **Frontend (Angular)**

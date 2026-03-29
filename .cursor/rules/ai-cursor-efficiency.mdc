@@ -12,4 +12,4 @@ Details: **`docs/DEVELOPMENT_WORKFLOW.md` § 10** · live checklist: **`docs/liv
 - **`.cursorignore`** (repo root) limits indexed noise — do not rely on pulling entire `bin/` / `node_modules` into context.
 - For large logs: **file in repo** or **one attachment** + pointer, not pasted walls of text.
 - **Composer** for multi-file / large edits; **Chat** for small single-file work when enough.
-- End-of-iteration: refresh **`docs/live/02` + `03`**, **`pr-body.md`**, then **`iter-end`** / `gh` — reduces PR back-and-forth.
+- End-of-iteration: refresh **`docs/live/02` + `03` (slim)**; long history goes to **`docs/live/03_ARCHIVE.md`** when needed — then **`pr-body.md`**, **`iter-end`** / `gh`.

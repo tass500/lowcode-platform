@@ -10,10 +10,10 @@ A **`.windsurf/` könyvtár nem authoritative** (lásd alul).
 | Szint | Fájlok | Mikor frissül |
 |--------|--------|----------------|
 | **Szerződés / világmodell** | `docs/PROJECT_CONTEXT.md` | Csak ha API, port, core invariáns változik |
-| **Futás / WIP / iteráció** | `docs/live/02_allapot.md`, `docs/live/03_kovetkezo_lepesek.md` | Minden lezárt milestone / meaningful változás után |
+| **Futás / WIP / iteráció** | `docs/live/02_allapot.md`, `docs/live/03_kovetkezo_lepesek.md` (karcsú) + szükség esetén `docs/live/03_ARCHIVE.md` | Minden lezárt milestone / meaningful változás után; az archívumot ne vidd be a chatbe alapból |
 | **Truth template** | `docs/00_truth_files_template/*` | **Soha ne szerkeszd** (read-only sablonok) |
 
-**Kontextusvesztés után (asszisztens / fejlesztő):** olvasd ezt a fájlt, majd `docs/live/03_kovetkezo_lepesek.md`, majd `docs/live/02_allapot.md`.
+**Kontextusvesztés után (asszisztens / fejlesztő):** olvasd ezt a fájlt, majd a **karcsú** `docs/live/03_kovetkezo_lepesek.md`, majd `docs/live/02_allapot.md`. A `docs/live/03_ARCHIVE.md` csak akkor kell, ha régi iteráció vagy hosszú upgrade-checklist részlet kell (token takarékosság).
 
 ---
 
@@ -203,7 +203,7 @@ A Cursor UI-ban állítod. Irányelv: **Auto / gyorsabb modell** a napi kis munk
 
 | Cél | Hogyan segít |
 |-----|----------------|
-| Kevesebb „ismételd el a kontextust” | §7 Handoff, `03` ACTIVE, branch név, `ai-cursor-token-efficiency.md` |
+| Kevesebb „ismételd el a kontextust” | §7 Handoff, karcsú `03` (+ `03_ARCHIVE` csak ha kell), branch név, `ai-cursor-token-efficiency.md` |
 | Kevesebb véletlen nagy diff | WIP=1, 1 PR ≈ 1 milestone (§2, §5, **§5a**); szétvágás ha túl nagy / kevert téma |
 | Kevesebb manuális PR-csevegés | §6b `iter-end`, `pr-body.md`, `gh` |
 | Kevesebb indexelt / véletlen kontextus | `.cursorignore` (build, `node_modules`, stb.) |

@@ -74,7 +74,9 @@ type ApiErrorDetail = {
         <button type="button" (click)="load()" [disabled]="loading">Refresh</button>
         <button type="button" (click)="startRun()" [disabled]="loading || starting || !workflow">Start run</button>
         <button type="button" (click)="save()" [disabled]="!workflow || form.invalid || saving">Save</button>
+        <button type="button" (click)="exportPack()" [disabled]="!workflow || exporting">Export JSON</button>
         <button type="button" (click)="delete()" [disabled]="!workflow || deleting">Delete</button>
+        <div *ngIf="exportError" style="color:#b00020;">{{ exportError }}</div>
         <span style="color:#999;">|</span>
         <button type="button" (click)="tab = 'definition'" [disabled]="tab === 'definition'">Definition</button>
         <button type="button" (click)="tab = 'runs'; loadRuns(true)" [disabled]="tab === 'runs'">Runs</button>
@@ -354,6 +356,8 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
   starting = false;
   saving = false;
   deleting = false;
+  exporting = false;
+  exportError: string | null = null;
   error: string | null = null;
   errorDetails: ApiErrorDetail[] = [];
 
@@ -731,6 +735,43 @@ export class LowCodeWorkflowDetailsPageComponent implements OnInit, OnDestroy {
       this.errorDetails = Array.isArray(e?.error?.details) ? (e.error.details as ApiErrorDetail[]) : [];
     } finally {
       this.scheduleSaving = false;
+    }
+  }
+
+  async exportPack(): Promise<void> {
+    if (!this.workflow) return;
+
+    this.exporting = true;
+    this.exportError = null;
+
+    try {
+      type WorkflowExportPack = {
+        exportFormatVersion: number;
+        name: string;
+        definitionJson: string;
+        exportedAtUtc: string;
+        sourceWorkflowDefinitionId: string;
+      };
+
+      const pack = await firstValueFrom(
+        this.http.get<WorkflowExportPack>(`/api/workflows/${this.workflow.workflowDefinitionId}/export`),
+      );
+      const text = JSON.stringify(pack, null, 2);
+      const blob = new Blob([text], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const safe = String(pack.name ?? 'workflow')
+        .replace(/[^\w\-]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 80);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${safe || 'workflow'}-export.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      this.exportError = e?.error?.message ?? e?.message ?? 'Export failed.';
+    } finally {
+      this.exporting = false;
     }
   }
 
