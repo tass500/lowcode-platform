@@ -9,7 +9,7 @@
 
 ## Workflow engine — ACTIVE
 
-**ACTIVE (WIP=1):** **63a** — kanonikus kontextus + README hivatkozások — [`roadmap-next-iterations.md`](roadmap-next-iterations.md) (ütem: **63a → 63b → 63c**; **63d** e2e opcionális). **62c+ e2e** hátrasorolva (nem blokkoló). **58c+** touch UX ✅ **PR #99** — [`workflow-visual-builder.md`](workflow-visual-builder.md). **58c+ `@angular/cdk`:** elhalasztva — ugyanott § *Döntés*. **62c+** doksi ✅ — [`auth-bff-httponly.md`](auth-bff-httponly.md) (**PR #95**, **PR #97**). **62c — BFF** ✅ **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
+**ACTIVE (WIP=1):** **63a** — kanonikus kontextus + README hivatkozások — **PR #102** — [`roadmap-next-iterations.md`](roadmap-next-iterations.md) (ütem: **63a → 63b → 63c**; **63d** e2e opcionális). **62c+ e2e** hátrasorolva (nem blokkoló). **58c+** touch UX ✅ **PR #99** — [`workflow-visual-builder.md`](workflow-visual-builder.md). **58c+ `@angular/cdk`:** elhalasztva — ugyanott § *Döntés*. **62c+** doksi ✅ — [`auth-bff-httponly.md`](auth-bff-httponly.md) (**PR #95**, **PR #97**). **62c — BFF** ✅ **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
 
 > **56–57** lezárva: SQL Server EF + Helm backup — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 

@@ -21,7 +21,7 @@
 
 ## ACTIVE (aktuális fókusz)
 
-- **63a** — amíg nincs mergeelve; utána **63b**, stb.  
+- **63a** — **PR #102** (merge után **63b**).  
 - Rövid állapot: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
 
 ## Megjegyzés
