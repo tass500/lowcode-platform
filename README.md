@@ -16,6 +16,25 @@ This repository was bootstrapped from the truth files template.
 - Ongoing iteration / WIP: [`docs/live/03_kovetkezo_lepesek.md`](docs/live/03_kovetkezo_lepesek.md)
 - **Next implementation iterations (63a+):** [`docs/live/roadmap-next-iterations.md`](docs/live/roadmap-next-iterations.md)
 
+## Local development
+
+Run the **backend** and **Angular dev server** on the same machine; the SPA calls `/api` through a dev proxy so cookies and `Host` behave like a single origin (important for optional BFF OAuth).
+
+1. **Backend (ASP.NET Core)**  
+   - From repo root: `dotnet run --project backend/LowCodePlatform.Backend.csproj --launch-profile http`  
+   - Default URL: **http://localhost:5002** (see `backend/Properties/launchSettings.json`, profile `http`).  
+   - Swagger UI: **http://localhost:5002/swagger**
+
+2. **Frontend (Angular)**  
+   - `cd frontend && npm ci && npm start` (or `ng serve`).  
+   - Default URL: **http://localhost:4200**.  
+   - `frontend/proxy.conf.json` forwards **`/api`** to **http://localhost:5002** with **`changeOrigin: false`** so the backend sees a browser-like `Host` (needed for tenant routing and BFF `redirect_uri` alignment).
+
+3. **Optional: BFF + OIDC** (server-side session cookie, `withCredentials` from the SPA)  
+   - Configuration and local smoke steps: [`docs/live/auth-bff-httponly.md`](docs/live/auth-bff-httponly.md) (sections on local dev smoke and test IdP registration).
+
+Command cheat sheet (details and quality gates): [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ## Iteration sizing rule
 - For ongoing work, see `docs/live/03_kovetkezo_lepesek.md`:
   - Credit-aware iteration sizing (1 Q/A = 1 credit)
