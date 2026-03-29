@@ -21,7 +21,7 @@
 
 ## 63d — döntés (böngészős e2e)
 
-- **Státusz:** ✅ lezárva **dokumentált „nem most”** döntéssel (2026-03-29).  
+- **Státusz:** ✅ lezárva **dokumentált „nem most”** döntéssel (2026-03-29) — **PR #105**.  
 - **Indok:** integrációs lefedettség előbb (`Backend.Tests`); böngészős e2e külön **CI költség**, **flakiness** és **függőség** (Playwright) — csak akkor érdemes, ha a termék vagy a release folyamat **explicit** kéri.  
 - **Újraindítás:** külön milestone / PR, előzetes egyeztetés (lásd még [`DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md)).
 
