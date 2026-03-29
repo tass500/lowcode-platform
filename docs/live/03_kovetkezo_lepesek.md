@@ -9,7 +9,7 @@
 
 ## Workflow engine — ACTIVE
 
-**ACTIVE: Iteráció 62b — IdP JWT (MVP)** — **62b1** opcionális OIDC Bearer (`Auth:Oidc:*`) + forwarder séma + `OidcJwtBearerPostConfigure` ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62** (62a–a2, 62a1) lezárva ✅. **61** import/export ✅ [`workflow-import-export.md`](workflow-import-export.md). **60** observability + health ✅. **59** cancel ✅. **58a–b** builder ✅ [`workflow-visual-builder.md`](workflow-visual-builder.md). **58c** builder sorrend natív DnD ✅ (fogó + ejtés). Backlog: **58c+** (opcionális CDK / touch), **62b2+** (SPA login redirect, refresh token, claim mapping, teszt IdP).
+**ACTIVE: Iteráció 62b — IdP JWT (MVP)** — **62b1** opcionális OIDC Bearer (`Auth:Oidc:*`) + forwarder séma + `OidcJwtBearerPostConfigure` ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62** (62a–a2, 62a1) lezárva ✅. **61** import/export ✅ [`workflow-import-export.md`](workflow-import-export.md). **60** observability + health ✅. **59** cancel ✅. **58a–b** builder ✅ [`workflow-visual-builder.md`](workflow-visual-builder.md). **58c** builder sorrend natív DnD ✅ (fogó + ejtés). Backlog: **58c+** (opcionális CDK / touch); **62c (auth keményítés):** **BFF + httpOnly** cookie alapú session — OAuth access/refresh **ne** maradjon JS `Storage`-ban (éles, XSS-barát modell; külön milestone, nem „elfelejtett javítás”, lásd [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md)); opcionális teszt IdP / e2e.
 
 > **56–57** lezárva: SQL Server EF + Helm backup — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 

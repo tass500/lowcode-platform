@@ -51,3 +51,11 @@ Ha **`Auth:Oidc:Authority` üres**, az OIDC JWT séma regisztrálva marad, de **
 ```
 
 Éles beállítás előtt ellenőrizd az **issuer** és **audience** pontos értékét a tenant és az app regisztráció szerint.
+
+## Keményítés később (BFF + httpOnly) — backlog **62c**
+
+A jelenlegi Angular flow **szándékosan** a klasszikus **public SPA + PKCE** modellt követi: a token(ek) a böngészőben maradnak (`sessionStorage`), ami devhez és gyors iterációhoz egyszerű, de **XSS** esetén sérülékenyebb mint a **Backend-for-Frontend (BFF)** minta, ahol a böngésző csak **httpOnly, Secure, SameSite** süti(ket) kap, a refresh/access csak a szerver oldalon mozog, az API felé pedig a BFF tesz ki sessiont vagy rövid élettartamú szervert oldali tokent.
+
+**Most nem „hibás” kihagyni:** ez új végpontokat, cookie policyt, CSRF védelmet (ha szükséges), gyakran reverse proxy / same-site routing döntéseket igényel — külön PR-érdemű (**62c**), ne a 62b2 funkciócsomagba keverjük.
+
+Rögzítve a következő lépések között: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) backlog **62c**.
