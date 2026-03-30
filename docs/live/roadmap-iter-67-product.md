@@ -15,7 +15,8 @@
 ## Hullám státusz
 
 - **67a** — ✅ shell + default route (fejléc tenant + `/` → workflows).
-- **67b** — ✅ workflow lista: **név** szerinti kliens oldali szűrő + üres állapot szövegek; következő: **67c**.
+- **67b** — ✅ workflow lista: **név** szerinti kliens oldali szűrő + üres állapot szövegek.
+- **67c** — ✅ **Entities** lista: név szerinti szűrő + nav (Workflows / All runs) + üres állapotok; **Entity records**: szűrő vs. üres lista szétválasztva, „Showing X of Y”, nav; következő: **67d**.
 
 ## Kapcsolódó
 
