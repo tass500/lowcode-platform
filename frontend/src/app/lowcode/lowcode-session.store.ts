@@ -1,3 +1,5 @@
+import { computed, signal } from '@angular/core';
+
 export type LowCodeSession = {
   /** May be empty after OIDC if the id token had no configured tenant claim; set manually on the auth page. */
   tenantSlug: string;
@@ -62,11 +64,24 @@ export function getLowCodeSession(): LowCodeSession | null {
   }
 }
 
+const sessionRevision = signal(0);
+
+function bumpLowCodeSessionRevision(): void {
+  sessionRevision.update((n) => n + 1);
+}
+
+/** Reactive trimmed tenant slug for shell UI (invalidates when `setLowCodeSession` runs). */
+export const lowcodeTenantSlugForUi = computed(() => {
+  sessionRevision();
+  return (getLowCodeSession()?.tenantSlug ?? '').trim();
+});
+
 export function setLowCodeSession(session: LowCodeSession | null): void {
   try {
     if (!session) {
       sessionStorage.removeItem(KEY);
       localStorage.removeItem(KEY);
+      bumpLowCodeSessionRevision();
       return;
     }
     persistSessionPayload(JSON.stringify(session));
@@ -75,6 +90,7 @@ export function setLowCodeSession(session: LowCodeSession | null): void {
     } catch {
       // ignore
     }
+    bumpLowCodeSessionRevision();
   } catch {
     // ignore
   }
