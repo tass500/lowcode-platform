@@ -43,6 +43,16 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@typescript-eslint/*"
         update-types: ["version-update:semver-major"]
+      # Stay on the Angular 17–aligned line until a coordinated frontend upgrade (v18+ libs expect newer @angular/*).
+      - dependency-name: "angular-oauth2-oidc"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+      # Angular 17 expects zone.js ~0.14.x; 0.15+ is for newer Angular — allow only patch on 0.14.
+      - dependency-name: "zone.js"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
 
   - package-ecosystem: "nuget"
     directory: "/backend"
