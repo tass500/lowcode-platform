@@ -210,6 +210,36 @@ jobs:
         run: npm run build
         working-directory: frontend
 
+  frontend-sbom:
+    name: Frontend - SBOM (npm CycloneDX)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Generate CycloneDX SBOM (package-lock)
+        working-directory: frontend
+        run: |
+          mkdir -p ../artifacts/sbom
+          npm sbom --package-lock-only --sbom-format cyclonedx --sbom-type application > ../artifacts/sbom/lowcode-frontend.cdx.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-frontend-cyclonedx-json
+          path: artifacts/sbom/lowcode-frontend.cdx.json
+          if-no-files-found: error
+          retention-days: 90
+
   docker-images:
     name: Docker — build images
     runs-on: ubuntu-latest
