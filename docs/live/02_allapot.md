@@ -50,7 +50,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `code`
     - `message`
     - `severity`
-  - **Következő stratégiai ütemterv:** **64+** enterprise keményítés — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) (**64e** CI format aktív); **63** hullám ✅ (**PR #102–105**) — [`roadmap-next-iterations.md`](roadmap-next-iterations.md); részletek: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md); **62c** BFF + httpOnly ✅; **58c+** builder — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) + [`03_ARCHIVE.md`](03_ARCHIVE.md); SS + Helm: [`sqlserver-platform.md`](sqlserver-platform.md); timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); ütemezés: [`workflow-schedule.md`](workflow-schedule.md); konténer: [`container-deploy.md`](container-deploy.md), [`k3s-home-lab.md`](k3s-home-lab.md).
+  - **Következő stratégiai ütemterv:** **64+** enterprise hullám ✅ (**64a–e**, **PR #106–110**) — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md); következő fókusz **TBD** — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md). **63** hullám ✅ (**PR #102–105**) — [`roadmap-next-iterations.md`](roadmap-next-iterations.md); részletek: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md); **62c** BFF + httpOnly ✅; **58c+** builder — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) + [`03_ARCHIVE.md`](03_ARCHIVE.md); SS + Helm: [`sqlserver-platform.md`](sqlserver-platform.md); timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); ütemezés: [`workflow-schedule.md`](workflow-schedule.md); konténer: [`container-deploy.md`](container-deploy.md), [`k3s-home-lab.md`](k3s-home-lab.md).
 
 
 - **Frontend (Angular)**
