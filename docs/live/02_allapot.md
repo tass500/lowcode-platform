@@ -28,7 +28,7 @@ Drift-proof observability egy greenfield lowcode platformban.
   - **API `X-API-Version` (iter 65a):** `ApiLifecycleMiddleware` — `Api:PublicVersion` válaszfejléc a **`/api/*`** útvonalakon; `/health*` külön — [`api-lifecycle-headers.md`](api-lifecycle-headers.md) (**PR #112**).
   - **API deprecation (iter 65b):** `[ApiDeprecated]` + `ApiDeprecationFilter` — `Deprecation` / opcionális `Sunset` — [`api-lifecycle-headers.md`](api-lifecycle-headers.md) (**PR #113**).
   - **OpenAPI deprecated (iter 65c):** `ApiDeprecatedOperationFilter` — `deprecated` + `x-sunset` + leírás kiegészítés — [`api-lifecycle-headers.md`](api-lifecycle-headers.md) (**PR #114**).
-  - **Integrációs tesztek (folyamatos):** `AuthSpaOidcConfigTests` — `GET /api/auth/spa-oidc-config` (hiányos vs. kitöltött OIDC + SPA kliens) — [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md).
+  - **Integrációs tesztek (folyamatos):** `AuthSpaOidcConfigTests` — `GET /api/auth/spa-oidc-config` (hiányos vs. kitöltött OIDC + SPA kliens) — [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md); `AdminObservabilityTests` — `GET /api/admin/observability` (admin JWT + telepítés sor) — [`ops/upgrade.md`](ops/upgrade.md) kontextus.
 
 - **Low-code workflow engine (Backend + Frontend demo)**
   - Támogatott workflow step-ek:
