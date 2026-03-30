@@ -1985,4 +1985,65 @@ public sealed class WorkflowRunEndpointsTests
         foreach (var el in doc.RootElement.GetProperty("items").EnumerateArray())
             Assert.Equal("succeeded", el.GetProperty("state").GetString());
     }
+
+    [Fact]
+    public async Task Tenant_wide_workflow_runs_list_started_after_utc_without_z_returns_400_when_kind_not_utc()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        // No timezone suffix — model binder typically yields DateTimeKind.Unspecified, which the API rejects.
+        using var bad = await client.GetAsync("/api/workflows/runs?take=50&skip=0&startedAfterUtc=2020-01-01T00:00:00");
+        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+    }
+
+    [Fact]
+    public async Task Tenant_wide_workflow_runs_list_started_before_utc_without_z_returns_400_when_kind_not_utc()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var bad = await client.GetAsync("/api/workflows/runs?take=50&skip=0&startedBeforeUtc=2030-01-01T00:00:00");
+        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+    }
+
+    [Fact]
+    public async Task Tenant_wide_workflow_runs_list_started_before_utc_inclusive_with_z_returns_matching_runs()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var c = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-before", definitionJson = "{\"steps\":[{\"type\":\"noop\"}]}" });
+        Assert.Equal(HttpStatusCode.OK, c.StatusCode);
+        var w = await c.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        var id = Guid.Parse(w!["workflowDefinitionId"]!.ToString()!);
+        using (var s = await client.PostAsync($"/api/workflows/{id}/runs", null))
+            Assert.Equal(HttpStatusCode.OK, s.StatusCode);
+
+        var before = DateTime.UtcNow.AddYears(1);
+        var q = Uri.EscapeDataString(before.ToString("o"));
+        using var listResp = await client.GetAsync($"/api/workflows/runs?take=50&skip=0&startedBeforeUtc={q}");
+        Assert.Equal(HttpStatusCode.OK, listResp.StatusCode);
+        var json = await listResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.GetProperty("totalCount").GetInt32() >= 1);
+    }
 }
