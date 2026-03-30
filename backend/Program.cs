@@ -65,6 +65,8 @@ builder.Services.AddSwaggerGen(o =>
     if (builder.Environment.IsDevelopment())
         o.OperationFilter<AddTenantHeaderOperationFilter>();
 
+    o.OperationFilter<ApiDeprecatedOperationFilter>();
+
     o.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name = "Authorization",

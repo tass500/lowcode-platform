@@ -1,4 +1,4 @@
-# API életciklus — válaszfejlécek (iter 65a–b)
+# API életciklus — válaszfejlécek és OpenAPI (iter 65a–c)
 
 > **Cél:** a publikus **`/api/*`** JSON felületen előrelátható kompatibilitási jelzés (`X-API-Version`), illetve **RFC 8594** stílusú **`Deprecation`** / **`Sunset`** jelölés elavuló végpontokon.
 
@@ -43,3 +43,19 @@
 
 - `ApiDeprecationFilterTests` — egységteszt a fejléc-logikára.
 - `DeprecationHeadersIntegrationTests` — teszt assembly-beli probe controller (`ConfigureTestServices` + `AddApplicationPart`).
+
+## 65c — OpenAPI / Swagger `deprecated`
+
+### Viselkedés
+
+- A **`[ApiDeprecated]`** attribútummal jelölt actionök a generált OpenAPI sémában **`deprecated: true`** értéket kapnak.
+- Ha van érvényes **`SunsetUtcIso`**, a művelet leírásához hozzáadódik a sunset (HTTP-date) szöveg, és megjelenik egy **`x-sunset`** kiterjesztés (érték: ISO 8601 UTC string, gépi feldolgozáshoz).
+- A Swagger UI csak **Development** környezetben van bekötve; a **`SwaggerGen`** / operation filter minden környezetben regisztrálva marad (spec generáláshoz).
+
+### Megvalósítás
+
+- `ApiDeprecatedOperationFilter` — `IOperationFilter` (`Program.cs` → `AddSwaggerGen`).
+
+### Tesztek
+
+- `ApiDeprecatedOperationFilterTests` — attribútum feloldás, `TryFormatSunset`, OpenAPI mezők.
