@@ -18,12 +18,12 @@
 ## Következő lépés (ajánlás, nem kötelező sorrend)
 
 1. **Integrációs minőség** — a **63b** admin/auth vonal lefedése: *kész:* `AuthSpaOidcConfigTests`, `AdminObservabilityTests`, `AdminUpgradeRunsTests` + `AdminUpgradeRunsMutationTests`, `AdminInstallationTests`, `AdminAuditTests`, `AdminTenantsTests`, BFF (`BffAuthEndpointsTests`, `BffSessionBearerWorkflowTests`) — [`roadmap-next-iterations.md`](roadmap-next-iterations.md).  
-2. **Supply-chain (iter 66+ jelleg)** — SBOM vagy további CI keményítés — csapatdöntés — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) (64e táblázat).  
+2. **Supply-chain (iter 66+)** — NuGet audit + CI vulnerable check — [`ci-supply-chain.md`](ci-supply-chain.md); opcionális: GitHub Dependency graph + PR dependency-review; további: SBOM artefakt / npm audit kapu (Angular upgrade után) — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md).  
 3. **Termék** — workflow / tenant / low-code UI a backlog és a termék prioritás szerint.
 
 ## ACTIVE
 
-- **65+ hullám:** ✅ kész (**65a–c**, **PR #112–114**). Következő szállítási fókusz: **66+** (supply-chain / termék backlog) — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
+- **65+ hullám:** ✅ kész (**65a–c**, **PR #112–114**). **66+ supply-chain:** [`ci-supply-chain.md`](ci-supply-chain.md). További fókusz: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
 
 ## Szállítás (történeti)
 

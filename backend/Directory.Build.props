@@ -2,5 +2,10 @@
   <PropertyGroup>
     <!-- Optional faster local builds: $env:FAST_BUILD='true' or -p:FAST_BUILD=true -->
     <RunAnalyzersDuringBuild Condition="'$(FAST_BUILD)' == 'true'">false</RunAnalyzersDuringBuild>
+
+    <!-- Supply-chain: fail restore on known vulnerable packages (NuGet advisory DB). See docs/live/ci-supply-chain.md -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
   </PropertyGroup>
 </Project>
