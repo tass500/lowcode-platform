@@ -1,0 +1,16 @@
+# Gitleaks — secret scanning allowlist (see docs/live/ci-secret-scanning.md)
+title = "lowcode-platform"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known non-production material: integration tests and local dev JWT placeholder."
+paths = [
+  "backend/LowCodePlatform.Backend.Tests/",
+  "backend/appsettings.Development.json",
+]
+regexes = [
+  "dev-insecure-signing-key-change-me",
+  "test-signing-key-please-change-32bytes!!",
+]

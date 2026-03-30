@@ -46,4 +46,4 @@ A frontend jelenlegi **Angular 17** vonal és a dev/build tool-lánc sok **trans
 
 Javasolt külön hullám: célzott Angular LTS / npm frissítés + utána audit szint emelése.
 
-Kapcsolódó: [`ci-dotnet-format.md`](ci-dotnet-format.md), [`dependabot.yml`](../../.github/dependabot.yml).
+Kapcsolódó: [`ci-dotnet-format.md`](ci-dotnet-format.md), [`ci-secret-scanning.md`](ci-secret-scanning.md) (Gitleaks), [`dependabot.yml`](../../.github/dependabot.yml).
