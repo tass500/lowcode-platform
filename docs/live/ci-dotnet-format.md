@@ -25,3 +25,5 @@ A .NET SDK része (`dotnet format`); nincs külön NuGet csomag a repo-ban.
 ## Megjegyzés
 
 Az alapértelmezett .NET stílus szabályok érvényesülnek (nincs kötelező gyökér `.editorconfig` a backendhez). Ha a csapat később szigorítani akarja, érdemes gyökér vagy `backend/.editorconfig`-ot bevezetni és egyszer lefuttatni a `dotnet format`-ot.
+
+Kapcsolódó CI: supply-chain (NuGet audit, vulnerable package list) — [`ci-supply-chain.md`](ci-supply-chain.md).

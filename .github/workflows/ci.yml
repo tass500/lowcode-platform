@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -48,6 +49,37 @@ jobs:
         run: |
           dotnet format --verify-no-changes backend/LowCodePlatform.Backend.csproj
           dotnet format --verify-no-changes backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj
+
+  backend-supply-chain:
+    name: Backend - vulnerable packages (NuGet)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('backend/**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore (audit enabled via Directory.Build.props)
+        run: |
+          dotnet restore backend/LowCodePlatform.Backend.csproj
+          dotnet restore backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj
+
+      - name: List vulnerable packages (fail if any)
+        run: |
+          dotnet list package --vulnerable --include-transitive --project backend/LowCodePlatform.Backend.csproj
+          dotnet list package --vulnerable --include-transitive --project backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj
 
   backend-build:
     name: Backend - build
@@ -130,10 +162,24 @@ jobs:
         run: npm run build
         working-directory: frontend
 
+  dependency-review:
+    name: Dependency review (PR)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+
   docker-images:
     name: Docker — build images
     runs-on: ubuntu-latest
-    needs: [backend-format, backend-test, frontend-quality]
+    needs: [backend-format, backend-supply-chain, backend-test, frontend-quality]
 
     steps:
       - name: Checkout
