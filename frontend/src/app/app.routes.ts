@@ -15,7 +15,7 @@ import { LowCodeEntityRecordsPageComponent } from './pages/lowcode-entity-record
 import { LowCodeWorkflowRunsPageComponent } from './pages/lowcode-workflow-runs-page.component';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'upgrade' },
+  { path: '', pathMatch: 'full', redirectTo: 'lowcode/workflows' },
   { path: 'upgrade', component: UpgradePageComponent },
   { path: 'lowcode/auth', component: LowCodeAuthPageComponent },
   { path: 'lowcode/auth/callback', component: LowcodeAuthCallbackComponent },
