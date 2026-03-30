@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -161,24 +160,6 @@ jobs:
       - name: Build
         run: npm run build
         working-directory: frontend
-
-  dependency-review:
-    name: Dependency review (PR)
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    permissions:
-      contents: read
-      pull-requests: read
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Dependency review
-        uses: actions/dependency-review-action@v4
-        with:
-          # high: avoid failing PRs on noisy moderate npm advisories (Angular 17 toolchain); NuGet gate covers backend in backend-supply-chain
-          fail-on-severity: high
 
   docker-images:
     name: Docker — build images

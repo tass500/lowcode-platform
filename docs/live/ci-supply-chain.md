@@ -1,6 +1,8 @@
-# CI — supply-chain (NuGet + PR dependency review)
+# CI — supply-chain (NuGet)
 
 **Cél:** a backend NuGet-függőségekre is érvényes legyen az iparági **vulnerability awareness** (OWASP / SSDF irányelvek) anélkül, hogy a teljes frontend stack `npm audit` zaját egyszerre kötelezővé tennénk (Angular major upgrade külön hullám).
+
+A GitHub **`actions/dependency-review-action`** job **nincs** beépítve az alap CI-ba, mert a repóban engedélyezni kell a **Dependency graph**ot (Repo → **Settings** → **Code security** → *Dependency graph*). Ha ez nincs bekapcsolva, az action hibával leáll (`Dependency review is not supported on this repository`). Opcionálisan, graph bekapcsolása után hozzáadható külön workflow vagy job; példa lentebb.
 
 ## Backend (NuGet)
 
@@ -32,14 +34,11 @@ dotnet restore backend/LowCodePlatform.Backend.csproj
 dotnet list backend/LowCodePlatform.Backend.csproj package --vulnerable --include-transitive
 ```
 
-## Pull request: `dependency-review`
+## Opcionális: GitHub Dependency review (PR)
 
-A **CI** `dependency-review` job csak **`pull_request`** eseményre fut (pushra nem).
+Ha a repóban be van kapcsolva a **Dependency graph**, egy külön workflow-ban vagy jobban használható a [`dependency-review-action`](https://github.com/actions/dependency-review-action) (csak `pull_request` eseményre). Példa beállítások: `fail-on-severity: high` (npm zaj csökkentése); a workflow-ban `permissions: { contents: read, pull-requests: read }`.
 
-- Action: `actions/dependency-review-action`
-- `fail-on-severity: high` — a PR-ban **újonnan bevezetett** vagy **módosított** függőségek közül a **high** (és súlyosabb) ismert sebezhetőség buktatja a checket. A **moderate** szándékosan nincs kötelező PR-kapu (npm / Angular toolchain zaj); a backend NuGet oldalt a `backend-supply-chain` job fedezi.
-
-A job szintjén: `contents: read`, `pull-requests: read`. A workflow gyökérszintű `permissions` mellett is szerepelhetnek.
+A backend NuGet ellenőrzést továbbra is a **`backend-supply-chain`** job adja.
 
 ## Frontend (`npm`)
 

@@ -18,7 +18,7 @@
 ## Következő lépés (ajánlás, nem kötelező sorrend)
 
 1. **Integrációs minőség** — a **63b** admin/auth vonal lefedése: *kész:* `AuthSpaOidcConfigTests`, `AdminObservabilityTests`, `AdminUpgradeRunsTests` + `AdminUpgradeRunsMutationTests`, `AdminInstallationTests`, `AdminAuditTests`, `AdminTenantsTests`, BFF (`BffAuthEndpointsTests`, `BffSessionBearerWorkflowTests`) — [`roadmap-next-iterations.md`](roadmap-next-iterations.md).  
-2. **Supply-chain (iter 66+)** — NuGet audit + CI vulnerable check + PR dependency-review — [`ci-supply-chain.md`](ci-supply-chain.md); további: SBOM artefakt / npm audit kapu (Angular upgrade után) — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md).  
+2. **Supply-chain (iter 66+)** — NuGet audit + CI vulnerable check — [`ci-supply-chain.md`](ci-supply-chain.md); opcionális: GitHub Dependency graph + PR dependency-review; további: SBOM artefakt / npm audit kapu (Angular upgrade után) — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md).  
 3. **Termék** — workflow / tenant / low-code UI a backlog és a termék prioritás szerint.
 
 ## ACTIVE
