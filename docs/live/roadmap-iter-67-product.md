@@ -14,7 +14,8 @@
 
 ## Hullám státusz
 
-- **67a** — ✅ shell + default route (fejléc tenant + `/` → workflows); következő: **67b**.
+- **67a** — ✅ shell + default route (fejléc tenant + `/` → workflows).
+- **67b** — ✅ workflow lista: **név** szerinti kliens oldali szűrő + üres állapot szövegek; következő: **67c**.
 
 ## Kapcsolódó
 

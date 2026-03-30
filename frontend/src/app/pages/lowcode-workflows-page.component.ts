@@ -32,6 +32,22 @@ type WorkflowListResponse = {
         <div *ngIf="error" style="color:#b00020;">{{ error }}</div>
       </div>
 
+      <div *ngIf="items.length > 0" style="margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #333;">
+          <span>Filter by name</span>
+          <input
+            type="search"
+            [(ngModel)]="nameFilter"
+            placeholder="Type to narrow the list…"
+            autocomplete="off"
+            style="min-width: 220px; padding: 6px 10px; box-sizing: border-box;"
+          />
+        </label>
+        <span *ngIf="nameFilter.trim()" style="font-size: 13px; color: #666;">
+          Showing {{ filteredItems.length }} of {{ items.length }}
+        </span>
+      </div>
+
       <section style="margin-top: 16px; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
         <div style="font-weight: 600; margin-bottom: 8px;">Import from export JSON</div>
         <p style="margin: 0 0 8px 0; font-size: 13px; color:#555;">
@@ -55,10 +71,17 @@ type WorkflowListResponse = {
       </section>
 
       <div *ngIf="items.length === 0 && !loading" style="margin-top: 12px; color:#444;">
-        No workflows.
+        No workflows yet. Create one with <b>New</b> or <b>Import</b> above.
       </div>
 
-      <table *ngIf="items.length > 0" style="width:100%; border-collapse: collapse; margin-top: 12px;">
+      <div
+        *ngIf="items.length > 0 && filteredItems.length === 0 && !loading"
+        style="margin-top: 12px; color:#444;"
+      >
+        No workflows match this filter. Clear the search or try another name.
+      </div>
+
+      <table *ngIf="filteredItems.length > 0" style="width:100%; border-collapse: collapse; margin-top: 12px;">
         <thead>
           <tr>
             <th style="text-align:left; border-bottom:1px solid #ddd; padding: 6px;">Name</th>
@@ -68,7 +91,7 @@ type WorkflowListResponse = {
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let w of items">
+          <tr *ngFor="let w of filteredItems">
             <td style="border-bottom:1px solid #eee; padding: 6px;">{{ w.name }}</td>
             <td style="border-bottom:1px solid #eee; padding: 6px;">{{ w.updatedAtUtc | date: 'medium' }}</td>
             <td style="border-bottom:1px solid #eee; padding: 6px; font-family: monospace;">{{ w.workflowDefinitionId }}</td>
@@ -86,8 +109,18 @@ export class LowCodeWorkflowsPageComponent implements OnInit {
   private readonly router = inject(Router);
 
   items: WorkflowDefinitionListItemDto[] = [];
+  /** Client-side filter (case-insensitive substring on workflow name). */
+  nameFilter = '';
   loading = false;
   error: string | null = null;
+
+  get filteredItems(): WorkflowDefinitionListItemDto[] {
+    const q = this.nameFilter.trim().toLowerCase();
+    if (!q) {
+      return this.items;
+    }
+    return this.items.filter((w) => w.name.toLowerCase().includes(q));
+  }
 
   importJsonText = '';
   importing = false;
