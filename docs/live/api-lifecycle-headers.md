@@ -46,6 +46,8 @@
 
 ## 65c — OpenAPI / Swagger `deprecated`
 
+**Szállítás:** **PR #114** (merge a **`main`** ágra).
+
 ### Viselkedés
 
 - A **`[ApiDeprecated]`** attribútummal jelölt actionök a generált OpenAPI sémában **`deprecated: true`** értéket kapnak.
