@@ -31,6 +31,16 @@ Meglévő: lista alap, érvénytelen `take`, érvénytelen `state` — változat
 
 Kapcsolódó UI: termék **67c** (Entities lista) — [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md).
 
+## Iter 68d — `GET /api/entities/{entityId}/records` lista (kész)
+
+**Backend:** `EntityRecordEndpointsTests` — új esetek:
+
+- **Ismeretlen** `entityId` → **404**.
+- Létező entitás, **nincs rekord**: **200**, `items` üres tömb, **`serverTimeUtc`**.
+- **Sorrend:** `UpdatedAtUtc` csökkenő, aztán `EntityRecordId` csökkenő — két POST után a **régebbi** rekord **PUT**-tal frissítve → első helyen a listában.
+
+Kapcsolódó UI: termék **67c** (Entity records) — [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md).
+
 ## Kapcsolódó
 
 - Termék 67: [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md) · Frontend run lista: `frontend/.../lowcode-workflow-runs-page.component.ts`.
