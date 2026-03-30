@@ -51,6 +51,7 @@ Javasolt külön hullám: célzott Angular LTS / npm frissítés + utána audit 
 A [`.github/dependabot.yml`](../../.github/dependabot.yml) **group** szabályokkal kevesebb, összetartóbb heti PR-t céloz:
 
 - **npm / frontend:** `angular-ecosystem` (`@angular/*`, `@angular-devkit/*`, `@angular-eslint/*`, `@ngtools/*`, `@schematics/*`) + `frontend-runtime` (`rxjs`, `tslib`, `zone.js`, `angular-oauth2-oidc`) — patch/minor együtt, a meglévő **ignore** (major Angular / TS / ESLint) változatlan.
+- **npm / peer Angular 17:** `angular-oauth2-oidc` — csak **patch** (a 18+ vonal újabb `@angular/*`-t vár); `zone.js` — csak **patch** a **0.14** sorozaton (minor/major újabb Angularhoz való ugrással együtt érdemes), különben a Dependabot PR-ek elbuknak a CI-n.
 - **nuget / backend:** `backend-libraries` (`Microsoft.*`, `Swashbuckle*`) — patch/minor.
 - **nuget / `.config`:** `dotnet-tools` (pl. `dotnet-ef`, `cyclonedx`) — patch/minor egy PR-ben.
 - **github-actions:** `actions` (`*`) — egy összevont workflow-frissítés heti szinten.
