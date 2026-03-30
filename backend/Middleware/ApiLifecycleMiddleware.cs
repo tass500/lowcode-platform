@@ -4,7 +4,7 @@ namespace LowCodePlatform.Backend.Middleware;
 
 /// <summary>
 /// Adds discovery-friendly headers for the public JSON API surface (<c>/api/*</c>).
-/// Per-route <c>Deprecation</c> / <c>Sunset</c> can be layered later (RFC 8594 style).
+/// Per-route <c>Deprecation</c> / <c>Sunset</c>: <c>ApiDeprecatedAttribute</c> + <c>ApiDeprecationFilter</c> (RFC 8594).
 /// </summary>
 public sealed class ApiLifecycleMiddleware
 {

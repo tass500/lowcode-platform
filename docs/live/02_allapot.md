@@ -25,7 +25,8 @@ Drift-proof observability egy greenfield lowcode platformban.
   - **Rate limiting (iter 64c):** globális fix ablak / IP (`RateLimiting:PermitLimit`, `WindowSeconds`); health végpontok **kizárva**; `Testing` + integrációs teszt: `RateLimiting:Enabled` — [`rate-limiting.md`](rate-limiting.md).
   - **Security audit log (iter 64d):** strukturált `security_auth_denied` / `security_config_error` (kategória `LowCodePlatform.Backend.SecurityAudit`); admin + tenant API kulcs elutasítás; titkok nélkül — [`security-audit-logging.md`](security-audit-logging.md).
   - **CI `dotnet format` (iter 64e):** GitHub Actions `backend-format` — `dotnet format --verify-no-changes` a fő és a teszt `.csproj`-on; lokális parancsok — [`ci-dotnet-format.md`](ci-dotnet-format.md).
-  - **API `X-API-Version` (iter 65a):** `ApiLifecycleMiddleware` — `Api:PublicVersion` válaszfejléc a **`/api/*`** útvonalakon; `/health*` külön — [`api-lifecycle-headers.md`](api-lifecycle-headers.md).
+  - **API `X-API-Version` (iter 65a):** `ApiLifecycleMiddleware` — `Api:PublicVersion` válaszfejléc a **`/api/*`** útvonalakon; `/health*` külön — [`api-lifecycle-headers.md`](api-lifecycle-headers.md) (**PR #112**).
+  - **API deprecation (iter 65b):** `[ApiDeprecated]` + `ApiDeprecationFilter` — `Deprecation` / opcionális `Sunset` — [`api-lifecycle-headers.md`](api-lifecycle-headers.md).
 
 - **Low-code workflow engine (Backend + Frontend demo)**
   - Támogatott workflow step-ek:

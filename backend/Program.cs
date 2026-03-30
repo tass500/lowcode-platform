@@ -1,6 +1,7 @@
 using LowCodePlatform.Backend;
 using LowCodePlatform.Backend.Auth.Bff;
 using LowCodePlatform.Backend.Data;
+using LowCodePlatform.Backend.Filters;
 using LowCodePlatform.Backend.Middleware;
 using LowCodePlatform.Backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -45,7 +46,10 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<IOidcHttpForBff, OidcHttpForBff>();
 builder.Services.AddSingleton<IBffSessionReader, BffSessionReader>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ApiDeprecationFilter>();
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(o =>
 {
