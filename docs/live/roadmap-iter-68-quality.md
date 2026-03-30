@@ -22,6 +22,15 @@ Meglévő: lista alap, érvénytelen `take`, érvénytelen `state` — változat
 - Ugyanígy **`startedBeforeUtc`** időzóna nélkül → **400**.
 - **`startedBeforeUtc`** érvényes UTC (`…Z` / `o`) → legalább egy noop futás szerepel a szűrt halmazban (inkluzív felső korlát a kontroller szerint).
 
+## Iter 68c — `GET /api/entities` lista (kész)
+
+**Backend:** `EntityDefinitionEndpointsTests` — új esetek:
+
+- Lista **név szerint rendezve** (két POST: Zebra, majd Apple → GET → **Apple**, **Zebra**).
+- **Üres tenant** (nincs entitás): **200**, `items` üres tömb, **`serverTimeUtc`** string a JSON gyökérben.
+
+Kapcsolódó UI: termék **67c** (Entities lista) — [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md).
+
 ## Kapcsolódó
 
 - Termék 67: [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md) · Frontend run lista: `frontend/.../lowcode-workflow-runs-page.component.ts`.
