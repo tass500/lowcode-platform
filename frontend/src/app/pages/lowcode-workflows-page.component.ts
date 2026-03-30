@@ -26,6 +26,7 @@ type WorkflowListResponse = {
       <div style="display:flex; gap: 12px; align-items: center; flex-wrap: wrap;">
         <h2 style="margin:0;">Workflows</h2>
         <a routerLink="/lowcode/workflows/new">New</a>
+        <a routerLink="/lowcode/entities">Entities</a>
         <a routerLink="/lowcode/workflow-runs">All runs</a>
         <button type="button" (click)="load()" [disabled]="loading">Refresh</button>
         <div *ngIf="loading">Loading...</div>
