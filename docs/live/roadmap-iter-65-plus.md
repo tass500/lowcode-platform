@@ -13,18 +13,21 @@
 
 ## Hullám státusz
 
-- **65a** ✅ — **PR #112** — [`api-lifecycle-headers.md`](api-lifecycle-headers.md) (§ 65a).  
-- **65b** ✅ — **PR #113** — [`api-lifecycle-headers.md`](api-lifecycle-headers.md) (§ 65b).  
-- **65c** — [`api-lifecycle-headers.md`](api-lifecycle-headers.md) (§ 65c). Aktuális sor: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
+- **65a–c** ✅ lezárva (**PR #112–114**). Utolsó: **65c** — **PR #114** — [`api-lifecycle-headers.md`](api-lifecycle-headers.md) (§ 65c).
+
+## Következő lépés (ajánlás, nem kötelező sorrend)
+
+1. **Integrációs minőség** — további `Backend.Tests` lefedettség kritikus API-kon (auth / BFF / workflow), a **63b** vonal természetes folytatása — [`roadmap-next-iterations.md`](roadmap-next-iterations.md).  
+2. **Supply-chain** — SBOM vagy további CI keményítés — csapatdöntés — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) (64e táblázat).  
+3. **Termék** — workflow / tenant / low-code UI a backlog és a termék prioritás szerint.
 
 ## ACTIVE
 
-- **65c** — OpenAPI deprecated — [`api-lifecycle-headers.md`](api-lifecycle-headers.md).  
-- **65b** ✅ — **PR #113**.  
-- **65a** ✅ — **PR #112**.  
+- **65+ hullám:** ✅ kész (**65a–c**, **PR #112–114**). Következő szállítási fókusz: **TBD** — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
+
+## Szállítás (történeti)
+
+- **65c** ✅ — [`api-lifecycle-headers.md`](api-lifecycle-headers.md) (**PR #114**).  
+- **65b** ✅ — [`api-lifecycle-headers.md`](api-lifecycle-headers.md) (**PR #113**).  
+- **65a** ✅ — [`api-lifecycle-headers.md`](api-lifecycle-headers.md) (**PR #112**).  
 - Előző hullám (64): [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md).
-
-## Következő jelölt (nem kötelező)
-
-- **65+ hullám lezárás** merge után: **ACTIVE TBD** — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).  
-- **Supply-chain / SBOM** (64e opció) — csapatdöntés — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md).

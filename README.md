@@ -16,6 +16,7 @@ This repository was bootstrapped from the truth files template.
 - Ongoing iteration / WIP: [`docs/live/03_kovetkezo_lepesek.md`](docs/live/03_kovetkezo_lepesek.md)
 - **Roadmap — iter 63 (closed):** [`docs/live/roadmap-next-iterations.md`](docs/live/roadmap-next-iterations.md)
 - **Roadmap — iter 64+ (enterprise):** [`docs/live/roadmap-iter-64-plus.md`](docs/live/roadmap-iter-64-plus.md)
+- **Roadmap — iter 65+ (API lifecycle, closed):** [`docs/live/roadmap-iter-65-plus.md`](docs/live/roadmap-iter-65-plus.md) · headers & OpenAPI: [`docs/live/api-lifecycle-headers.md`](docs/live/api-lifecycle-headers.md)
 
 ## Local development
 

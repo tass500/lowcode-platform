@@ -27,7 +27,7 @@ Drift-proof observability egy greenfield lowcode platformban.
   - **CI `dotnet format` (iter 64e):** GitHub Actions `backend-format` — `dotnet format --verify-no-changes` a fő és a teszt `.csproj`-on; lokális parancsok — [`ci-dotnet-format.md`](ci-dotnet-format.md).
   - **API `X-API-Version` (iter 65a):** `ApiLifecycleMiddleware` — `Api:PublicVersion` válaszfejléc a **`/api/*`** útvonalakon; `/health*` külön — [`api-lifecycle-headers.md`](api-lifecycle-headers.md) (**PR #112**).
   - **API deprecation (iter 65b):** `[ApiDeprecated]` + `ApiDeprecationFilter` — `Deprecation` / opcionális `Sunset` — [`api-lifecycle-headers.md`](api-lifecycle-headers.md) (**PR #113**).
-  - **OpenAPI deprecated (iter 65c):** `ApiDeprecatedOperationFilter` — `deprecated` + `x-sunset` + leírás kiegészítés — [`api-lifecycle-headers.md`](api-lifecycle-headers.md).
+  - **OpenAPI deprecated (iter 65c):** `ApiDeprecatedOperationFilter` — `deprecated` + `x-sunset` + leírás kiegészítés — [`api-lifecycle-headers.md`](api-lifecycle-headers.md) (**PR #114**).
 
 - **Low-code workflow engine (Backend + Frontend demo)**
   - Támogatott workflow step-ek:
@@ -53,7 +53,7 @@ Drift-proof observability egy greenfield lowcode platformban.
     - `code`
     - `message`
     - `severity`
-  - **Következő stratégiai ütemterv:** **65+** API életciklus — [`roadmap-iter-65-plus.md`](roadmap-iter-65-plus.md); **64+** enterprise hullám ✅ (**64a–e**, **PR #106–110**) — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md). Aktuális sor: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md). **63** hullám ✅ (**PR #102–105**) — [`roadmap-next-iterations.md`](roadmap-next-iterations.md); részletek: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md); **62c** BFF + httpOnly ✅; **58c+** builder — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) + [`03_ARCHIVE.md`](03_ARCHIVE.md); SS + Helm: [`sqlserver-platform.md`](sqlserver-platform.md); timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); ütemezés: [`workflow-schedule.md`](workflow-schedule.md); konténer: [`container-deploy.md`](container-deploy.md), [`k3s-home-lab.md`](k3s-home-lab.md).
+  - **Következő stratégiai ütemterv:** **65+** API életciklus hullám ✅ (**65a–c**, **PR #112–114**) — [`roadmap-iter-65-plus.md`](roadmap-iter-65-plus.md); következő fókusz **TBD** — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) · [`roadmap-iter-65-plus.md`](roadmap-iter-65-plus.md) § *Következő lépés*. **64+** enterprise hullám ✅ (**64a–e**, **PR #106–110**) — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md). **63** hullám ✅ (**PR #102–105**) — [`roadmap-next-iterations.md`](roadmap-next-iterations.md); részletek: [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md); **62c** BFF + httpOnly ✅; **58c+** builder — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md) + [`03_ARCHIVE.md`](03_ARCHIVE.md); SS + Helm: [`sqlserver-platform.md`](sqlserver-platform.md); timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md); ütemezés: [`workflow-schedule.md`](workflow-schedule.md); konténer: [`container-deploy.md`](container-deploy.md), [`k3s-home-lab.md`](k3s-home-lab.md).
 
 
 - **Frontend (Angular)**
