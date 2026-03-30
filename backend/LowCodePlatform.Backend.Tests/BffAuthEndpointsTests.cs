@@ -170,6 +170,19 @@ public sealed class BffAuthEndpointsTests
     }
 
     [Fact]
+    public async Task Bff_callback_without_pkce_cookies_redirects_with_error()
+    {
+        await using var factory = new FactoryBffOn();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        using var resp = await client.GetAsync("/api/auth/bff/callback?code=x&state=y");
+        Assert.Equal(System.Net.HttpStatusCode.Redirect, resp.StatusCode);
+        var loc = resp.Headers.Location?.ToString() ?? "";
+        Assert.Contains("/lowcode/auth", loc, StringComparison.Ordinal);
+        Assert.Contains("missing_pkce_cookie", loc, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Bff_callback_sets_session_cookie_session_json_has_no_raw_jwt_but_has_subject_hint()
     {
         await using var factory = new FactoryBffOn();
