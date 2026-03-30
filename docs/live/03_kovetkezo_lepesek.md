@@ -9,7 +9,7 @@
 
 ## Workflow engine — ACTIVE
 
-**ACTIVE (WIP=1):** **64e** — CI `dotnet format --verify` (backend + teszt projekt) — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) · [`ci-dotnet-format.md`](ci-dotnet-format.md). **64d** ✅ **PR #109** — [`security-audit-logging.md`](security-audit-logging.md). **64c** ✅ **PR #108** — [`rate-limiting.md`](rate-limiting.md). **64b** ✅ **PR #107** — [`kestrel-request-limits.md`](kestrel-request-limits.md). **64a** ✅ **PR #106** — [`security-http-headers.md`](security-http-headers.md). **Iter 63** ✅ (**63a–d**, **PR #102–105** — [`roadmap-next-iterations.md`](roadmap-next-iterations.md)). **62c+ e2e** hátrasorolva (nem blokkoló). **58c+** touch UX ✅ **PR #99** — [`workflow-visual-builder.md`](workflow-visual-builder.md). **58c+ `@angular/cdk`:** elhalasztva — ugyanott § *Döntés*. **62c+** doksi ✅ — [`auth-bff-httponly.md`](auth-bff-httponly.md) (**PR #95**, **PR #97**). **62c — BFF** ✅ **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
+**ACTIVE (WIP=1):** **TBD** — következő milestone választása (jelölt: **API életciklus** / verzió–deprecation — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) § *Következő jelölt*). **Iter 64** ✅ (**64a–e**, **PR #106–110** — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md); záró: **64e** **PR #110** — [`ci-dotnet-format.md`](ci-dotnet-format.md)). **Iter 63** ✅ (**63a–d**, **PR #102–105** — [`roadmap-next-iterations.md`](roadmap-next-iterations.md)). **62c+ e2e** hátrasorolva (nem blokkoló). **58c+** touch UX ✅ **PR #99** — [`workflow-visual-builder.md`](workflow-visual-builder.md). **58c+ `@angular/cdk`:** elhalasztva — ugyanott § *Döntés*. **62c+** doksi ✅ — [`auth-bff-httponly.md`](auth-bff-httponly.md) (**PR #95**, **PR #97**). **62c — BFF** ✅ **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
 
 > **56–57** lezárva: SQL Server EF + Helm backup — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 
@@ -25,7 +25,7 @@
 | **61** | Import/export ✅ | [`workflow-import-export.md`](workflow-import-export.md) |
 | **62** | Auth (62a–a2 ✅, 62a1 ✅) | **62b** MVP ✅, **62b2** SPA+claims ✅, **62c** BFF B+C+D ✅ [`auth-bff-httponly.md`](auth-bff-httponly.md) |
 | **63** | Hullám lezárva (63a–d; **PR #102–105**) | [`roadmap-next-iterations.md`](roadmap-next-iterations.md) |
-| **64** | Enterprise keményítés (64a–e) | [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) |
+| **64** | Enterprise keményítés (64a–e) ✅ **PR #106–110** | [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) |
 
 Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) (§ *Ütemterv 56+*).
 
@@ -33,7 +33,7 @@ Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) 
 
 - **PR / iteráció ritmus:** [`DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) **§5a**
 - Branch: `feat/<topic>` a legfrissebb `main`-ről
-- ACTIVE: **64c** → **64d**… — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md); **63** ✅ (**PR #102–105**); **62c+ e2e** backlog; **58c+** touch (**PR #99**); **58c+ CDK** defer — [`workflow-visual-builder.md`](workflow-visual-builder.md); **62c** + **62c+ doksi** (**PR #93**, **PR #95**, **PR #97**); **62b2** mergeelve; **62** / **61** lezárva
+- ACTIVE: **TBD** (következő milestone); **64** ✅ (**PR #106–110**); **63** ✅ (**PR #102–105**); **62c+ e2e** backlog; **58c+** touch (**PR #99**); **58c+ CDK** defer — [`workflow-visual-builder.md`](workflow-visual-builder.md); **62c** + **62c+ doksi** (**PR #93**, **PR #95**, **PR #97**); **62b2** mergeelve; **62** / **61** lezárva
 - `git status` → staged / unstaged
 - `dotnet test backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj`
 

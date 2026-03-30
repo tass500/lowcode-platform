@@ -1,5 +1,7 @@
 # CI: `dotnet format` (backend)
 
+**Szállítás:** **PR #110** (merge a **`main`** ágra).
+
 **Iter 64e:** a GitHub Actions **CI** (`backend-format` job) futtatja a **`dotnet format --verify-no-changes`** ellenőrzést a fő backend projektre és a teszt projektre — ugyanazokra a `.csproj` fájlokra, mint a workflow.
 
 ## Lokálisan
