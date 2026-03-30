@@ -41,4 +41,4 @@
 
 ## ACTIVE
 
-- **64+ hullám:** ✅ kész (**64a–e**, **PR #106–110**). Következő szállítási fókusz: **TBD** — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
+- **64+ hullám:** ✅ kész (**64a–e**, **PR #106–110**). Következő szállítási fókusz: **65+** API életciklus — [`roadmap-iter-65-plus.md`](roadmap-iter-65-plus.md) · [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
