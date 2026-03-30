@@ -9,7 +9,7 @@
 
 ## Workflow engine — ACTIVE
 
-**ACTIVE (WIP=1):** **TBD** — következő milestone választása (jelölt: **API életciklus** / verzió–deprecation — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) § *Következő jelölt*). **Iter 64** ✅ (**64a–e**, **PR #106–110** — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md); záró: **64e** **PR #110** — [`ci-dotnet-format.md`](ci-dotnet-format.md)). **Iter 63** ✅ (**63a–d**, **PR #102–105** — [`roadmap-next-iterations.md`](roadmap-next-iterations.md)). **62c+ e2e** hátrasorolva (nem blokkoló). **58c+** touch UX ✅ **PR #99** — [`workflow-visual-builder.md`](workflow-visual-builder.md). **58c+ `@angular/cdk`:** elhalasztva — ugyanott § *Döntés*. **62c+** doksi ✅ — [`auth-bff-httponly.md`](auth-bff-httponly.md) (**PR #95**, **PR #97**). **62c — BFF** ✅ **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
+**ACTIVE (WIP=1):** **65a** — API `X-API-Version` baseline (`/api/*`) — [`roadmap-iter-65-plus.md`](roadmap-iter-65-plus.md) · [`api-lifecycle-headers.md`](api-lifecycle-headers.md). **Iter 64** ✅ (**64a–e**, **PR #106–110** — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md); záró: **64e** **PR #110** — [`ci-dotnet-format.md`](ci-dotnet-format.md)). **Iter 63** ✅ (**63a–d**, **PR #102–105** — [`roadmap-next-iterations.md`](roadmap-next-iterations.md)). **62c+ e2e** hátrasorolva (nem blokkoló). **58c+** touch UX ✅ **PR #99** — [`workflow-visual-builder.md`](workflow-visual-builder.md). **58c+ `@angular/cdk`:** elhalasztva — ugyanott § *Döntés*. **62c+** doksi ✅ — [`auth-bff-httponly.md`](auth-bff-httponly.md) (**PR #95**, **PR #97**). **62c — BFF** ✅ **PR #93**. **62b2** ✅ [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md). **62b1** ✅. **62** ✅. **61** ✅. **60–58** ✅.
 
 > **56–57** lezárva: SQL Server EF + Helm backup — [`sqlserver-platform.md`](sqlserver-platform.md), [`k3s-home-lab.md`](k3s-home-lab.md), [`container-deploy.md`](container-deploy.md).
 
@@ -26,6 +26,7 @@
 | **62** | Auth (62a–a2 ✅, 62a1 ✅) | **62b** MVP ✅, **62b2** SPA+claims ✅, **62c** BFF B+C+D ✅ [`auth-bff-httponly.md`](auth-bff-httponly.md) |
 | **63** | Hullám lezárva (63a–d; **PR #102–105**) | [`roadmap-next-iterations.md`](roadmap-next-iterations.md) |
 | **64** | Enterprise keményítés (64a–e) ✅ **PR #106–110** | [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) |
+| **65** | API életciklus (65a+) | [`roadmap-iter-65-plus.md`](roadmap-iter-65-plus.md) |
 
 Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) (§ *Ütemterv 56+*).
 
@@ -39,7 +40,7 @@ Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) 
 
 ## Kapcsolódó live docok
 
-- Enterprise 64+ ütem: [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) · HTTP fejlécek: [`security-http-headers.md`](security-http-headers.md) · Kestrel limit: [`kestrel-request-limits.md`](kestrel-request-limits.md) · Rate limit: [`rate-limiting.md`](rate-limiting.md) · Security audit log: [`security-audit-logging.md`](security-audit-logging.md) · CI format: [`ci-dotnet-format.md`](ci-dotnet-format.md)
+- Enterprise 64+ ütem: [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) · API életciklus 65+: [`roadmap-iter-65-plus.md`](roadmap-iter-65-plus.md) · HTTP fejlécek: [`security-http-headers.md`](security-http-headers.md) · Kestrel limit: [`kestrel-request-limits.md`](kestrel-request-limits.md) · Rate limit: [`rate-limiting.md`](rate-limiting.md) · Security audit log: [`security-audit-logging.md`](security-audit-logging.md) · CI format: [`ci-dotnet-format.md`](ci-dotnet-format.md) · API verzió fejléc: [`api-lifecycle-headers.md`](api-lifecycle-headers.md)
 - OIDC JWT Bearer: [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md) · BFF / httpOnly terv (**62c**): [`auth-bff-httponly.md`](auth-bff-httponly.md) · tenant API key: [`tenant-api-key.md`](tenant-api-key.md)
 - Ütemezés: [`workflow-schedule.md`](workflow-schedule.md) · timeout/cancel: [`workflow-step-timeout-cancel.md`](workflow-step-timeout-cancel.md)
 

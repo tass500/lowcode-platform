@@ -40,6 +40,7 @@ if (builder.Environment.IsEnvironment("Testing"))
 }
 
 builder.Services.Configure<BffAuthOptions>(builder.Configuration.GetSection(BffAuthOptions.SectionName));
+builder.Services.Configure<ApiLifecycleOptions>(builder.Configuration.GetSection(ApiLifecycleOptions.SectionName));
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<IOidcHttpForBff, OidcHttpForBff>();
 builder.Services.AddSingleton<IBffSessionReader, BffSessionReader>();
@@ -248,6 +249,8 @@ if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"
 app.UseMiddleware<TraceIdMiddleware>();
 
 app.UseMiddleware<SecurityHeadersMiddleware>();
+
+app.UseMiddleware<ApiLifecycleMiddleware>();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 

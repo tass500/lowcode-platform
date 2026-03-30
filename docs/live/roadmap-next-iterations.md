@@ -37,4 +37,4 @@
 
 ## Utána (iter 64+)
 
-- Enterprise **64a–e** hullám lezárva (**PR #106–110**) — részletek: [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md). Következő fókusz: **TBD** — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
+- Enterprise **64a–e** hullám lezárva (**PR #106–110**) — részletek: [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md). Következő fókusz: **65+** API életciklus — [`roadmap-iter-65-plus.md`](roadmap-iter-65-plus.md) · [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
