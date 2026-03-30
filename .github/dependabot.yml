@@ -5,6 +5,27 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    # Batch compatible bumps into fewer PRs (review + CI load). More specific groups win first.
+    groups:
+      angular-ecosystem:
+        patterns:
+          - "@angular/*"
+          - "@angular-devkit/*"
+          - "@angular-eslint/*"
+          - "@ngtools/*"
+          - "@schematics/*"
+        update-types:
+          - "patch"
+          - "minor"
+      frontend-runtime:
+        patterns:
+          - "angular-oauth2-oidc"
+          - "rxjs"
+          - "tslib"
+          - "zone.js"
+        update-types:
+          - "patch"
+          - "minor"
     ignore:
       - dependency-name: "@angular/*"
         update-types: ["version-update:semver-major"]
@@ -28,6 +49,14 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      backend-libraries:
+        patterns:
+          - "Microsoft.*"
+          - "Swashbuckle*"
+        update-types:
+          - "patch"
+          - "minor"
     ignore:
       - dependency-name: "Microsoft.EntityFrameworkCore*"
         update-types: ["version-update:semver-major"]
@@ -35,12 +64,19 @@ updates:
       - dependency-name: "Swashbuckle.AspNetCore"
         update-types: ["version-update:semver-major"]
 
-  # Local dotnet tools (e.g. dotnet-ef for migrations)
+  # Local dotnet tools (e.g. dotnet-ef for migrations, cyclonedx for SBOM)
   - package-ecosystem: "nuget"
     directory: "/.config"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 3
+    groups:
+      dotnet-tools:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
     ignore:
       - dependency-name: "dotnet-ef"
         update-types: ["version-update:semver-major"]
@@ -50,3 +86,7 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns:
+          - "*"

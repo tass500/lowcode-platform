@@ -46,4 +46,15 @@ A frontend jelenlegi **Angular 17** vonal és a dev/build tool-lánc sok **trans
 
 Javasolt külön hullám: célzott Angular LTS / npm frissítés + utána audit szint emelése.
 
+## Dependabot — csoportosítás
+
+A [`.github/dependabot.yml`](../../.github/dependabot.yml) **group** szabályokkal kevesebb, összetartóbb heti PR-t céloz:
+
+- **npm / frontend:** `angular-ecosystem` (`@angular/*`, `@angular-devkit/*`, `@angular-eslint/*`, `@ngtools/*`, `@schematics/*`) + `frontend-runtime` (`rxjs`, `tslib`, `zone.js`, `angular-oauth2-oidc`) — patch/minor együtt, a meglévő **ignore** (major Angular / TS / ESLint) változatlan.
+- **nuget / backend:** `backend-libraries` (`Microsoft.*`, `Swashbuckle*`) — patch/minor.
+- **nuget / `.config`:** `dotnet-tools` (pl. `dotnet-ef`, `cyclonedx`) — patch/minor egy PR-ben.
+- **github-actions:** `actions` (`*`) — egy összevont workflow-frissítés heti szinten.
+
+A csoportba nem kerülő közvetlen függőségek továbbra is külön Dependabot PR-t kaphatnak (a limit és a szabályok szerint).
+
 Kapcsolódó: [`ci-dotnet-format.md`](ci-dotnet-format.md), [`ci-secret-scanning.md`](ci-secret-scanning.md) (Gitleaks), [`ci-sbom.md`](ci-sbom.md) (CycloneDX SBOM artefakt), [`dependabot.yml`](../../.github/dependabot.yml).
