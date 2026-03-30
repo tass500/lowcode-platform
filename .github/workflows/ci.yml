@@ -80,6 +80,55 @@ jobs:
           dotnet list backend/LowCodePlatform.Backend.csproj package --vulnerable --include-transitive
           dotnet list backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj package --vulnerable --include-transitive
 
+  backend-sbom:
+    name: Backend - SBOM (CycloneDX)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('backend/**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore backend project
+        run: dotnet restore backend/LowCodePlatform.Backend.csproj
+
+      - name: Restore .NET local tools (CycloneDX)
+        run: dotnet tool restore
+
+      - name: Generate CycloneDX JSON SBOM
+        run: |
+          mkdir -p artifacts/sbom
+          dotnet tool run dotnet-CycloneDX -- backend/LowCodePlatform.Backend.csproj \
+            -o artifacts/sbom \
+            -fn lowcode-backend.cdx.json \
+            -F Json \
+            -dpr \
+            -sn LowCodePlatform.Backend \
+            -sv "${{ github.sha }}"
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-backend-cyclonedx-json
+          path: artifacts/sbom/lowcode-backend.cdx.json
+          if-no-files-found: error
+          retention-days: 90
+
   backend-build:
     name: Backend - build
     runs-on: ubuntu-latest
