@@ -78,8 +78,8 @@ jobs:
 
       - name: List vulnerable packages (fail if any)
         run: |
-          dotnet list package --vulnerable --include-transitive --project backend/LowCodePlatform.Backend.csproj
-          dotnet list package --vulnerable --include-transitive --project backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj
+          dotnet list backend/LowCodePlatform.Backend.csproj package --vulnerable --include-transitive
+          dotnet list backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj package --vulnerable --include-transitive
 
   backend-build:
     name: Backend - build
@@ -166,6 +166,9 @@ jobs:
     name: Dependency review (PR)
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: read
 
     steps:
       - name: Checkout
@@ -174,7 +177,8 @@ jobs:
       - name: Dependency review
         uses: actions/dependency-review-action@v4
         with:
-          fail-on-severity: moderate
+          # high: avoid failing PRs on noisy moderate npm advisories (Angular 17 toolchain); NuGet gate covers backend in backend-supply-chain
+          fail-on-severity: high
 
   docker-images:
     name: Docker — build images

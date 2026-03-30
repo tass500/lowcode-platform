@@ -19,8 +19,8 @@ A `dotnet restore` így figyelmeztet / blokkol a NuGet advisory adatbázis alapj
 A GitHub Actions **CI** (`backend-supply-chain` job) a restore után futtatja:
 
 ```bash
-dotnet list package --vulnerable --include-transitive --project backend/LowCodePlatform.Backend.csproj
-dotnet list package --vulnerable --include-transitive --project backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj
+dotnet list backend/LowCodePlatform.Backend.csproj package --vulnerable --include-transitive
+dotnet list backend/LowCodePlatform.Backend.Tests/LowCodePlatform.Backend.Tests.csproj package --vulnerable --include-transitive
 ```
 
 Ha bármelyik projektben ismert sebezhető csomag van, a parancs **nem nulla** visszatéréssel fut (CI piros).
@@ -29,7 +29,7 @@ Lokálisan ugyanez:
 
 ```bash
 dotnet restore backend/LowCodePlatform.Backend.csproj
-dotnet list package --vulnerable --include-transitive --project backend/LowCodePlatform.Backend.csproj
+dotnet list backend/LowCodePlatform.Backend.csproj package --vulnerable --include-transitive
 ```
 
 ## Pull request: `dependency-review`
@@ -37,9 +37,9 @@ dotnet list package --vulnerable --include-transitive --project backend/LowCodeP
 A **CI** `dependency-review` job csak **`pull_request`** eseményre fut (pushra nem).
 
 - Action: `actions/dependency-review-action`
-- `fail-on-severity: moderate` — a PR-ban **újonnan bevezetett** vagy **módosított** függőségek közül a moderate+ szintű ismert sebezhetőség megbuktatja a checket.
+- `fail-on-severity: high` — a PR-ban **újonnan bevezetett** vagy **módosított** függőségek közül a **high** (és súlyosabb) ismert sebezhetőség buktatja a checket. A **moderate** szándékosan nincs kötelező PR-kapu (npm / Angular toolchain zaj); a backend NuGet oldalt a `backend-supply-chain` job fedezi.
 
-Ehhez a workflow `permissions` részében szerepel a `pull-requests: read`.
+A job szintjén: `contents: read`, `pull-requests: read`. A workflow gyökérszintű `permissions` mellett is szerepelhetnek.
 
 ## Frontend (`npm`)
 
