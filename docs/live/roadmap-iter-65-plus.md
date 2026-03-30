@@ -17,13 +17,13 @@
 
 ## Következő lépés (ajánlás, nem kötelező sorrend)
 
-1. **Integrációs minőség** — további `Backend.Tests` lefedettség kritikus API-kon (auth / BFF / workflow), a **63b** vonal természetes folytatása — [`roadmap-next-iterations.md`](roadmap-next-iterations.md). *Folyamatban:* `AuthSpaOidcConfigTests`; `AdminObservabilityTests`; `AdminUpgradeRunsTests` + `AdminUpgradeRunsMutationTests`; `AdminInstallationTests`; `AdminAuditTests`; BFF (`BffAuthEndpointsTests`, `BffSessionBearerWorkflowTests`).  
-2. **Supply-chain** — SBOM vagy további CI keményítés — csapatdöntés — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) (64e táblázat).  
+1. **Integrációs minőség** — a **63b** admin/auth vonal lefedése: *kész:* `AuthSpaOidcConfigTests`, `AdminObservabilityTests`, `AdminUpgradeRunsTests` + `AdminUpgradeRunsMutationTests`, `AdminInstallationTests`, `AdminAuditTests`, `AdminTenantsTests`, BFF (`BffAuthEndpointsTests`, `BffSessionBearerWorkflowTests`) — [`roadmap-next-iterations.md`](roadmap-next-iterations.md).  
+2. **Supply-chain (iter 66+ jelleg)** — SBOM vagy további CI keményítés — csapatdöntés — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) (64e táblázat).  
 3. **Termék** — workflow / tenant / low-code UI a backlog és a termék prioritás szerint.
 
 ## ACTIVE
 
-- **65+ hullám:** ✅ kész (**65a–c**, **PR #112–114**). Következő szállítási fókusz: **TBD** — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
+- **65+ hullám:** ✅ kész (**65a–c**, **PR #112–114**). Következő szállítási fókusz: **66+** (supply-chain / termék backlog) — [`03_kovetkezo_lepesek.md`](03_kovetkezo_lepesek.md).
 
 ## Szállítás (történeti)
 
