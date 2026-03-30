@@ -17,7 +17,7 @@
 
 ## Következő lépés (ajánlás, nem kötelező sorrend)
 
-1. **Integrációs minőség** — további `Backend.Tests` lefedettség kritikus API-kon (auth / BFF / workflow), a **63b** vonal természetes folytatása — [`roadmap-next-iterations.md`](roadmap-next-iterations.md). *Folyamatban:* `AuthSpaOidcConfigTests`; `AdminObservabilityTests` — `GET /api/admin/observability`; `AdminUpgradeRunsTests` — `GET /api/admin/upgrade-runs/recent|latest|queue`.  
+1. **Integrációs minőség** — további `Backend.Tests` lefedettség kritikus API-kon (auth / BFF / workflow), a **63b** vonal természetes folytatása — [`roadmap-next-iterations.md`](roadmap-next-iterations.md). *Folyamatban:* `AuthSpaOidcConfigTests`; `AdminObservabilityTests`; `AdminUpgradeRunsTests` + `AdminUpgradeRunsMutationTests`; `AdminInstallationTests`; `AdminAuditTests`; BFF (`BffAuthEndpointsTests`, `BffSessionBearerWorkflowTests`).  
 2. **Supply-chain** — SBOM vagy további CI keményítés — csapatdöntés — [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) (64e táblázat).  
 3. **Termék** — workflow / tenant / low-code UI a backlog és a termék prioritás szerint.
 
