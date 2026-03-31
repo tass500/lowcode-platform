@@ -51,6 +51,17 @@ Kapcsolódó UI: termék **67c** (Entity records) — [`roadmap-iter-67-product.
 - **GET** ismeretlen rekord (létező entitásnál) → **404**, **`record_not_found`**.
 - **GET** ismeretlen entitás → **404**, **`entity_not_found`**.
 
+## Iter 68f — Entity definíció név + ütközés (kész)
+
+**Backend:** `EntityDefinitionEndpointsTests` — további esetek:
+
+- **POST** második entitás **ugyanazzal a névvel** → **409**, **`entity_already_exists`**.
+- **POST** üres / whitespace **`name`** → **400**, **`name_missing`**.
+- **POST** név **> 100** karakter → **400**, **`name_too_long`**.
+- **PUT** másik entitás nevére váltás (már foglalt) → **409**, **`entity_already_exists`**.
+- **PUT** **azonos** név marad (önmagára) → **200**.
+- **GET** ismeretlen `id` → **404**, **`entity_not_found`**.
+
 ## Kapcsolódó
 
 - Termék 67: [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md) · Frontend run lista: `frontend/.../lowcode-workflow-runs-page.component.ts`.
