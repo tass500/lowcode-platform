@@ -74,6 +74,15 @@ Kapcsolódó UI: termék **67c** (Entity records) — [`roadmap-iter-67-product.
 - **PUT** változatlan név + típus → **200**.
 - **DELETE** ismeretlen mező (létező entitásnál) → **404**, **`field_not_found`**.
 
+## Iter 68h — Workflow `domainCommand` futás szintű hibakódok (kész)
+
+**Backend:** `WorkflowRunEndpointsTests` — további esetek:
+
+- **`entityRecord.updateById`** nem létező **`recordId`**-ra → futás **`failed`**, run **`errorCode`**: **`entity_record_not_found`** (a lépés **`lastErrorCode`** megegyezik; a runner nem írja felül, ha már be van állítva).
+- Ismeretlen **`command`** sztring → **`failed`**, **`domain_command_unknown`**.
+
+Kapcsolódó motor: **`WorkflowRunnerService`** (`ExecuteDomainCommandAsync` + rekord frissítés).
+
 ## Kapcsolódó
 
 - Termék 67: [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md) · Frontend run lista: `frontend/.../lowcode-workflow-runs-page.component.ts`.
