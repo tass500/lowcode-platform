@@ -62,6 +62,18 @@ Kapcsolódó UI: termék **67c** (Entity records) — [`roadmap-iter-67-product.
 - **PUT** **azonos** név marad (önmagára) → **200**.
 - **GET** ismeretlen `id` → **404**, **`entity_not_found`**.
 
+## Iter 68g — Entity mezők (`/api/entities/{entityId}/fields`) (kész)
+
+**Backend:** `EntityFieldEndpointsTests` — új fájl / esetek:
+
+- **POST** ismeretlen entitásnál → **404**, **`entity_not_found`**.
+- **POST** második mező **ugyanazzal a névvel** → **409**, **`field_already_exists`**.
+- **POST** hiányzó **`fieldType`** (whitespace) → **400**, **`field_type_missing`**.
+- **POST** **`maxLength`: 0** → **400**, **`max_length_invalid`**.
+- **PUT** másik mező nevére váltás → **409**, **`field_already_exists`**.
+- **PUT** változatlan név + típus → **200**.
+- **DELETE** ismeretlen mező (létező entitásnál) → **404**, **`field_not_found`**.
+
 ## Kapcsolódó
 
 - Termék 67: [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md) · Frontend run lista: `frontend/.../lowcode-workflow-runs-page.component.ts`.
