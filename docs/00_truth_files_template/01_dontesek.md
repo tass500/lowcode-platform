@@ -1,5 +1,7 @@
 # Döntések (TRUTH)
 
+> **Enterprise megjegyzés:** Strukturált, egy döntés = egy fájl formátum: `docs/adr/` (lásd `docs/adr/README.md`). Ez a fájl a **policy index** és a **hosszú döntésnapló** helye a sablon készletben; ütközésfeloldás: `docs/GOVERNANCE.md` §2.
+
 ## 0) Canon / használati szerződés
 
 Ez a fájl a projekt döntésnaplója (ADR). Ami itt szerepel, az tekintendő elfogadott döntésnek.

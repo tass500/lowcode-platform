@@ -1,5 +1,11 @@
 # Projekt kontextus (Single Source of Truth)
 
+## Dokumentáció helye (enterprise)
+
+- **Központi index:** [`README.md`](README.md)
+- **Folyamat (PR, DoD, gate-ek):** [`DEVELOPMENT_WORKFLOW.md`](DEVELOPMENT_WORKFLOW.md)
+- **Változás-governance, ADR:** [`GOVERNANCE.md`](GOVERNANCE.md)
+
 ## Cél
 Ez a dokumentum a projekt aktuális invariánsainak és működési megállapodásainak **alacsony zajú, stabil referenciája**.
 
@@ -11,7 +17,7 @@ Ez a dokumentum a projekt aktuális invariánsainak és működési megállapod�
 
 ## Vízió és aktuális szállítási fókusz
 
-- A hosszú távú termékvízió kanonikus szövege a sablonban van: `docs/00_truth_files_template/00_vizio.md` (ez a másolat **nem** szerkeszthető; a döntések eredeti helye a template szabályai szerint a `01_dontesek.md` lenne, ami jelenleg csak ott létezik).
+- A hosszú távú termékvízió **referencia-szövege** a sablonban van: `docs/00_truth_files_template/00_vizio.md` (vízió/policy **sablon**; a napi szállítás igazsága a `docs/live/*` fájlokban követhető). Strukturált új architektúra-döntésekhez lásd `docs/adr/`.
 - **A ténylegesen épített milestone-ok** és a WIP mindig a **`docs/live/02_allapot.md`** + **`docs/live/03_kovetkezo_lepesek.md`** alapján értelmezendők — így a vízió és a napi scope nem keveredik össze.
 - **Szándékos ütemezés:** a jelenlegi szakaszban a repo fókusza a **platform / low-code workflow motor**, **tenant + auth**, **megfigyelhetőség / health / üzemeltetési demó** (és kapcsolódó minőség: tesztek, error contract, trace) körül van; a vízióban szereplő teljes **ERP bounded context** réteg, **marketplace**, **teljes definition publish/promote / governance** és hasonlók **későbbi milestone-ok**, nem elvetett irány.
 

@@ -1,5 +1,7 @@
 # Fejlesztési playbook / Decision flow (TRUTH-alapú)
 
+> **Enterprise megjegyzés:** Operatív folyamat a repóban: `docs/DEVELOPMENT_WORKFLOW.md` · dokumentum-osztályok: `docs/GOVERNANCE.md`. A `docs/live/02` + `03` a napi WIP; ez a playbook **sablon** a truth készlethez.
+
 ## 0) Cél
 
 Ez a dokumentum egy gyakorlati “játékkönyv”: leírja, hogy a projekt **aktuális állapotában** milyen fejlesztési lépéseken érdemes végigmenni enterprise best practice szerint, és közben **milyen döntéseket kell meghozni**.

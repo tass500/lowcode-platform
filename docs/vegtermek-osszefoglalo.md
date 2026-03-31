@@ -1,5 +1,7 @@
 # Végtermék összefoglaló és részletes leírás (working draft)
 
+**Dokumentáció index:** [`README.md`](README.md) · **Governance:** [`GOVERNANCE.md`](GOVERNANCE.md).
+
 ## 0) Mire való ez a dokumentum?
 
 Ez a dokumentum a projekt kanonikus “truth” fájljai és az élő ops leírások alapján összefoglalja:

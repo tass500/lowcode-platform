@@ -1,5 +1,7 @@
 # CODEMAP (gyors tájékozódás kontextusvesztés után)
 
+**Dokumentáció index:** [`README.md`](README.md) · **Folyamat:** [`DEVELOPMENT_WORKFLOW.md`](DEVELOPMENT_WORKFLOW.md).
+
 ## Cél
 - **1-2 perc alatt** megtaláld, hogy a projektben *hol van a lényeg*, és hogyan tudod újraindítani a fejlesztést.
 - **Low-noise**: csak a kulcs belépési pontokat és “forrás igazság” fájlokat sorolja.

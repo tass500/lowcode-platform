@@ -1,6 +1,7 @@
 # Fejlesztési folyamat és szabályok (authoritative)
 
 **Ezt a fájlt** használjuk elsődleges forrásként a folyamatokra, PR-ra, gate-ekre és kontextusvesztés utáni folytatásra.  
+**Dokumentáció index (enterprise):** [`docs/README.md`](README.md) · **Változás-governance:** [`docs/GOVERNANCE.md`](GOVERNANCE.md).  
 A **`.windsurf/` könyvtár nem authoritative** (lásd alul).
 
 ---
@@ -220,3 +221,13 @@ Nagyobb backend+frontend milestone előtt / után: `dotnet build` + `npm run bui
 
 **Nem authoritative.** A folyamat és a szabályok innen: **`docs/DEVELOPMENT_WORKFLOW.md`** + **`docs/live/*`**.  
 A `.windsurf/` megtartható történeti okból; új szabályt **ne** oda írj.
+
+---
+
+## 13) Enterprise dokumentáció és változás-governance (összefoglaló)
+
+- **Központi index:** [`README.md`](README.md) — melyik fájl mit jelent, olvasási sorrend.
+- **Részletes szabályok:** [`GOVERNANCE.md`](GOVERNANCE.md) — dokumentum-osztályok, RACI-light, review-trigger kategóriák, ADR kapcsolat.
+- **Architektúra-döntések (opcionális):** [`adr/README.md`](adr/README.md) — új döntéshez `adr/NNN-cim.md` sablon [`adr/template.md`](adr/template.md).
+- **Truth template mappa** (`docs/00_truth_files_template/*`): hosszú távú vízió és policy **referencia**; a **napi operatív** igazság a `docs/live/*` + `PROJECT_CONTEXT.md` (lásd `GOVERNANCE.md` §2).
+
