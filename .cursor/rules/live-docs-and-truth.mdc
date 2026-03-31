@@ -5,26 +5,30 @@ alwaysApply: true
 
 # Docs policy: truth templates + live docs
 
-Full process (DoR/DoD, PR, handoff): **`docs/DEVELOPMENT_WORKFLOW.md`**.
+Full process (DoR/DoD, PR, handoff): **`docs/DEVELOPMENT_WORKFLOW.md`**. Documentation index: **`docs/README.md`**. Governance: **`docs/GOVERNANCE.md`**.
 
-## Truth templates are read-only
-- Never edit anything under `docs/00_truth_files_template/*`.
-- Treat them as guidance/templates only.
+## Truth templates (`docs/00_truth_files_template/*`)
+
+- These are **reference / blueprint** documents (long-horizon vision, policy index, greenfield estimates). They are **not** a substitute for **`docs/live/02`**, **`docs/live/03`**, and **`PROJECT_CONTEXT.md`** for day-to-day operational truth.
+- Edits should stay **consistent** with **`docs/DEVELOPMENT_WORKFLOW.md`** and **`docs/GOVERNANCE.md`** (document classes, conflict resolution). Prefer **ADR** (`docs/adr/`) for major new architecture decisions.
 
 ## Live docs are the ground truth across context resets
-Update automatically after every meaningful implementation:
+
+Update after every meaningful implementation:
+
 - `docs/live/02_allapot.md` (done/current facts)
 - `docs/live/03_kovetkezo_lepesek.md` (next steps / active focus — **keep short**; long history lives in `docs/live/03_ARCHIVE.md`)
 
 **Token frugality:** In new chats, prefer **`03` (slim) + `02`**; attach **`03_ARCHIVE.md` only** when old iteration or upgrade checklist detail is needed.
 
 Rules:
+
 - Keep updates short, factual, and actionable.
 - When a milestone/iteration is done, mark it as `✅ Kész`.
 - Keep exactly one active focus (WIP=1) unless explicitly doing a safe bundle.
 
 ## Context reset procedure (assistant)
+
 - Re-read **`docs/live/03_kovetkezo_lepesek.md`** (slim) and **`docs/live/02_allapot.md`** first.
 - Open **`docs/live/03_ARCHIVE.md` only** if you need archived iteration / upgrade checklist detail.
 - Do not invent scope; align work with the active iteration.
-

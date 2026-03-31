@@ -1,5 +1,7 @@
 # Enterprise szint elérésének iteráció-becslése (greenfield)
 
+> **Enterprise megjegyzés:** Irányadó becslés / sablon; nem helyettesíti a `docs/live/*` roadmapokat és a `PROJECT_CONTEXT.md` aktuális állításait.
+
 ## 0) Mire vonatkozik ez a becslés?
 
 Ez a dokumentum egy **irányadó** becslés arra, hogy hány iteráció (pl. 2 hetes sprint) után érhető el az "enterprise product-ready" szint egy greenfield low-code ERP platformnál.

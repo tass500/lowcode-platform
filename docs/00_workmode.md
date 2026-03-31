@@ -1,6 +1,6 @@
 # Workmode — credit-hatékony batch fejlesztés (repo-szint)
 
-Kapcsolódó (PR, merge, DoD): **[DEVELOPMENT_WORKFLOW.md](./DEVELOPMENT_WORKFLOW.md)**.
+Kapcsolódó (PR, merge, DoD): **[DEVELOPMENT_WORKFLOW.md](./DEVELOPMENT_WORKFLOW.md)** · dokumentáció index: **[README.md](./README.md)** · governance: **[GOVERNANCE.md](./GOVERNANCE.md)**.
 
 ## Cél
 

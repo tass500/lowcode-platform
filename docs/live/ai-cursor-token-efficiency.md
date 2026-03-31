@@ -4,7 +4,7 @@
 
 A Cursor / „Auto” használat **token-alapon** számolódik. A repó minősége nem attól függ, hogy **minden** fájl bekerül-e a chatbe, hanem attól, hogy a feladat **szűk**, a handoff **rövid**, és az indexelt zaj **minimális**.
 
-**Normatív részletek:** [`docs/DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) **§10** + **§7 Handoff**.
+**Normatív részletek:** [`docs/DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) **§10** + **§7 Handoff** (szöveges + opcionális YAML-blokk). **Dokumentáció index:** [`docs/README.md`](../README.md).
 
 ## Projekt-szintű beállítások (repo)
 

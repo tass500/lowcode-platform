@@ -5,8 +5,8 @@ alwaysApply: true
 
 # Source of truth for process
 
-1. Read **`docs/DEVELOPMENT_WORKFLOW.md`** first (full rules: PR, **§5a** multi-iteration branch cadence, DoR/DoD, gates, handoff, **§10 AI token efficiency**, `.windsurf` deprecated).
+1. Read **`docs/DEVELOPMENT_WORKFLOW.md`** first (full rules: PR, **§5a** multi-iteration branch cadence, DoR/DoD, gates, handoff **§7** + **§13**, **§10 AI token efficiency**, `.windsurf` deprecated). Optional orientation: **`docs/README.md`**, **`docs/GOVERNANCE.md`**.
 2. Then **`docs/live/03_kovetkezo_lepesek.md`** (slim ACTIVE + checklist) and **`docs/live/02_allapot.md`** (done state). Do **not** load **`docs/live/03_ARCHIVE.md`** unless the task needs archived iteration detail. For **takarékos Cursor**: **`docs/live/ai-cursor-token-efficiency.md`**.
-3. **`docs/00_truth_files_template/*`** — never edit.
+3. **`docs/00_truth_files_template/*`** — long-horizon **reference templates** (vision, policy index). Do **not** treat edits here as a substitute for updating **`docs/live/*`** or **`PROJECT_CONTEXT.md`** when the task is operational; follow **`docs/GOVERNANCE.md`**. Do not casually contradict **`DEVELOPMENT_WORKFLOW.md`**.
 
 Do **not** treat **`.windsurf/`** as the canonical process; use **`docs/DEVELOPMENT_WORKFLOW.md`** instead.
