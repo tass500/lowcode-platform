@@ -41,6 +41,16 @@ Kapcsolódó UI: termék **67c** (Entities lista) — [`roadmap-iter-67-product.
 
 Kapcsolódó UI: termék **67c** (Entity records) — [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md).
 
+## Iter 68e — Entity rekord POST + GET részletek (kész)
+
+**Backend:** `EntityRecordEndpointsTests` — további esetek:
+
+- **POST** üres / whitespace **`dataJson`** → **400**, `errorCode` **`data_missing`**.
+- **POST** nem objektum JSON (pl. tömb) → **400**, **`data_invalid`**.
+- **GET** `/api/entities/{entityId}/records/{recordId}`: létrehozás után **200**, `entityRecordId` / `entityDefinitionId` / `dataJson` egyezik.
+- **GET** ismeretlen rekord (létező entitásnál) → **404**, **`record_not_found`**.
+- **GET** ismeretlen entitás → **404**, **`entity_not_found`**.
+
 ## Kapcsolódó
 
 - Termék 67: [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md) · Frontend run lista: `frontend/.../lowcode-workflow-runs-page.component.ts`.
