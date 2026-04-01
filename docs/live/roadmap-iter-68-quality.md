@@ -103,6 +103,18 @@ Meglévő: érvénytelen cron minta → **400**; érvényes `*/10 * * * *` + kik
 
 Kapcsolódó UI: workflow **Schedule (UTC)** blokk — [`workflow-schedule.md`](workflow-schedule.md).
 
+## Iter 68k — Workflow **import** + **DELETE** (kész)
+
+**Backend:** `WorkflowEndpointsTests` — további esetek:
+
+- **`POST /api/workflows/import`** — nem támogatott **`exportFormatVersion`** → **400**, **`workflow_import_format_unsupported`**.
+- Ugyanitt — üres **`definitionJson`** → **400**, **`definition_missing`**.
+- **`DELETE /api/workflows/{id}`** — ismeretlen id → **404**, **`workflow_not_found`**.
+
+Meglévő: import happy path export csomaggal; CRUD delete happy path — változatlan.
+
+Kapcsolódó: [`workflow-import-export.md`](workflow-import-export.md).
+
 ## Kapcsolódó
 
 - Termék 67: [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md) · Frontend run lista: `frontend/.../lowcode-workflow-runs-page.component.ts`.

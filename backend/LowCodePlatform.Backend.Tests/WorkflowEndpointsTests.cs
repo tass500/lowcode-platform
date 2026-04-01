@@ -720,6 +720,68 @@ public sealed class WorkflowEndpointsTests
     }
 
     [Fact]
+    public async Task Workflows_import_unsupported_export_format_version_returns_400()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var resp = await client.PostAsJsonAsync("/api/workflows/import", new
+        {
+            name = "bad-format",
+            definitionJson = "{\"steps\":[{\"type\":\"noop\"}]}",
+            exportFormatVersion = 999,
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("workflow_import_format_unsupported", doc.RootElement.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
+    public async Task Workflows_import_definition_missing_returns_400()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var resp = await client.PostAsJsonAsync("/api/workflows/import", new { name = "no-def", definitionJson = "" });
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("definition_missing", doc.RootElement.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
+    public async Task Workflows_delete_unknown_workflow_returns_404()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var resp = await client.DeleteAsync($"/api/workflows/{Guid.NewGuid()}");
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("workflow_not_found", doc.RootElement.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
     public async Task Workflow_list_is_ordered_by_name()
     {
         var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
