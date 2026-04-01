@@ -92,6 +92,17 @@ Kapcsolódó motor: **`WorkflowRunnerService`** (`ExecuteDomainCommandAsync` + r
 
 Kapcsolódó UI: termék **67b** (Workflow lista) — [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md).
 
+## Iter 68j — `PUT /api/workflows/{id}/schedule` (kész)
+
+**Backend:** `WorkflowEndpointsTests` — további esetek (kiegészíti a meglévő cron validációs tesztet):
+
+- **Ismeretlen** workflow `id` → **404**, **`workflow_not_found`**.
+- **`enabled: true`** + üres / whitespace **`cron`** → **400**, **`schedule_cron_missing`**.
+
+Meglévő: érvénytelen cron minta → **400**; érvényes `*/10 * * * *` + kikapcsolás — változatlan.
+
+Kapcsolódó UI: workflow **Schedule (UTC)** blokk — [`workflow-schedule.md`](workflow-schedule.md).
+
 ## Kapcsolódó
 
 - Termék 67: [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md) · Frontend run lista: `frontend/.../lowcode-workflow-runs-page.component.ts`.
