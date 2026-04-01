@@ -83,6 +83,15 @@ Kapcsolódó UI: termék **67c** (Entity records) — [`roadmap-iter-67-product.
 
 Kapcsolódó motor: **`WorkflowRunnerService`** (`ExecuteDomainCommandAsync` + rekord frissítés).
 
+## Iter 68i — `GET /api/workflows` lista (kész)
+
+**Backend:** `WorkflowEndpointsTests` — új esetek:
+
+- Lista **név szerint rendezve** (két POST: Zebra, majd Apple → GET → **Apple**, **Zebra**) — egyezik a `WorkflowsController.List` **`OrderBy(Name)`** viselkedésével.
+- **Üres tenant** (nincs workflow): **200**, `items` üres tömb, **`serverTimeUtc`** a JSON gyökérben.
+
+Kapcsolódó UI: termék **67b** (Workflow lista) — [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md).
+
 ## Kapcsolódó
 
 - Termék 67: [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md) · Frontend run lista: `frontend/.../lowcode-workflow-runs-page.component.ts`.
