@@ -11,6 +11,10 @@ Details: **`docs/DEVELOPMENT_WORKFLOW.md`** (sections 4–6; **§5a** milestone 
 - Never push directly to `main`. All changes go through a PR.
 - If changes were accidentally committed on `main`, create a branch from HEAD and open a PR (do not rewrite history).
 
+## GitHub: default branch + PR base
+- The remote **default branch** is **`main`** (what GitHub shows as “default”). **Always use `main` as the PR base** for new work: `gh pr create --base main --head <branch>` (or rely on the repo default when GitHub fills it in).
+- A historical **`master`** branch may still exist on the remote. **Do not** target **`master`** as the merge base for new PRs unless the user explicitly asks. Aligns with **`docs/DEVELOPMENT_WORKFLOW.md`**.
+
 ## Branching
 - Always branch off the latest `main`:
   - `git switch main && git pull --ff-only`
