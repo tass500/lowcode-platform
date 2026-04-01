@@ -601,6 +601,50 @@ public sealed class WorkflowEndpointsTests
     }
 
     [Fact]
+    public async Task Workflows_schedule_put_unknown_workflow_returns_404()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var missing = Guid.NewGuid();
+        using var resp = await client.PutAsJsonAsync($"/api/workflows/{missing}/schedule", new { enabled = true, cron = "* * * * *" });
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("workflow_not_found", doc.RootElement.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
+    public async Task Workflows_schedule_put_enabled_without_cron_returns_400_schedule_cron_missing()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-sched-missing-cron", definitionJson = "{\"steps\":[{\"type\":\"noop\"}]}" });
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        var id = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var resp = await client.PutAsJsonAsync($"/api/workflows/{id}/schedule", new { enabled = true, cron = "   " });
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("schedule_cron_missing", doc.RootElement.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
     public async Task Workflows_export_should_return_portable_package()
     {
         var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
