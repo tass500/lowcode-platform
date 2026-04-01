@@ -4,11 +4,11 @@ on:
   pull_request:
     branches:
       - main
-      - master
+      - master # legacy
   push:
     branches:
-      - main
-      - master
+      - main # default trunk
+      - master # legacy
 
 permissions:
   contents: read

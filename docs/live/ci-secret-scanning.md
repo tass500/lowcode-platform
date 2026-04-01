@@ -4,7 +4,7 @@
 
 ## GitHub Actions: `gitleaks.yml`
 
-A workflow a **[Gitleaks](https://github.com/gitleaks/gitleaks)** `gitleaks/gitleaks-action` integrációját futtatja **push** és **pull_request** eseményre a `main` / `master` ágakon.
+A workflow a **[Gitleaks](https://github.com/gitleaks/gitleaks)** `gitleaks/gitleaks-action` integrációját futtatja **push** és **pull_request** eseményre; az elsődleges ág a **`main`**, emellett (történeti kompatibilitás miatt) a **`master`** ágon is fut, ha arra érkezik push/PR.
 
 - A checkout **teljes history**-val történik (`fetch-depth: 0`), hogy a PR-ekben a változásokhoz képest is értelmezhető legyen az ellenőrzés.
 - A repo gyökerében lévő **`.gitleaks.toml`** finomhangolja az alap szabálykészletet (`useDefault = true`) és **allowlist**-et ad a nem éles anyagra.

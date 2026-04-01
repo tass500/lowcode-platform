@@ -3,8 +3,8 @@ name: CI
 on:
   push:
     branches:
-      - main
-      - master
+      - main # default trunk (PR base)
+      - master # legacy remote branch; keep until removed
   pull_request:
     branches:
       - main
