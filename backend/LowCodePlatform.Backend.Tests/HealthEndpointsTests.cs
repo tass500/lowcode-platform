@@ -71,5 +71,33 @@ public sealed class HealthEndpointsTests
         Assert.Equal("lowcode-platform-backend", service);
         Assert.True(payload.TryGetValue("version", out var version));
         Assert.False(string.IsNullOrWhiteSpace(version));
+        Assert.Equal("1", resp.Headers.GetValues("X-API-Version").First());
+    }
+
+    [Fact]
+    public async Task Root_health_does_not_include_X_API_Version()
+    {
+        await using var factory = new TestAppFactory();
+        using var client = factory.CreateClient();
+
+        using var resp = await client.GetAsync("/health");
+        resp.EnsureSuccessStatusCode();
+
+        Assert.False(resp.Headers.Contains("X-API-Version"));
+    }
+
+    [Fact]
+    public async Task Health_responses_include_security_headers()
+    {
+        await using var factory = new TestAppFactory();
+        using var client = factory.CreateClient();
+
+        using var resp = await client.GetAsync("/health");
+        resp.EnsureSuccessStatusCode();
+
+        Assert.Equal("nosniff", resp.Headers.GetValues("X-Content-Type-Options").FirstOrDefault());
+        Assert.Equal("DENY", resp.Headers.GetValues("X-Frame-Options").FirstOrDefault());
+        Assert.Contains("strict-origin-when-cross-origin", resp.Headers.GetValues("Referrer-Policy").FirstOrDefault(), StringComparison.Ordinal);
+        Assert.False(string.IsNullOrWhiteSpace(resp.Headers.GetValues("Permissions-Policy").FirstOrDefault()));
     }
 }

@@ -6,12 +6,14 @@ description: Working style (low noise)
 
 ## Ground truth (context reset safe)
 
+- Documentation portal: `docs/README.md`
 - Authoritative live status + next steps:
   - `docs/live/02_allapot.md`
   - `docs/live/03_kovetkezo_lepesek.md`
 - Credit-aware batching rules: `docs/00_workmode.md`
 - Minimum quality gates: `docs/01_quality_gates.md`
-- Git / PR workflow helper (Windsurf): `.windsurf/workflows/commit-and-pr.md`
+- Change governance: `docs/GOVERNANCE.md`
+- Git / PR workflow: `docs/DEVELOPMENT_WORKFLOW.md` (Windsurf: `.windsurf/workflows/commit-and-pr.md` — nem kanonikus)
 
 If chat context is lost:
 - Re-read `docs/live/02_allapot.md` and `docs/live/03_kovetkezo_lepesek.md`

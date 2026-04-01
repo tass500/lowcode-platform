@@ -1,11 +1,13 @@
 # Állapot (TRUTH)
 
+> **Enterprise megjegyzés:** A **futó repó** aktuális állapotának követése: `docs/live/02_allapot.md`. Ez a fájl **sablon / blueprint** másolathoz; a kanonikus folyamat: `docs/DEVELOPMENT_WORKFLOW.md`, `docs/GOVERNANCE.md`.
+
 ## 0) Canon / használati szerződés
 
-Ez a fájl a projekt **pillanatnyi állapotának** egyetlen kanonikus forrása.
+Ez a fájl a projekt **pillanatnyi állapotának** egyetlen kanonikus forrása **a sablon készletben**.
 
 Szabályok:
-- Csak a `docs/00_truth_files_template/` alatti 4 truth fájl irányadó.
+- Stratégiai truth: a `docs/00_truth_files_template/` alatti 4 truth fájl + a `docs/live/` operatív másolatok (lásd `GOVERNANCE.md`).
 - Ez a dokumentum nem “terv”, hanem “műszerfal”.
 - Csak olyan állítást írj ide, amit ellenőrizni tudsz (build, teszt, smoke, mérőszám, demo link, verzió).
 - Ha a valóság eltér, ezt a fájlt kell frissíteni.

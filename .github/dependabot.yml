@@ -5,6 +5,27 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    # Batch compatible bumps into fewer PRs (review + CI load). More specific groups win first.
+    groups:
+      angular-ecosystem:
+        patterns:
+          - "@angular/*"
+          - "@angular-devkit/*"
+          - "@angular-eslint/*"
+          - "@ngtools/*"
+          - "@schematics/*"
+        update-types:
+          - "patch"
+          - "minor"
+      frontend-runtime:
+        patterns:
+          - "angular-oauth2-oidc"
+          - "rxjs"
+          - "tslib"
+          - "zone.js"
+        update-types:
+          - "patch"
+          - "minor"
     ignore:
       - dependency-name: "@angular/*"
         update-types: ["version-update:semver-major"]
@@ -22,12 +43,30 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@typescript-eslint/*"
         update-types: ["version-update:semver-major"]
+      # Stay on the Angular 17–aligned line until a coordinated frontend upgrade (v18+ libs expect newer @angular/*).
+      - dependency-name: "angular-oauth2-oidc"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+      # Angular 17 expects zone.js ~0.14.x; 0.15+ is for newer Angular — allow only patch on 0.14.
+      - dependency-name: "zone.js"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
 
   - package-ecosystem: "nuget"
     directory: "/backend"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      backend-libraries:
+        patterns:
+          - "Microsoft.*"
+          - "Swashbuckle*"
+        update-types:
+          - "patch"
+          - "minor"
     ignore:
       - dependency-name: "Microsoft.EntityFrameworkCore*"
         update-types: ["version-update:semver-major"]
@@ -35,12 +74,19 @@ updates:
       - dependency-name: "Swashbuckle.AspNetCore"
         update-types: ["version-update:semver-major"]
 
-  # Local dotnet tools (e.g. dotnet-ef for migrations)
+  # Local dotnet tools (e.g. dotnet-ef for migrations, cyclonedx for SBOM)
   - package-ecosystem: "nuget"
     directory: "/.config"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 3
+    groups:
+      dotnet-tools:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
     ignore:
       - dependency-name: "dotnet-ef"
         update-types: ["version-update:semver-major"]
@@ -50,3 +96,7 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns:
+          - "*"

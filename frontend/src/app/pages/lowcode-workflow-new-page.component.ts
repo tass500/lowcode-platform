@@ -15,6 +15,7 @@ import {
 import {
   appendBuilderStep,
   moveBuilderStep,
+  moveBuilderStepToSlot,
   parseBuilderStepSummaries,
   removeBuilderStepAt,
   WORKFLOW_BUILDER_PALETTE,
@@ -162,6 +163,7 @@ type ApiErrorDetail = {
         <ng-container *ngIf="!viewerError">
           <p style="font-size: 13px; color:#555; margin: 0 0 12px 0; line-height: 1.45;">
             Steps run top to bottom. Runtime keys are <code>000</code>, <code>001</code>, … by order.
+            Drag the <strong>⋮⋮</strong> handle to reorder, or use <strong>↑↓</strong> (preferred on touch — native HTML5 drag is pointer-first).
             Reordering or adding steps can break references to other steps — switch to JSON to adjust.
           </p>
           <div style="margin-bottom: 12px;">
@@ -174,13 +176,26 @@ type ApiErrorDetail = {
           <div *ngIf="builderStepRows.length > 0" style="display:flex; flex-direction: column; gap: 8px;">
             <div
               *ngFor="let row of builderStepRows"
+              (dragover)="onBuilderRowDragOver($event, row.index)"
+              (dragleave)="onBuilderRowDragLeave($event, row.index)"
+              (drop)="onBuilderRowDrop($event, row.index)"
+              [style.outline]="builderDragHighlightRow === row.index ? '2px solid #0b5394' : 'none'"
+              [style.outline-offset]="'2px'"
               style="display:flex; align-items:center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa;"
             >
+              <span
+                draggable="true"
+                title="Drag to reorder (pointer); on touch use ↑↓"
+                (dragstart)="onBuilderRowDragStart($event, row.index)"
+                (dragend)="onBuilderRowDragEnd()"
+                style="cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; color: #555; font-size: 18px; line-height: 1; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; border: 1px dashed #ccc; border-radius: 6px; background: #f0f0f0;"
+                aria-label="Drag to reorder step"
+                >⋮⋮</span>
               <span style="font-family: monospace; color:#666;">{{ formatBuilderStepKey(row.index) }}</span>
               <span style="font-family: monospace;"><b>{{ row.type }}</b></span>
               <span style="flex:1"></span>
-              <button type="button" (click)="moveBuilderStepUp(row.index)" [disabled]="row.index === 0">↑</button>
-              <button type="button" (click)="moveBuilderStepDown(row.index)" [disabled]="row.index === builderStepRows.length - 1">↓</button>
+              <button type="button" (click)="moveBuilderStepUp(row.index)" [disabled]="row.index === 0" style="min-width: 44px; min-height: 44px;">↑</button>
+              <button type="button" (click)="moveBuilderStepDown(row.index)" [disabled]="row.index === builderStepRows.length - 1" style="min-width: 44px; min-height: 44px;">↓</button>
               <button type="button" (click)="removeBuilderStep(row.index)" style="color:#b00020;">Remove</button>
               <button type="button" (click)="jumpToJsonStep(row.index)">JSON →</button>
             </div>
@@ -202,6 +217,8 @@ export class LowCodeWorkflowNewPageComponent {
   viewMode: 'builder' | 'json' = 'json';
 
   readonly builderPalette = WORKFLOW_BUILDER_PALETTE;
+
+  builderDragHighlightRow: number | null = null;
 
   templateFilter = '';
   jsonFormatError: string | null = null;
@@ -267,6 +284,51 @@ export class LowCodeWorkflowNewPageComponent {
     try {
       const raw = String(this.form.controls.definitionJson.value ?? '');
       this.form.controls.definitionJson.setValue(moveBuilderStep(raw, from, to));
+    } catch (e: any) {
+      this.jsonFormatError = e?.message ?? 'Invalid JSON.';
+    }
+  }
+
+  onBuilderRowDragStart(ev: DragEvent, fromIndex: number): void {
+    ev.dataTransfer?.setData('text/plain', String(fromIndex));
+    if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move';
+  }
+
+  onBuilderRowDragOver(ev: DragEvent, rowIndex: number): void {
+    ev.preventDefault();
+    if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
+    this.builderDragHighlightRow = rowIndex;
+  }
+
+  onBuilderRowDragLeave(ev: DragEvent, rowIndex: number): void {
+    const next = ev.relatedTarget as Node | null;
+    if (next && (ev.currentTarget as HTMLElement).contains(next)) return;
+    if (this.builderDragHighlightRow === rowIndex) this.builderDragHighlightRow = null;
+  }
+
+  onBuilderRowDrop(ev: DragEvent, rowIndex: number): void {
+    ev.preventDefault();
+    this.builderDragHighlightRow = null;
+    const fromStr = ev.dataTransfer?.getData('text/plain') ?? '';
+    const from = Number.parseInt(fromStr, 10);
+    const n = this.builderStepRows.length;
+    if (!Number.isFinite(from) || from < 0 || from >= n) return;
+    const rowEl = ev.currentTarget as HTMLElement;
+    const r = rowEl.getBoundingClientRect();
+    const before = ev.clientY < r.top + r.height / 2;
+    const targetSlot = before ? rowIndex : rowIndex + 1;
+    this.applyBuilderMoveToSlot(from, targetSlot, n);
+  }
+
+  onBuilderRowDragEnd(): void {
+    this.builderDragHighlightRow = null;
+  }
+
+  private applyBuilderMoveToSlot(from: number, targetSlot: number, stepCount: number): void {
+    this.jsonFormatError = null;
+    try {
+      const raw = String(this.form.controls.definitionJson.value ?? '');
+      this.form.controls.definitionJson.setValue(moveBuilderStepToSlot(raw, from, targetSlot, stepCount));
     } catch (e: any) {
       this.jsonFormatError = e?.message ?? 'Invalid JSON.';
     }

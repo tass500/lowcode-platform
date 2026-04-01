@@ -1,6 +1,7 @@
 # Fejlesztési folyamat és szabályok (authoritative)
 
 **Ezt a fájlt** használjuk elsődleges forrásként a folyamatokra, PR-ra, gate-ekre és kontextusvesztés utáni folytatásra.  
+**Dokumentáció index (enterprise):** [`docs/README.md`](README.md) · **Változás-governance:** [`docs/GOVERNANCE.md`](GOVERNANCE.md).  
 A **`.windsurf/` könyvtár nem authoritative** (lásd alul).
 
 ---
@@ -28,7 +29,7 @@ A **`.windsurf/` könyvtár nem authoritative** (lásd alul).
 
 - Van **ACTIVE** iteráció a `docs/live/03_kovetkezo_lepesek.md`-ben (vagy explicit user scope).
 - **Branch név** igazodik az iterációhoz, pl. `feat/iter-43-workflow-lint-ux`.
-- **Protected `master`:** közvetlen push a `master`-re nincs; minden változás **PR-on** keresztül.
+- **Protected `main`:** közvetlen push a `main`-re nincs; minden változás **PR-on** keresztül. (Ha a remote-on maradt történeti `master` ág, új PR-ok alapja továbbra is a **`main`**.)
 
 ---
 
@@ -44,7 +45,7 @@ A **`.windsurf/` könyvtár nem authoritative** (lásd alul).
 
 ## 5) Branch, commit, PR
 
-- Branch mindig a legfrissebb **`master`**-ről: `git switch master && git pull --ff-only`, majd `git switch -c feat/...`
+- Branch mindig a legfrissebb **`main`**-ről: `git switch main && git pull --ff-only`, majd `git switch -c feat/...`
 - **Ritmus:** tipikusan **1 PR = 1 milestone**; ha a diff túl nagy, **2 kisebb PR** ugyanabban a témában.
 - **Commitok:** érdemes 1–3 review-barát commit (backend+teszt / frontend / docs+chore).
 - PR megnyitható **Draft**-ként is; a további commitok ugyanabba a PR-ba mennek.
@@ -84,12 +85,12 @@ A roadmap **iterációi** és a **PR-ok** nem feltétlenül 1:1-ben esnek egybe.
 - **Gyors teszt:** `gh auth status` → `gh pr list` (üres lista is OK) vagy `git ls-remote origin`.
 
 **PR szöveg asszisztens / CLI-ból:** sablon: **`docs/templates/pr-body.example.md`** (másold ki, töltsd, pl. `pr-body.md` a repo gyökerében, gitignore-olható). Push után például:  
-`gh pr create --base master --head <branch> --title "..." --body-file pr-body.md`  
+`gh pr create --base main --head <branch> --title "..." --body-file pr-body.md`  
 (vagy `--body "..."`). A Cursor asszisztens a commit diff + `docs/live` alapján tud szöveget generálni; a parancsot csak akkor futtasd, ha `gh` elérhető és be vagy jelentkezve. Webes PR: **`.github/PULL_REQUEST_TEMPLATE.md`** ugyanez a struktúra.
 
 ### 6a) Automatizált push → PR → CI várakozás → merge (opcionális)
 
-**Cél:** egy feature ágon (commitokkal) végigvinni ugyanazt a folyamatot, mint manuálisan: `git push`, nyitott PR újrahasználása vagy `gh pr create`, `gh pr checks --watch`, `gh pr merge`, lokálisan `master` frissítése.
+**Cél:** egy feature ágon (commitokkal) végigvinni ugyanazt a folyamatot, mint manuálisan: `git push`, nyitott PR újrahasználása vagy `gh pr create`, `gh pr checks --watch`, `gh pr merge`, lokálisan `main` frissítése.
 
 | Fájl | Platform |
 |------|-----------|
@@ -103,13 +104,13 @@ A roadmap **iterációi** és a **PR-ok** nem feltétlenül 1:1-ben esnek egybe.
 **Feltételek:**
 
 - `gh` telepítve, bejelentkezve (`gh auth login`) **vagy** `GH_TOKEN` / `GITHUB_TOKEN` + `.env`.
-- Nem állsz a **`master`** ágon; a változtatások commitolva vannak.
+- Nem állsz a **`main`** ágon; a változtatások commitolva vannak.
 - A GitHub **branch protection** / kötelező review **nem** blokkolja a merge-et (különben a script hibázhat vagy figyelmeztet).
 
 **Példa (Windows):**
 
 ```powershell
-git switch master; git pull --ff-only origin master
+git switch main; git pull --ff-only origin main
 git switch -c feat/my-topic
 # ... kódolás, commit ...
 .\scripts\gh-pr-push-merge.ps1              # teljes folyamat
@@ -132,7 +133,7 @@ NO_MERGE=1 ./scripts/gh-pr-push-merge.sh   # csak push + PR
 1. Frissítsd **`docs/live/02_allapot.md`** és **`docs/live/03_kovetkezo_lepesek.md`** (kész pipák, következő ACTIVE).
 2. Állítsd össze a PR leírást: **`docs/templates/pr-body.example.md`** → másold **`pr-body.md`**-nek a repo gyökerébe (gitignore-olt).
 3. Commit + feature ágon maradva: **`.\scripts\iter-end.ps1`** (vagy `-NoMerge` / `-SkipTests` ha szükséges).  
-   Ez lefuttatja a gate-eket, majd push → PR → `gh pr checks --watch` → merge → lokális **`master`** pull.
+   Ez lefuttatja a gate-eket, majd push → PR → `gh pr checks --watch` → merge → lokális **`main`** pull.
 
 ```powershell
 .\scripts\iter-end.ps1
@@ -220,3 +221,13 @@ Nagyobb backend+frontend milestone előtt / után: `dotnet build` + `npm run bui
 
 **Nem authoritative.** A folyamat és a szabályok innen: **`docs/DEVELOPMENT_WORKFLOW.md`** + **`docs/live/*`**.  
 A `.windsurf/` megtartható történeti okból; új szabályt **ne** oda írj.
+
+---
+
+## 13) Enterprise dokumentáció és változás-governance (összefoglaló)
+
+- **Központi index:** [`README.md`](README.md) — melyik fájl mit jelent, olvasási sorrend.
+- **Részletes szabályok:** [`GOVERNANCE.md`](GOVERNANCE.md) — dokumentum-osztályok, RACI-light, review-trigger kategóriák, ADR kapcsolat.
+- **Architektúra-döntések (opcionális):** [`adr/README.md`](adr/README.md) — új döntéshez `adr/NNN-cim.md` sablon [`adr/template.md`](adr/template.md).
+- **Truth template mappa** (`docs/00_truth_files_template/*`): hosszú távú vízió és policy **referencia**; a **napi operatív** igazság a `docs/live/*` + `PROJECT_CONTEXT.md` (lásd `GOVERNANCE.md` §2).
+

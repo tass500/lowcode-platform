@@ -1017,66 +1017,66 @@ public sealed class WorkflowRunnerService
         switch (step.StepType.ToLowerInvariant())
         {
             case "delay":
-            {
-                var ms = 100;
-                if (!string.IsNullOrWhiteSpace(step.StepConfigJson))
                 {
-                    using var doc = JsonDocument.Parse(step.StepConfigJson);
-                    if (doc.RootElement.TryGetProperty("ms", out var v) && v.TryGetInt32(out var parsed) && parsed >= 0)
-                        ms = parsed;
+                    var ms = 100;
+                    if (!string.IsNullOrWhiteSpace(step.StepConfigJson))
+                    {
+                        using var doc = JsonDocument.Parse(step.StepConfigJson);
+                        if (doc.RootElement.TryGetProperty("ms", out var v) && v.TryGetInt32(out var parsed) && parsed >= 0)
+                            ms = parsed;
+                    }
+
+                    await Task.Delay(ms, ct);
+                    break;
                 }
 
-                await Task.Delay(ms, ct);
-                break;
-            }
-
             case "set":
-            {
-                ExecuteSetAsync(step);
-                break;
-            }
+                {
+                    ExecuteSetAsync(step);
+                    break;
+                }
 
             case "map":
-            {
-                ExecuteMapAsync(step, context);
-                break;
-            }
+                {
+                    ExecuteMapAsync(step, context);
+                    break;
+                }
 
             case "merge":
-            {
-                ExecuteMergeAsync(step, context);
-                break;
-            }
+                {
+                    ExecuteMergeAsync(step, context);
+                    break;
+                }
 
             case "foreach":
-            {
-                await ExecuteForeachAsync(step, context, ct);
-                break;
-            }
+                {
+                    await ExecuteForeachAsync(step, context, ct);
+                    break;
+                }
 
             case "switch":
-            {
-                await ExecuteSwitchAsync(step, context, ct);
-                break;
-            }
+                {
+                    await ExecuteSwitchAsync(step, context, ct);
+                    break;
+                }
 
             case "require":
-            {
-                ExecuteRequireAsync(step, context);
-                break;
-            }
+                {
+                    ExecuteRequireAsync(step, context);
+                    break;
+                }
 
             case "domaincommand":
-            {
-                await ExecuteDomainCommandAsync(step, ct);
-                break;
-            }
+                {
+                    await ExecuteDomainCommandAsync(step, ct);
+                    break;
+                }
 
             case "unstable":
-            {
-                ExecuteUnstableAsync(step);
-                break;
-            }
+                {
+                    ExecuteUnstableAsync(step);
+                    break;
+                }
 
             case "noop":
                 break;

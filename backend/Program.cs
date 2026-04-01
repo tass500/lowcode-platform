@@ -1,17 +1,33 @@
 using LowCodePlatform.Backend;
+using LowCodePlatform.Backend.Auth.Bff;
 using LowCodePlatform.Backend.Data;
+using LowCodePlatform.Backend.Filters;
 using LowCodePlatform.Backend.Middleware;
 using LowCodePlatform.Backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Diagnostics;
 using Microsoft.Data.Sqlite;
 using LowCodePlatform.Backend.Swagger;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var maxRequestBodyBytes = builder.Configuration.GetValue<long?>("Kestrel:Limits:MaxRequestBodySize");
+if (maxRequestBodyBytes is > 0)
+{
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.Limits.MaxRequestBodySize = maxRequestBodyBytes.Value;
+    });
+}
 
 if (builder.Environment.IsEnvironment("Testing"))
 {
@@ -24,7 +40,16 @@ if (builder.Environment.IsEnvironment("Testing"))
         builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Connection", LogLevel.None);
 }
 
-builder.Services.AddControllers();
+builder.Services.Configure<BffAuthOptions>(builder.Configuration.GetSection(BffAuthOptions.SectionName));
+builder.Services.Configure<ApiLifecycleOptions>(builder.Configuration.GetSection(ApiLifecycleOptions.SectionName));
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<IOidcHttpForBff, OidcHttpForBff>();
+builder.Services.AddSingleton<IBffSessionReader, BffSessionReader>();
+
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ApiDeprecationFilter>();
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(o =>
 {
@@ -32,11 +57,15 @@ builder.Services.AddSwaggerGen(o =>
     {
         Title = "LowCodePlatform Backend API",
         Version = "v1",
-        Description = "Tenant routing: prefer host-based tenancy (e.g. http://t1.localhost:PORT). In Development you can also use the X-Tenant-Id header.",
+        Description = "Tenant routing: prefer host-based tenancy (e.g. http://t1.localhost:PORT). In Development you can also use the X-Tenant-Id header. "
+                      + "Bearer JWT: symmetric signing key (dev-token) and/or, when Auth:Oidc:Authority is set, tokens validated via OIDC metadata. "
+                      + "`tenant_user` requires a `tenant` claim.",
     });
 
     if (builder.Environment.IsDevelopment())
         o.OperationFilter<AddTenantHeaderOperationFilter>();
+
+    o.OperationFilter<ApiDeprecatedOperationFilter>();
 
     o.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
@@ -64,21 +93,52 @@ builder.Services.AddSwaggerGen(o =>
     });
 });
 
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(o =>
+Action<JwtBearerOptions> configureSymmetricJwt = o =>
+{
+    o.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.FromMinutes(2),
+    };
+};
+
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = LcpAuthenticationSchemeNames.JwtForwarder;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddPolicyScheme(LcpAuthenticationSchemeNames.JwtForwarder, "JWT forwarder", opt =>
+    {
+        opt.ForwardDefaultSelector = ctx =>
+        {
+            var cfg = ctx.RequestServices.GetRequiredService<IConfiguration>();
+            var auth = cfg["Auth:Oidc:Authority"]?.Trim();
+            string[]? extra = null;
+            var rawIssuers = cfg["Auth:Oidc:ValidIssuers"];
+            if (!string.IsNullOrWhiteSpace(rawIssuers))
+            {
+                var split = rawIssuers.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                extra = split.Length == 0 ? null : split;
+            }
+
+            return LcpJwtForwardSelector.SelectScheme(ctx, auth, extra);
+        };
+    })
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, configureSymmetricJwt)
+    .AddJwtBearer(LcpAuthenticationSchemeNames.OidcJwt, o =>
     {
         o.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-                builder.Configuration["Auth:Jwt:SigningKey"] ?? "dev-insecure-signing-key-change-me")),
+            NameClaimType = ClaimTypes.NameIdentifier,
+            RoleClaimType = ClaimTypes.Role,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(2),
         };
     });
+
+builder.Services.AddSingleton<IPostConfigureOptions<JwtBearerOptions>, JwtBearerIssuerAudiencePostConfigure>();
+builder.Services.AddSingleton<IPostConfigureOptions<JwtBearerOptions>, OidcJwtBearerPostConfigure>();
 
 builder.Services.AddAuthorization(o =>
 {
@@ -86,6 +146,45 @@ builder.Services.AddAuthorization(o =>
         .RequireAuthenticatedUser()
         .RequireClaim("tenant"));
     o.AddPolicy("admin", p => p.RequireRole("admin"));
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    var rateLimitOffInTests = builder.Environment.IsEnvironment("Testing")
+                              && !builder.Configuration.GetValue("RateLimiting:Enabled", false);
+    if (rateLimitOffInTests)
+    {
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(_ =>
+            RateLimitPartition.GetNoLimiter<string>("test"));
+        return;
+    }
+
+    var permitLimit = builder.Configuration.GetValue("RateLimiting:PermitLimit", 400);
+    var windowSeconds = builder.Configuration.GetValue("RateLimiting:WindowSeconds", 60);
+    if (permitLimit <= 0 || windowSeconds <= 0)
+    {
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(_ =>
+            RateLimitPartition.GetNoLimiter<string>("disabled"));
+        return;
+    }
+
+    var window = TimeSpan.FromSeconds(windowSeconds);
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            ip,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = permitLimit,
+                Window = window,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0,
+            });
+    });
 });
 
 builder.Services.AddDbContext<ManagementDbContext>((sp, o) =>
@@ -148,11 +247,20 @@ if (app.Environment.IsDevelopment())
 }
 
 if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHsts();
     app.UseHttpsRedirection();
+}
 
 app.UseMiddleware<TraceIdMiddleware>();
 
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
+app.UseMiddleware<ApiLifecycleMiddleware>();
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+app.UseMiddleware<BffSessionBearerMiddleware>();
 
 app.UseAuthentication();
 
@@ -166,19 +274,21 @@ app.UseMiddleware<TenantClaimEnforcementMiddleware>();
 
 app.UseAuthorization();
 
+app.UseRateLimiter();
+
 app.UseMiddleware<AccessLogMiddleware>();
 
-app.MapGet("/health", () => Results.Ok(HealthPayloadBuilder.Live()));
-app.MapGet("/api/health", () => Results.Ok(HealthPayloadBuilder.Live()));
+app.MapGet("/health", () => Results.Ok(HealthPayloadBuilder.Live())).DisableRateLimiting();
+app.MapGet("/api/health", () => Results.Ok(HealthPayloadBuilder.Live())).DisableRateLimiting();
 
-app.MapGet("/health/live", () => Results.Ok(HealthPayloadBuilder.Live()));
+app.MapGet("/health/live", () => Results.Ok(HealthPayloadBuilder.Live())).DisableRateLimiting();
 app.MapGet("/health/ready", async (ManagementDbContext db) =>
 {
     var ok = await db.Database.CanConnectAsync();
     return ok
         ? Results.Ok(HealthPayloadBuilder.Ready())
         : Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable);
-});
+}).DisableRateLimiting();
 
 app.MapControllers();
 

@@ -1,11 +1,13 @@
 # Következő lépések (TRUTH)
 
+> **Enterprise megjegyzés:** A **futó repó** aktív fókusza: `docs/live/03_kovetkezo_lepesek.md`. Ez a fájl **sablon**; WIP=1 és folyamat: `docs/DEVELOPMENT_WORKFLOW.md`.
+
 ## 0) Canon / használati szerződés
 
-Ez a fájl a **következő fejlesztési lépések** kanonikus forrása.
+Ez a fájl a **következő fejlesztési lépések** kanonikus forrása **a sablon készletben**.
 
 Szabályok:
-- Csak a `docs/00_truth_files_template/` alatti 4 truth fájl irányadó.
+- Irányadó: a 4 truth fájl ebben a mappában + a `docs/live/03_kovetkezo_lepesek.md` operatív tartalom (nem ellentmondásban a `DEVELOPMENT_WORKFLOW.md`-del).
 - WIP limit: egyszerre **pontosan 1** aktív fókusz lehet (WIP=1). Ha **biztonságosan összevonható** több kisebb feladat (alacsony kockázat, no behavior change jelleg, ugyanazon a területen), akkor összevonható egy menetbe. Az összevonást mindig automatikusan mérlegelni kell, és a döntést a fejlesztő asszisztens hozza meg, külön jóváhagyás kérése nélkül. Ha kockázatos, marad az 1 kijelölt feladat fejlesztése.
 - A fókusz csak itt változhat (nem chatben, nem issue-ban, nem “ma ezt érzem”).
 - Ha új munka felmerül, előbb ide kerül “Intake” státuszba, és csak ezután lehet fejleszteni.

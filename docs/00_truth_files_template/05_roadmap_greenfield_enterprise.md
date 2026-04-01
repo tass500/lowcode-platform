@@ -1,5 +1,7 @@
 # Roadmap (greenfield) – Enterprise product-ready low-code platform
 
+> **Enterprise megjegyzés:** A **aktuális** szállítási ütemtervek: `docs/live/roadmap-*.md` · központi index: `docs/README.md`.
+
 ## 0) Alap (mihez igazodik a roadmap)
 
 Ez a roadmap a `docs/00_truth_files_template/` truth file-ok víziójára és döntéseire épül, nem a jelenlegi kódbázis állapotára.

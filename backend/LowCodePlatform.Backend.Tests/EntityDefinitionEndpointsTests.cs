@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
+using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -183,5 +184,180 @@ public sealed class EntityDefinitionEndpointsTests
 
         Assert.True(items1.GetArrayLength() == 1);
         Assert.True(items2.GetArrayLength() == 0);
+    }
+
+    [Fact]
+    public async Task Entity_list_is_ordered_by_name()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using (var a = await client.PostAsJsonAsync("/api/entities", new { name = "Zebra" }))
+            Assert.Equal(HttpStatusCode.OK, a.StatusCode);
+        using (var b = await client.PostAsJsonAsync("/api/entities", new { name = "Apple" }))
+            Assert.Equal(HttpStatusCode.OK, b.StatusCode);
+
+        using var listResp = await client.GetAsync("/api/entities");
+        Assert.Equal(HttpStatusCode.OK, listResp.StatusCode);
+        var json = await listResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.TryGetProperty("serverTimeUtc", out _));
+        var items = doc.RootElement.GetProperty("items");
+        Assert.Equal(2, items.GetArrayLength());
+        Assert.Equal("Apple", items[0].GetProperty("name").GetString());
+        Assert.Equal("Zebra", items[1].GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public async Task Entity_list_empty_tenant_has_zero_items_and_serverTimeUtc()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var listResp = await client.GetAsync("/api/entities");
+        Assert.Equal(HttpStatusCode.OK, listResp.StatusCode);
+        var json = await listResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.TryGetProperty("serverTimeUtc", out var st) && st.ValueKind == JsonValueKind.String);
+        var items = doc.RootElement.GetProperty("items");
+        Assert.Equal(0, items.GetArrayLength());
+    }
+
+    [Fact]
+    public async Task Entity_create_duplicate_name_returns_409()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using (var first = await client.PostAsJsonAsync("/api/entities", new { name = "DupName" }))
+            Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+
+        using var second = await client.PostAsJsonAsync("/api/entities", new { name = "DupName" });
+        Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
+        var json = await second.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("entity_already_exists", doc.RootElement.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
+    public async Task Entity_create_whitespace_name_returns_400_name_missing()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var resp = await client.PostAsJsonAsync("/api/entities", new { name = "   " });
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("name_missing", doc.RootElement.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
+    public async Task Entity_create_name_too_long_returns_400()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var longName = new string('x', 101);
+        using var resp = await client.PostAsJsonAsync("/api/entities", new { name = longName });
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("name_too_long", doc.RootElement.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
+    public async Task Entity_update_duplicate_name_returns_409()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var a = await client.PostAsJsonAsync("/api/entities", new { name = "Alpha" });
+        Assert.Equal(HttpStatusCode.OK, a.StatusCode);
+        var b = await client.PostAsJsonAsync("/api/entities", new { name = "Beta" });
+        Assert.Equal(HttpStatusCode.OK, b.StatusCode);
+        var betaId = Guid.Parse((await b.Content.ReadFromJsonAsync<Dictionary<string, object?>>()!)!["entityDefinitionId"]!.ToString()!);
+
+        using var put = await client.PutAsJsonAsync($"/api/entities/{betaId}", new { name = "Alpha" });
+        Assert.Equal(HttpStatusCode.Conflict, put.StatusCode);
+        var json = await put.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("entity_already_exists", doc.RootElement.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
+    public async Task Entity_update_same_name_succeeds()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var create = await client.PostAsJsonAsync("/api/entities", new { name = "Stable" });
+        Assert.Equal(HttpStatusCode.OK, create.StatusCode);
+        var created = await create.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        var id = Guid.Parse(created!["entityDefinitionId"]!.ToString()!);
+
+        using var put = await client.PutAsJsonAsync($"/api/entities/{id}", new { name = "Stable" });
+        Assert.Equal(HttpStatusCode.OK, put.StatusCode);
+    }
+
+    [Fact]
+    public async Task Entity_get_unknown_returns_404_entity_not_found()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var resp = await client.GetAsync($"/api/entities/{Guid.NewGuid()}");
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("entity_not_found", doc.RootElement.GetProperty("errorCode").GetString());
     }
 }

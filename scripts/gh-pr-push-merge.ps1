@@ -1,17 +1,17 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Push current branch, open PR to master (if missing), optionally wait for CI and merge.
+  Push current branch, open PR to main (if missing), optionally wait for CI and merge.
 
 .DESCRIPTION
   Intended workflow (see docs/DEVELOPMENT_WORKFLOW.md):
-  - You are on a feature branch with commits (not on master).
+  - You are on a feature branch with commits (not on main).
   - Script: git push, gh pr create (or reuse open PR), gh pr checks --watch, gh pr merge.
 
   Optional credentials: copy .env.example -> .env and set GH_TOKEN (never commit .env).
 
 .PARAMETER Base
-  Base branch (default: master).
+  Base branch (default: main).
 
 .PARAMETER Title
   PR title (default: last commit subject).
@@ -41,7 +41,7 @@
   $env:GH_TOKEN = 'ghp_...'; .\scripts\gh-pr-push-merge.ps1
 #>
 param(
-  [string]$Base = "master",
+  [string]$Base = "main",
   [string]$Title = "",
   [string]$Body = "",
   [string]$BodyFile = "",

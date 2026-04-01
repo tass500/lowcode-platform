@@ -23,4 +23,8 @@
     <Compile Remove="LowCodePlatform.Backend.Tests/**/*.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="LowCodePlatform.Backend.Tests" />
+  </ItemGroup>
+
 </Project>

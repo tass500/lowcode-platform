@@ -2,22 +2,23 @@
 
 ## 0) Canon / használati szerződés
 
-Ez a fájl a projekt víziójának és “miértjének” kanonikus forrása.
+Ez a fájl a projekt víziójának és “miértjének” **referencia-sablonja** (blueprint / greenfield másolható készlet). **Enterprise megjegyzés:** a repó **napi operatív** igazsága a `docs/live/02_allapot.md`, `docs/live/03_kovetkezo_lepesek.md` és a `docs/PROJECT_CONTEXT.md` — lásd `docs/GOVERNANCE.md` §2.
 
-Szabályok:
-- Elsődleges kanonikus truth fájlok (ezek irányítják a fejlesztést):
+Szabályok (a sablon mappán belül):
+- Elsődleges truth fájlok ebben a mappában (stratégiai irány + döntésnapló index):
   - `00_vizio.md`
   - `01_dontesek.md`
   - `02_allapot.md`
   - `03_kovetkezo_lepesek.md`
-- A mappában lévő egyéb dokumentumok (pl. playbook/roadmap/becslés) **kiegészítők**: nem írhatják felül a fenti 4 truth fájlt.
-- Ha bármely más dokumentum, ticket, kód-komment, chat log, vagy „random jegyzet” ellentmond ezeknek, azt zajnak kell tekinteni.
-- Ha valami nincs leírva a truth fájlokban, akkor az **nem követelmény** és **nem döntés**.
-- Módosítás csak tudatosan, visszakereshetően:
+- A mappában lévő egyéb dokumentumok (pl. playbook/roadmap/becslés) **kiegészítők**: nem írhatják felül a fenti 4 truth fájl **szándékolt hierarchiáját**.
+- Ha bármely más dokumentum, ticket, kód-komment, chat log, vagy „random jegyzet” ellentmond a **fenti szabálynak és a `DEVELOPMENT_WORKFLOW.md`-nek**, azt zajnak kell tekinteni.
+- Ha valami nincs leírva a truth fájlokban, akkor az **nem követelmény** és **nem döntés** (kivéve, ha a `docs/live/*` vagy `PROJECT_CONTEXT.md` már rögzíti).
+- Módosítás csak tudatosan, visszakereshetően (Git PR):
   - vízióváltozás: ebben a fájlban,
-  - döntés: `01_dontesek.md` új bejegyzés,
-  - aktuális állapot: `02_allapot.md`,
-  - következő lépések / fókusz: `03_kovetkezo_lepesek.md`.
+  - döntés: `01_dontesek.md` új bejegyzés vagy `docs/adr/` új ADR,
+  - **aktuális szállítási állapot** (ajánlott): `docs/live/02_allapot.md`,
+  - **aktuális fókusz / WIP** (ajánlott): `docs/live/03_kovetkezo_lepesek.md`.
+- Új **egyedi** architektúra-döntés: `docs/adr/README.md` szerinti ADR opcionális, de ajánlott nagy hatású változásnál.
 
 ## 1) Egy mondatos cél
 

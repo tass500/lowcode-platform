@@ -4,6 +4,7 @@
 
 - A mostani credit-hatékony batch fejlesztési módhoz olyan minimum ellenőrzéseket adni, amik enterprise környezetben is vállalhatóak.
 - Elv: **minimális zaj + gyors gate**. A gate-ek alapból **a batch végén** futnak (lásd `docs/00_workmode.md`).
+- **Governance / review-trigger kategóriák:** [`GOVERNANCE.md`](GOVERNANCE.md) §4.
 
 ## Fogalmak
 
@@ -11,6 +12,13 @@
 - **Smoke**: rövid, célzott manuális ellenőrzés (UI flow vagy endpoint).
 
 ## Gate-mátrix (ajánlott minimum)
+
+| Változás típusa | Minimum gate |
+|-----------------|--------------|
+| Backend kód | `dotnet build` + `dotnet test` … `LowCodePlatform.Backend.Tests.csproj` |
+| Frontend kód | `npm run build` (`frontend/`) |
+| Szerződés / auth / API alak | Backend + frontend gate + PR-ban szerződés-összefoglaló |
+| Csak dokumentáció | Konzisztencia-review; linkelt fájlok elérhetők |
 
 ## Repo-supported commands (jelenlegi állapot)
 

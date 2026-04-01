@@ -514,7 +514,7 @@ public sealed class WorkflowEndpointsTests
         foreach (var w in warningsEl.EnumerateArray())
         {
             if (w.TryGetProperty("code", out var c) && c.GetString() == "workflow_step_output_unused")
-                Assert.True(false, "Did not expect workflow_step_output_unused when output is referenced.");
+                Assert.Fail("Did not expect workflow_step_output_unused when output is referenced.");
         }
     }
 
@@ -601,6 +601,50 @@ public sealed class WorkflowEndpointsTests
     }
 
     [Fact]
+    public async Task Workflows_schedule_put_unknown_workflow_returns_404()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var missing = Guid.NewGuid();
+        using var resp = await client.PutAsJsonAsync($"/api/workflows/{missing}/schedule", new { enabled = true, cron = "* * * * *" });
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("workflow_not_found", doc.RootElement.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
+    public async Task Workflows_schedule_put_enabled_without_cron_returns_400_schedule_cron_missing()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-sched-missing-cron", definitionJson = "{\"steps\":[{\"type\":\"noop\"}]}" });
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        var id = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var resp = await client.PutAsJsonAsync($"/api/workflows/{id}/schedule", new { enabled = true, cron = "   " });
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("schedule_cron_missing", doc.RootElement.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
     public async Task Workflows_export_should_return_portable_package()
     {
         var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
@@ -673,5 +717,117 @@ public sealed class WorkflowEndpointsTests
         var newId = imported.GetProperty("workflowDefinitionId").GetGuid();
         Assert.NotEqual(srcId, newId);
         Assert.Equal("wf-imported", imported.GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public async Task Workflows_import_unsupported_export_format_version_returns_400()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var resp = await client.PostAsJsonAsync("/api/workflows/import", new
+        {
+            name = "bad-format",
+            definitionJson = "{\"steps\":[{\"type\":\"noop\"}]}",
+            exportFormatVersion = 999,
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("workflow_import_format_unsupported", doc.RootElement.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
+    public async Task Workflows_import_definition_missing_returns_400()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var resp = await client.PostAsJsonAsync("/api/workflows/import", new { name = "no-def", definitionJson = "" });
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("definition_missing", doc.RootElement.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
+    public async Task Workflows_delete_unknown_workflow_returns_404()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var resp = await client.DeleteAsync($"/api/workflows/{Guid.NewGuid()}");
+        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal("workflow_not_found", doc.RootElement.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
+    public async Task Workflow_list_is_ordered_by_name()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        var def = "{\"steps\":[{\"type\":\"noop\"}]}";
+        using (var a = await client.PostAsJsonAsync("/api/workflows", new { name = "Zebra", definitionJson = def }))
+            Assert.Equal(HttpStatusCode.OK, a.StatusCode);
+        using (var b = await client.PostAsJsonAsync("/api/workflows", new { name = "Apple", definitionJson = def }))
+            Assert.Equal(HttpStatusCode.OK, b.StatusCode);
+
+        using var listResp = await client.GetAsync("/api/workflows");
+        Assert.Equal(HttpStatusCode.OK, listResp.StatusCode);
+        var json = await listResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.TryGetProperty("serverTimeUtc", out _));
+        var items = doc.RootElement.GetProperty("items");
+        Assert.Equal(2, items.GetArrayLength());
+        Assert.Equal("Apple", items[0].GetProperty("name").GetString());
+        Assert.Equal("Zebra", items[1].GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public async Task Workflow_list_empty_tenant_has_zero_items_and_serverTimeUtc()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var listResp = await client.GetAsync("/api/workflows");
+        Assert.Equal(HttpStatusCode.OK, listResp.StatusCode);
+        var json = await listResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.TryGetProperty("serverTimeUtc", out var st) && st.ValueKind == JsonValueKind.String);
+        var items = doc.RootElement.GetProperty("items");
+        Assert.Equal(0, items.GetArrayLength());
     }
 }

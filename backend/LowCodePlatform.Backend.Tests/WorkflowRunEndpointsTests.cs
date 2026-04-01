@@ -679,6 +679,86 @@ public sealed class WorkflowRunEndpointsTests
     }
 
     [Fact]
+    public async Task Domain_command_update_by_id_should_fail_with_entity_record_not_found_when_missing()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        var missingRecordId = Guid.NewGuid();
+        var definitionJson =
+            "{\"steps\":[{\"type\":\"domainCommand\",\"command\":\"entityRecord.updateById\",\"recordId\":\"" +
+            missingRecordId +
+            "\",\"data\":{\"name\":\"n\"}}]}";
+
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-domain-update-missing", definitionJson });
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(created);
+        var workflowId = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var startResp = await client.PostAsync($"/api/workflows/{workflowId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, startResp.StatusCode);
+        var startPayload = await startResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(startPayload);
+        var runId = Guid.Parse(startPayload!["workflowRunId"]!.ToString()!);
+
+        using var getResp = await client.GetAsync($"/api/workflows/runs/{runId}");
+        Assert.Equal(HttpStatusCode.OK, getResp.StatusCode);
+        var runPayload = await getResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(runPayload);
+        Assert.Equal("failed", runPayload!["state"]?.ToString());
+        Assert.Equal("entity_record_not_found", runPayload["errorCode"]?.ToString());
+    }
+
+    [Fact]
+    public async Task Domain_command_unknown_command_should_fail_with_domain_command_unknown()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        var managementCs = $"Data Source={mgmtDbPath}";
+        var tenantCs = $"Data Source={tenantDbPath}";
+
+        await InitializeDatabasesAsync(managementCs, "t1", tenantCs, CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+
+        await AuthenticateAsync(client, "t1");
+
+        var definitionJson = "{\"steps\":[{\"type\":\"domainCommand\",\"command\":\"entityRecord.noSuchCommand\",\"entityName\":\"X\"}]}";
+
+        using var createResp = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-domain-unknown", definitionJson });
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+        var created = await createResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(created);
+        var workflowId = Guid.Parse(created!["workflowDefinitionId"]!.ToString()!);
+
+        using var startResp = await client.PostAsync($"/api/workflows/{workflowId}/runs", content: null);
+        Assert.Equal(HttpStatusCode.OK, startResp.StatusCode);
+        var startPayload = await startResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(startPayload);
+        var runId = Guid.Parse(startPayload!["workflowRunId"]!.ToString()!);
+
+        using var getResp = await client.GetAsync($"/api/workflows/runs/{runId}");
+        Assert.Equal(HttpStatusCode.OK, getResp.StatusCode);
+        var runPayload = await getResp.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        Assert.NotNull(runPayload);
+        Assert.Equal("failed", runPayload!["state"]?.ToString());
+        Assert.Equal("domain_command_unknown", runPayload["errorCode"]?.ToString());
+    }
+
+    [Fact]
     public async Task Domain_command_should_be_able_to_upsert_entity_record_by_unique_key()
     {
         var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
@@ -1853,5 +1933,197 @@ public sealed class WorkflowRunEndpointsTests
 
         using var bad = await client.GetAsync("/api/workflows/runs?state=not_a_valid_state");
         Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+    }
+
+    [Fact]
+    public async Task Tenant_wide_workflow_runs_list_filters_by_workflow_definition_id()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var c1 = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-filter-a", definitionJson = "{\"steps\":[{\"type\":\"noop\"}]}" });
+        Assert.Equal(HttpStatusCode.OK, c1.StatusCode);
+        var w1 = await c1.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        var id1 = Guid.Parse(w1!["workflowDefinitionId"]!.ToString()!);
+
+        using var c2 = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-filter-b", definitionJson = "{\"steps\":[{\"type\":\"noop\"}]}" });
+        Assert.Equal(HttpStatusCode.OK, c2.StatusCode);
+        var w2 = await c2.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        var id2 = Guid.Parse(w2!["workflowDefinitionId"]!.ToString()!);
+
+        using (var s1 = await client.PostAsync($"/api/workflows/{id1}/runs", null))
+            Assert.Equal(HttpStatusCode.OK, s1.StatusCode);
+        using (var s2 = await client.PostAsync($"/api/workflows/{id2}/runs", null))
+            Assert.Equal(HttpStatusCode.OK, s2.StatusCode);
+
+        using var listResp = await client.GetAsync($"/api/workflows/runs?take=50&skip=0&workflowDefinitionId={id1}");
+        Assert.Equal(HttpStatusCode.OK, listResp.StatusCode);
+        var json = await listResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal(1, doc.RootElement.GetProperty("totalCount").GetInt32());
+        var items = doc.RootElement.GetProperty("items");
+        Assert.Equal(1, items.GetArrayLength());
+        Assert.Equal(id1.ToString(), items[0].GetProperty("workflowDefinitionId").GetString());
+    }
+
+    [Fact]
+    public async Task Tenant_wide_workflow_runs_list_pagination_skip_take()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        for (var i = 0; i < 3; i++)
+        {
+            using var c = await client.PostAsJsonAsync("/api/workflows", new { name = $"wf-page-{i}", definitionJson = "{\"steps\":[{\"type\":\"noop\"}]}" });
+            Assert.Equal(HttpStatusCode.OK, c.StatusCode);
+            var w = await c.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+            var id = Guid.Parse(w!["workflowDefinitionId"]!.ToString()!);
+            using var s = await client.PostAsync($"/api/workflows/{id}/runs", null);
+            Assert.Equal(HttpStatusCode.OK, s.StatusCode);
+        }
+
+        using var p1 = await client.GetAsync("/api/workflows/runs?take=2&skip=0");
+        Assert.Equal(HttpStatusCode.OK, p1.StatusCode);
+        var j1 = await p1.Content.ReadAsStringAsync();
+        using var d1 = JsonDocument.Parse(j1);
+        Assert.Equal(3, d1.RootElement.GetProperty("totalCount").GetInt32());
+        Assert.Equal(2, d1.RootElement.GetProperty("items").GetArrayLength());
+
+        using var p2 = await client.GetAsync("/api/workflows/runs?take=2&skip=2");
+        Assert.Equal(HttpStatusCode.OK, p2.StatusCode);
+        var j2 = await p2.Content.ReadAsStringAsync();
+        using var d2 = JsonDocument.Parse(j2);
+        Assert.Equal(3, d2.RootElement.GetProperty("totalCount").GetInt32());
+        Assert.Equal(1, d2.RootElement.GetProperty("items").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task Tenant_wide_workflow_runs_list_started_after_utc_future_returns_empty()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var c = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-future", definitionJson = "{\"steps\":[{\"type\":\"noop\"}]}" });
+        Assert.Equal(HttpStatusCode.OK, c.StatusCode);
+        var w = await c.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        var id = Guid.Parse(w!["workflowDefinitionId"]!.ToString()!);
+        using (var s = await client.PostAsync($"/api/workflows/{id}/runs", null))
+            Assert.Equal(HttpStatusCode.OK, s.StatusCode);
+
+        var future = DateTime.UtcNow.AddYears(1);
+        var q = Uri.EscapeDataString(future.ToString("o"));
+        using var listResp = await client.GetAsync($"/api/workflows/runs?take=50&skip=0&startedAfterUtc={q}");
+        Assert.Equal(HttpStatusCode.OK, listResp.StatusCode);
+        var json = await listResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.Equal(0, doc.RootElement.GetProperty("totalCount").GetInt32());
+        Assert.Equal(0, doc.RootElement.GetProperty("items").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task Tenant_wide_workflow_runs_list_state_succeeded_returns_only_succeeded_runs()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var c = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-succ", definitionJson = "{\"steps\":[{\"type\":\"noop\"}]}" });
+        Assert.Equal(HttpStatusCode.OK, c.StatusCode);
+        var w = await c.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        var id = Guid.Parse(w!["workflowDefinitionId"]!.ToString()!);
+        using (var s = await client.PostAsync($"/api/workflows/{id}/runs", null))
+            Assert.Equal(HttpStatusCode.OK, s.StatusCode);
+
+        using var listResp = await client.GetAsync("/api/workflows/runs?take=50&skip=0&state=succeeded");
+        Assert.Equal(HttpStatusCode.OK, listResp.StatusCode);
+        var json = await listResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.GetProperty("totalCount").GetInt32() >= 1);
+        foreach (var el in doc.RootElement.GetProperty("items").EnumerateArray())
+            Assert.Equal("succeeded", el.GetProperty("state").GetString());
+    }
+
+    [Fact]
+    public async Task Tenant_wide_workflow_runs_list_started_after_utc_without_z_returns_400_when_kind_not_utc()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        // No timezone suffix — model binder typically yields DateTimeKind.Unspecified, which the API rejects.
+        using var bad = await client.GetAsync("/api/workflows/runs?take=50&skip=0&startedAfterUtc=2020-01-01T00:00:00");
+        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+    }
+
+    [Fact]
+    public async Task Tenant_wide_workflow_runs_list_started_before_utc_without_z_returns_400_when_kind_not_utc()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var bad = await client.GetAsync("/api/workflows/runs?take=50&skip=0&startedBeforeUtc=2030-01-01T00:00:00");
+        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+    }
+
+    [Fact]
+    public async Task Tenant_wide_workflow_runs_list_started_before_utc_inclusive_with_z_returns_matching_runs()
+    {
+        var mgmtDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-mgmt-{Guid.NewGuid():N}.db");
+        var tenantDbPath = Path.Combine(Path.GetTempPath(), $"lcp-test-tenant-t1-{Guid.NewGuid():N}.db");
+
+        await InitializeDatabasesAsync($"Data Source={mgmtDbPath}", "t1", $"Data Source={tenantDbPath}", CancellationToken.None);
+
+        await using var factory = new TestAppFactory("t1", mgmtDbPath, tenantDbPath);
+        using var client = CreateTenantClient(factory, "t1");
+        await AuthenticateAsync(client, "t1");
+
+        using var c = await client.PostAsJsonAsync("/api/workflows", new { name = "wf-before", definitionJson = "{\"steps\":[{\"type\":\"noop\"}]}" });
+        Assert.Equal(HttpStatusCode.OK, c.StatusCode);
+        var w = await c.Content.ReadFromJsonAsync<Dictionary<string, object?>>();
+        var id = Guid.Parse(w!["workflowDefinitionId"]!.ToString()!);
+        using (var s = await client.PostAsync($"/api/workflows/{id}/runs", null))
+            Assert.Equal(HttpStatusCode.OK, s.StatusCode);
+
+        var before = DateTime.UtcNow.AddYears(1);
+        var q = Uri.EscapeDataString(before.ToString("o"));
+        using var listResp = await client.GetAsync($"/api/workflows/runs?take=50&skip=0&startedBeforeUtc={q}");
+        Assert.Equal(HttpStatusCode.OK, listResp.StatusCode);
+        var json = await listResp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.GetProperty("totalCount").GetInt32() >= 1);
     }
 }

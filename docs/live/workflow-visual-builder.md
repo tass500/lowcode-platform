@@ -10,11 +10,24 @@ A JSON definíció marad az igazság forrása; a **Builder** nézet a workflow *
 - Lépéslista: futásidejű kulcs **`000`**, **`001`**, … (tömb sorrend) — megjelenítve.
 - **↑ / ↓** átrendezés, **Remove** törlés, **JSON →** ugrás a JSON szerkesztőhöz (meglévő `findCaretIndexForWorkflowStep`).
 
+## Döntés: `@angular/cdk` — **most nem** vezetjük be
+
+**Aktuális állás:** a **`@angular/cdk`** (pl. `DragDropModule`) **nem** kerül a projektbe ebben a körben.
+
+**Indoklás (röviden):**
+
+- A builder elsődleges használata **asztali / dev** jellegű; **mobil-first** szerkesztés nem az aktuális fókusz.
+- A **natív HTML5 DnD + nagyobb érintési cél + ↑↓** elég a jelen kockázat–haszon arányhoz; a CDK **új függőség**, **refaktor** és **regressziós felület** lenne.
+- A CDK fő előnye itt a **finomabb touch / lista-DnD UX** — **újraértékelendő**, ha mobil/tablet builder **termék** prioritás lesz, vagy **ismétlődő** natív DnD bug jegyek jönnek célzott böngészőkön.
+
+**Újraértékelés:** roadmap / issue alapján; külön PR: `npm i @angular/cdk`, modul import, builder lista átírása, `npm run build` + smoke.
+
 ## Korlátok / következő lépések
 
-- **Nincs** `@angular/cdk` drag&drop (új dependency nélkül); később húzd–ejtés opcionális.
+- **58c (MVP):** sorrend **natív HTML5** drag&drop a builderben (`⋮⋮` fogó; sor fele felett/alatt ejtés = elé / mögé); **új dependency nélkül**. ~~Opcionális később: `@angular/cdk`~~ — lásd fenti **Döntés** blokk.
+- **58c+ (touch / UX, dependency nélkül):** nagyobb **érintési cél** a fogón és az **↑↓** gombokon (~44px), `touch-action: none` a fogón, szöveg: érintőn az **↑↓** az elsődleges (a böngészők HTML5 DnD-je pointer-központú).
 - Átrendezés után a **`${000.*}`** hivatkozások elcsúszhatnak — a szöveg ezt jelzi; finomhangolás továbbra is **JSON** nézetben.
-- **New workflow** (58b): Builder + JSON váltó, template gombok továbbra is a `definitionJson`-t írják; következő opcionális szelet: CDK drag&drop, vagy finomabb UX.
+- **New workflow** (58b): Builder + JSON váltó, template gombok továbbra is a `definitionJson`-t írják; további szelet: jobb mobil UX (CDK nélkül vagy később, lásd **Döntés**).
 
 ## Fájlok
 

@@ -34,6 +34,8 @@ type EntityRecordListResponse = {
       <div style="display:flex; gap: 12px; align-items: center; flex-wrap: wrap;">
         <a routerLink="/lowcode/entities">← Entities</a>
         <a *ngIf="entity" [routerLink]="['/lowcode/entities', entity.entityDefinitionId]">← Entity</a>
+        <a routerLink="/lowcode/workflows">Workflows</a>
+        <a routerLink="/lowcode/workflow-runs">All runs</a>
         <h2 style="margin:0;">Entity Records</h2>
         <button type="button" (click)="load()" [disabled]="loading">Refresh</button>
         <div *ngIf="loading">Loading...</div>
@@ -63,14 +65,28 @@ type EntityRecordListResponse = {
 
         <div style="display:flex; gap: 12px; flex-wrap: wrap; align-items: end;">
           <label>
-            Filter
+            Filter (record JSON)
             <input [value]="filterText" (input)="filterText = $any($event.target).value" placeholder="search in JSON" style="min-width: 260px;" />
           </label>
+          <span *ngIf="filterText.trim() && records.length > 0" style="font-size: 13px; color: #666;">
+            Showing {{ filteredRecords.length }} of {{ records.length }}
+          </span>
         </div>
 
         <div *ngIf="recordsError" style="margin-top: 8px; color:#b00020;">{{ recordsError }}</div>
 
-        <table *ngIf="filteredRecords.length" style="width:100%; border-collapse: collapse; margin-top: 12px;">
+        <div *ngIf="records.length === 0 && !recordsError" style="margin-top: 12px; color:#444;">
+          No records yet. Paste a JSON object above and click <b>Create</b>.
+        </div>
+
+        <div
+          *ngIf="records.length > 0 && filteredRecords.length === 0"
+          style="margin-top: 12px; color:#444;"
+        >
+          No records match this filter. Clear the search box.
+        </div>
+
+        <table *ngIf="filteredRecords.length > 0" style="width:100%; border-collapse: collapse; margin-top: 12px;">
           <thead>
             <tr>
               <th style="text-align:left; border-bottom:1px solid #ddd; padding: 6px;">Updated</th>
@@ -96,8 +112,6 @@ type EntityRecordListResponse = {
             </tr>
           </tbody>
         </table>
-
-        <div *ngIf="!filteredRecords.length" style="margin-top: 8px; color:#444;">No records.</div>
       </section>
     </main>
   `,

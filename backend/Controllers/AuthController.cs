@@ -1,8 +1,10 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using LowCodePlatform.Backend;
 using LowCodePlatform.Backend.Contracts;
 using LowCodePlatform.Backend.Middleware;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 
@@ -32,6 +34,58 @@ public sealed class AuthController : ControllerBase
     public sealed record DevTokenRequest(string Subject, string? TenantSlug, List<string>? Roles);
 
     public sealed record DevTokenResponse(DateTime ServerTimeUtc, string AccessToken, DateTime ExpiresAtUtc);
+
+    public sealed record SpaOidcConfigDto(
+        string Authority,
+        string ClientId,
+        string Scope,
+        string RedirectPath,
+        IReadOnlyList<string> TenantClaimSources);
+
+    /// <summary>
+    /// Non-secret OIDC hints for the SPA (code + PKCE). 404 when disabled or incomplete config.
+    /// </summary>
+    [HttpGet("spa-oidc-config")]
+    [AllowAnonymous]
+    public ActionResult<SpaOidcConfigDto> SpaOidcConfig()
+    {
+        var enabled = _env.IsDevelopment()
+                      || _env.IsEnvironment("Testing")
+                      || _cfg.GetValue("Auth:SpaOidcConfig:Enabled", false);
+        if (!enabled)
+            return NotFound();
+
+        var authority = _cfg["Auth:Oidc:Authority"]?.Trim();
+        var clientId = _cfg["Auth:Oidc:SpaClientId"]?.Trim();
+        if (string.IsNullOrWhiteSpace(authority) || string.IsNullOrWhiteSpace(clientId))
+            return NotFound();
+
+        var scope = (_cfg["Auth:Oidc:SpaScope"] ?? "openid profile offline_access").Trim();
+        var redirectPath = (_cfg["Auth:Oidc:SpaRedirectPath"] ?? "/lowcode/auth/callback").Trim();
+        if (!redirectPath.StartsWith('/'))
+            redirectPath = "/" + redirectPath;
+
+        var tenantSources = SplitCsv(_cfg["Auth:Oidc:TenantClaimSource"]);
+        if (tenantSources.Count == 0)
+            tenantSources = new List<string> { OidcJwtClaimMapping.TenantClaimType };
+
+        return Ok(new SpaOidcConfigDto(
+            Authority: authority,
+            ClientId: clientId,
+            Scope: scope,
+            RedirectPath: redirectPath,
+            TenantClaimSources: tenantSources));
+    }
+
+    private static List<string> SplitCsv(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return new List<string>();
+
+        return raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(s => s.Length > 0)
+            .ToList();
+    }
 
     [HttpPost("dev-token")]
     public ActionResult<DevTokenResponse> DevToken([FromBody] DevTokenRequest req)

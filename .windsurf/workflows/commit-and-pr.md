@@ -1,11 +1,11 @@
 ---
-description: Commit javaslat + PR-branch flow (protected master)
+description: Commit javaslat + PR-branch flow (protected main)
 auto_execution_mode: 3
 ---
 
 # Cél
 
-- Protected `master` miatt közvetlen push nincs; minden változás PR-on keresztül megy.
+- Protected `main` miatt közvetlen push nincs; minden változás PR-on keresztül megy.
 - Cascade (én) minden jól körülhatárolt milestone végén automatikusan ad egy "Proposed commit" blokkot.
 - Cascade (én) milestone-oknál automatikusan ad egy "Proposed PR" blokkot is (mikor érdemes PR-t nyitni + javasolt cím/leírás).
 - Te lefuttatod a parancsokat (commit/push/PR).
@@ -40,7 +40,7 @@ Amikor úgy látom, hogy a változás már egyben review-olható, adok egy blokk
 
 ```text
 Proposed PR
-- base: master
+- base: main
 - head: <branch-nev>
 - title: <rovid-cim>
 - summary:
@@ -54,10 +54,10 @@ PR létrehozás:
 
 # Standard flow (minden változásnál)
 
-1. **Branch indítás (mindig a legfrissebb masterről)**
+1. **Branch indítás (mindig a legfrissebb mainről)**
 
 ```bash
-git switch master
+git switch main
 git pull --ff-only
 
 git switch -c <branch-nev>
@@ -106,13 +106,13 @@ git push -u origin <branch-nev>
 5. **PR merge után takarítás**
 
 ```bash
-git switch master
+git switch main
 git pull --ff-only
 
 git branch -d <branch-nev>
 ```
 
-# Megjegyzés: ha véletlenül masterre commitoltál (és nem tudtál pusholni)
+# Megjegyzés: ha véletlenül mainre commitoltál (és nem tudtál pusholni)
 
 1. Hozz létre egy branch-et a jelenlegi HEAD-ről és pushold azt:
 
@@ -121,13 +121,13 @@ git branch <branch-nev>
 git push -u origin <branch-nev>
 ```
 
-2. (Opcionális) igazítsd vissza a lokális mastert a remote-hoz, hogy ne maradjon "ahead":
+2. (Opcionális) igazítsd vissza a lokális maint a remote-hoz, hogy ne maradjon "ahead":
 
 ```bash
-git switch master
+git switch main
 git fetch origin
 
-git reset --hard origin/master
+git reset --hard origin/main
 ```
 
-Figyelem: a `reset --hard` a lokális masterről eldobja az eltérést, de a commit már a branch-en megvan.
+Figyelem: a `reset --hard` a lokális mainről eldobja az eltérést, de a commit már a branch-en megvan.
