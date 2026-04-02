@@ -49,6 +49,7 @@ test.describe('Low-code smoke', () => {
 
   test('upgrade page renders shell', async ({ page }) => {
     await page.goto('/upgrade');
-    await expect(page.getByRole('heading', { name: 'Upgrade' })).toBeVisible();
+    // Substring match would also hit "Start upgrade run" / "Upgrade run details" (h3) — use exact.
+    await expect(page.getByRole('heading', { name: 'Upgrade', exact: true })).toBeVisible();
   });
 });
