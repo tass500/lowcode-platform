@@ -14,13 +14,14 @@ Ez a fájl kiegészíti a [`DEVELOPMENT_WORKFLOW.md`](DEVELOPMENT_WORKFLOW.md)-t
 | Prioritás | Tartalom | Fő fájl / hely |
 |-----------|----------|----------------|
 | **P0 — Folyamat** | Branch, PR, DoD, gate-ek, handoff | `DEVELOPMENT_WORKFLOW.md` |
+| **P0 — Review / doc-sáv** | Emberi minimum merge előtt, anti-drift, eszkaláció | `DOCUMENTATION_EXCELLENCE.md` (kiegészíti ezt a fájlt) |
 | **P0 — Termék/platform invariáns** | Portok, auth összkép, error contract, admin konvenciók | `PROJECT_CONTEXT.md` |
 | **P1 — Operatív állapot** | WIP, következő lépés, kész tények | `live/02_allapot.md`, `live/03_kovetkezo_lepesek.md` |
 | **P1 — Téma-specifikus** | OIDC, BFF, CI, rate limit, stb. | `live/<topic>.md` |
 | **P2 — Sablon / blueprint** | Hosszú távú vízió, ADR táblázat, iteráció-becslés | `00_truth_files_template/*` |
 | **P2 — ADR** | Egy-egy architektúra-döntés rögzítése | `adr/000-title.md` (lásd [`adr/README.md`](adr/README.md)) |
 
-**Konfliktusfeloldás:** Ha két dokumentum ellentmond, a sorrend: **`DEVELOPMENT_WORKFLOW.md`** (folyamat) → **`PROJECT_CONTEXT.md`** (platform) → **`live/02` + `live/03`** (aktuális szállítás) → téma-doc `live/*` → sablonok.
+**Konfliktusfeloldás:** Ha két dokumentum ellentmond, a sorrend: **`DEVELOPMENT_WORKFLOW.md`** (folyamat) → **`DOCUMENTATION_EXCELLENCE.md`** (review-minimum, nem írja felül a folyamatot, hanem részletezi) → **`PROJECT_CONTEXT.md`** (platform) → **`live/02` + `live/03`** (aktuális szállítás) → téma-doc `live/*` → sablonok.
 
 ## 3) Szerepkörök (RACI — egyszerűsített)
 
@@ -60,7 +61,25 @@ A `00_truth_files_template/01_dontesek.md` **policy index** és **ADR** hosszú 
 - **Negyedévente / nagy release előtt:** `PROJECT_CONTEXT.md` és a legfontosabb `live/*` összhangja a kóddal; elavult állítások törlése vagy `03_ARCHIVE`-ba helyezése.
 - **Archívum:** hosszú történet [`live/03_ARCHIVE.md`](live/03_ARCHIVE.md) — ne növeljük feleslegesen a `03` aktív fájlt.
 
-## 8) Kapcsolódó
+## 8) PR review — emberi minimum (a CI nem elég)
+
+A zöld build/test **szükséges**, de **nem elégséges** a [`DEVELOPMENT_WORKFLOW.md`](DEVELOPMENT_WORKFLOW.md) DoD-jéhez. A merge előtt legalább ezeket erősítse meg a **reviewer** (vagy önellenőrzés egy tulajdonosnál):
+
+1. **Scope:** egy koherens egység; kevert téma / túl nagy diff esetén szétvágás vagy explicit indoklás.
+2. **Kockázat-sáv:** ez a §4 táblázat szerinti minimum ellenőrzés megvan (beleértve a PR szövegét, ha szerződés / API változott).
+3. **Dokumentáció:** `live/02` + `live/03` és szükség szerint téma-doc / `PROJECT_CONTEXT` összhangban van a változással.
+4. **AI-generált kód:** auth, szerződés, biztonság — emberi értelmezés történt-e.
+
+Részletes check-lista és anti-drift: [`DOCUMENTATION_EXCELLENCE.md`](DOCUMENTATION_EXCELLENCE.md).
+
+## 9) Megfelelőség, adatvédelem, jogi eszkaláció
+
+A repó dokumentációja **technikai** minimumot és folyamatot rögzít. **Jogász / DPO / szerződéses** vélemény** nem** pótolható Markdownnal. Ha a változás érinti: új adatkezelési cél, érintetti jogok termékfunkcióban, harmadik ország, DPIA, SLA/audit jog — a szervezet szabályai szerint **kötelező eszkaláció**; a PR-ban rövid **compliance note** ajánlott (mi változott, milyen szakmai jóváhagyás szükséges / megvan).
+
+Részletek: [`DOCUMENTATION_EXCELLENCE.md`](DOCUMENTATION_EXCELLENCE.md) §5.
+
+## 10) Kapcsolódó
 
 - Központi index: [`README.md`](README.md)
 - Minőségkapuk: [`01_quality_gates.md`](01_quality_gates.md)
+- Dokumentációs kiválóság és 9–10-es sáv: [`DOCUMENTATION_EXCELLENCE.md`](DOCUMENTATION_EXCELLENCE.md)

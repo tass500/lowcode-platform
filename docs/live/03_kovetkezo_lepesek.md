@@ -40,7 +40,7 @@ Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) 
 
 ## Kapcsolódó live docok
 
-- Dokumentáció index (enterprise): [`README.md`](../README.md) · governance: [`GOVERNANCE.md`](../GOVERNANCE.md)
+- Dokumentáció index (enterprise): [`README.md`](../README.md) · governance: [`GOVERNANCE.md`](../GOVERNANCE.md) · review-minimum / anti-drift: [`DOCUMENTATION_EXCELLENCE.md`](../DOCUMENTATION_EXCELLENCE.md)
 - E2E (MVP + backlog): [`e2e-smoke-plan.md`](e2e-smoke-plan.md)
 - Minőség 68+: [`roadmap-iter-68-quality.md`](roadmap-iter-68-quality.md) · Termék 67+: [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md) · Enterprise 64+ ütem: [`roadmap-iter-64-plus.md`](roadmap-iter-64-plus.md) · API életciklus 65+: [`roadmap-iter-65-plus.md`](roadmap-iter-65-plus.md) · HTTP fejlécek: [`security-http-headers.md`](security-http-headers.md) · Kestrel limit: [`kestrel-request-limits.md`](kestrel-request-limits.md) · Rate limit: [`rate-limiting.md`](rate-limiting.md) · Security audit log: [`security-audit-logging.md`](security-audit-logging.md) · CI format: [`ci-dotnet-format.md`](ci-dotnet-format.md) · CI supply-chain: [`ci-supply-chain.md`](ci-supply-chain.md) · CI titok-szűrés: [`ci-secret-scanning.md`](ci-secret-scanning.md) · CI SBOM: [`ci-sbom.md`](ci-sbom.md) · API verzió fejléc: [`api-lifecycle-headers.md`](api-lifecycle-headers.md)
 - OIDC JWT Bearer: [`oidc-jwt-bearer.md`](oidc-jwt-bearer.md) · BFF / httpOnly terv (**62c**): [`auth-bff-httponly.md`](auth-bff-httponly.md) · tenant API key: [`tenant-api-key.md`](tenant-api-key.md)

@@ -40,6 +40,7 @@ A **`.windsurf/` könyvtár nem authoritative** (lásd alul).
 - Ha érinti a megosztott utilt / logikát: célszerű **`npx ng test --watch=false --browsers=ChromeHeadless`**
 - **`docs/live/02_allapot.md`** és **`docs/live/03_kovetkezo_lepesek.md`** frissítve (kész pipák, következő ACTIVE).
 - PR leírásban: **rövid összegzés + test plan** (pontos parancsok).
+- **Dokumentációs / review sáv (magas színvonal):** merge előtt az **emberi minimum** (scope, kockázat, doc anti-drift, AI-diff kritikus részei) — részletesen: [`DOCUMENTATION_EXCELLENCE.md`](DOCUMENTATION_EXCELLENCE.md). Önmagában a „CI zöld” **nem** elegendő DoD ehhez a repóhoz.
 
 ---
 
@@ -228,6 +229,7 @@ A `.windsurf/` megtartható történeti okból; új szabályt **ne** oda írj.
 
 - **Központi index:** [`README.md`](README.md) — melyik fájl mit jelent, olvasási sorrend.
 - **Részletes szabályok:** [`GOVERNANCE.md`](GOVERNANCE.md) — dokumentum-osztályok, RACI-light, review-trigger kategóriák, ADR kapcsolat.
+- **Dokumentációs kiválóság (review-minimum, anti-drift, eszkaláció):** [`DOCUMENTATION_EXCELLENCE.md`](DOCUMENTATION_EXCELLENCE.md) — a 9–10-es sáv operatív definíciója.
 - **Architektúra-döntések (opcionális):** [`adr/README.md`](adr/README.md) — új döntéshez `adr/NNN-cim.md` sablon [`adr/template.md`](adr/template.md).
 - **Truth template mappa** (`docs/00_truth_files_template/*`): hosszú távú vízió és policy **referencia**; a **napi operatív** igazság a `docs/live/*` + `PROJECT_CONTEXT.md` (lásd `GOVERNANCE.md` §2).
 

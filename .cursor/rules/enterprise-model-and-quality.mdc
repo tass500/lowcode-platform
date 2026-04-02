@@ -46,6 +46,7 @@ Canonical process + security + handoff: **`docs/DEVELOPMENT_WORKFLOW.md`**.
 # Documentation
 
 - Meaningful public or cross-team behavior: update **`docs/live/02_allapot.md`** and **`docs/live/03_kovetkezo_lepesek.md`** as appropriate.
+- Merge-ready PRs: align with **`docs/DOCUMENTATION_EXCELLENCE.md`** (review-minimum, anti-drift) and **`docs/GOVERNANCE.md`** §8–9.
 - **`docs/00_truth_files_template/*`** — long-horizon **reference templates**; do not use them as a substitute for **`docs/live/*`** updates. Edit only when explicitly in scope and aligned with **`docs/GOVERNANCE.md`**.
 
 # Output (assistant)

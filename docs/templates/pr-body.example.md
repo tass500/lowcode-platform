@@ -20,6 +20,11 @@
 - [ ] Backend: `dotnet build`
 - [ ] Backend: `dotnet test`
 
+## Documentation / review (DoD)
+
+- [ ] `docs/live/02_allapot.md` + `docs/live/03_kovetkezo_lepesek.md` frissítve (ha meaningful változás)
+- [ ] Reviewer minimum: scope + kockázat-sáv + téma-doc / `PROJECT_CONTEXT` ha viselkedés változott — [`DOCUMENTATION_EXCELLENCE.md`](../DOCUMENTATION_EXCELLENCE.md)
+
 ## Risk / rollout
 
 - Risk level: low / medium / high
