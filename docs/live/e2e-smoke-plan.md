@@ -22,6 +22,7 @@ Első futás előtt böngésző motor: `npm run e2e:install-browsers` (a `fronte
 | Parancs | Mit csinál |
 |---------|------------|
 | `bash scripts/e2e-smoke-ci.sh` | Elindítja a backendet + `ng serve`-et, vár az **health** + **dev szerver** URL-re, majd `PW_NO_WEBSERVER=1 npm run e2e` (ajánlott **Git Bash** / Linux / macOS). |
+| `powershell -File scripts/e2e-smoke-ci.ps1` | Ugyanaz, **Windows PowerShell 5.1+** vagy **pwsh** (a repo gyökeréből; `npm` és `dotnet` a PATH-on). |
 | `npm run e2e` | Playwright teszt. Ha **nincs** `PW_NO_WEBSERVER`, a konfig megpróbálja saját `webServer` blokkal indítani a `dotnet run` + `ng serve`-et (lokálisan ez néha kényelmetlen; CI **nem** ezt használja). |
 | `PW_NO_WEBSERVER=1 npm run e2e` | Csak teszt — **előbb** kézzel indítsd a 5002-es backendet és a 4200-as dev szervert két terminálban. |
 
@@ -42,13 +43,12 @@ Első futás előtt böngésző motor: `npm run e2e:install-browsers` (a `fronte
 ## CI
 
 - Workflow: **`.github/workflows/ci.yml`** — job **`frontend-e2e`** (a **`frontend-quality`** után; a **Docker** job erre is vár).
-- Script: **`scripts/e2e-smoke-ci.sh`** — `npx playwright install --with-deps chromium` a jobban, majd a script.
+- Script: **`scripts/e2e-smoke-ci.sh`** — `npx playwright install --with-deps chromium` a jobban, majd a script. Lokálisan Windowson: **`scripts/e2e-smoke-ci.ps1`** (bash nélkül).
 
 ## Következő lépések (backlog)
 
 - BFF / OIDC **happy path** (IdP round-trip, ha van stabil teszt IdP / mock).
 - Részletes oldalak (workflow details, run details) — nagyobb flakiness kockázat.
-- Opcionális: Windowsra dedikált **PowerShell** wrapper a `e2e-smoke-ci.sh` mellé.
 
 ## DoD (E2E iteráció — MVP)
 
