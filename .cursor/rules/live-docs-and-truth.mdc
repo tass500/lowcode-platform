@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Docs policy: truth templates + live docs
 
-Full process (DoR/DoD, PR, handoff): **`docs/DEVELOPMENT_WORKFLOW.md`**. Documentation index: **`docs/README.md`**. Governance: **`docs/GOVERNANCE.md`**.
+Full process (DoR/DoD, PR, handoff): **`docs/DEVELOPMENT_WORKFLOW.md`**. Documentation index: **`docs/README.md`**. Governance: **`docs/GOVERNANCE.md`**. Review bar + anti-drift: **`docs/DOCUMENTATION_EXCELLENCE.md`**.
 
 ## Truth templates (`docs/00_truth_files_template/*`)
 

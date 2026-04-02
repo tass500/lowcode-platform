@@ -5,6 +5,7 @@ Drift-proof observability egy greenfield lowcode platformban.
 
 ## Folyamat — AI / Cursor (takarékos mód)
 - Irányelvek: [`ai-cursor-token-efficiency.md`](ai-cursor-token-efficiency.md), [`docs/DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) §10; `.cursorignore` a repo gyökerében.
+- **Review + doc-sáv (9–10-es cél):** [`DOCUMENTATION_EXCELLENCE.md`](../DOCUMENTATION_EXCELLENCE.md) (emberi minimum merge előtt; anti-drift); governance: [`GOVERNANCE.md`](../GOVERNANCE.md) §8–9.
 - Git: alapértelmezett trunk **`main`** (PR base, `scripts/gh-pr-push-merge.*`, `iter-end`); új branch mindig **`main`**-ről. A remote-on maradhat történeti **`master`** védett szabállyal — új PR-ok **`main`**-re mennek (`gh pr create --base main`). AI szabály: `.cursor/rules/repo-workflow-prs.mdc` (explicit `main`, ne `master` PR base).
 
 ## Jelenlegi állapot – kész
