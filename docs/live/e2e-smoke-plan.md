@@ -33,6 +33,7 @@ Első futás előtt böngésző motor: `npm run e2e:install-browsers` (a `fronte
 2. **`/lowcode/workflows`** — **Workflows** + **New** link.
 3. **`/lowcode/entities`** — **Entities** fejléc + **All runs** link a `main` tartalomban (több „Workflows” link elkerülése: strict mode).
 4. **`/lowcode/workflow-runs`** — **Workflow runs (tenant)** fejléc + **Entities** link a `main` tartalomban.
+5. **`/lowcode/auth`** — **Low-code Auth (dev)** fejléc (BFF/OIDC gombok nélküli teljes login flow nélkül).
 
 ## CI
 
@@ -41,7 +42,7 @@ Első futás előtt böngésző motor: `npm run e2e:install-browsers` (a `fronte
 
 ## Következő lépések (backlog)
 
-- Auth / BFF / OIDC happy path (ha stabil tesztadat és IdP).
+- BFF / OIDC **happy path** (IdP round-trip, ha van stabil teszt IdP / mock).
 - Részletes oldalak (workflow details, run details) — nagyobb flakiness kockázat.
 - Opcionális: Windowsra dedikált **PowerShell** wrapper a `e2e-smoke-ci.sh` mellé.
 
