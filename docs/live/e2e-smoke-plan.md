@@ -39,6 +39,12 @@ Első futás előtt böngésző motor: `npm run e2e:install-browsers` (a `fronte
 7. **`/lowcode/entities/new`** — **New entity** fejléc.
 8. **`/lowcode/admin/tenants`** — **Admin / Tenants** fejléc (API hiba esetén is megjelenik a shell).
 9. **`/upgrade`** — **Upgrade** fejléc.
+10. **`/lowcode/workflows/{uuid}`** — **Workflow** fejléc + **← Workflows** (nem létező azonosító: API hiba, shell megmarad).
+11. **`/lowcode/runs/{uuid}`** — **Workflow run** fejléc + **← Workflows** (ugyanígy).
+12. **`/lowcode/entities/{uuid}`** — **Entity** fejléc + **← Entities** (ugyanígy).
+13. **`/lowcode/entities/{uuid}/records`** — **Entity Records** fejléc + **← Entities** (ugyanígy).
+
+A **10–13** tesztek egy rögzített, üres adatbázisban nem létező UUID-t használnak (`00000000-0000-0000-0000-000000000001`); így nincs szükség seedre, és a részletes útvonalak is lefedettek.
 
 ## CI
 
@@ -48,7 +54,7 @@ Első futás előtt böngésző motor: `npm run e2e:install-browsers` (a `fronte
 ## Következő lépések (backlog)
 
 - BFF / OIDC **happy path** (IdP round-trip, ha van stabil teszt IdP / mock).
-- Részletes oldalak (workflow details, run details) — nagyobb flakiness kockázat.
+- Részletes oldalak **létező** erőforrással (seed / fixture) — ha kell mélyebb E2E.
 
 ## DoD (E2E iteráció — MVP)
 
