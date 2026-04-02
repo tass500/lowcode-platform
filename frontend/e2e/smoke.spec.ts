@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
 
+/** Valid UUID unlikely to exist in a fresh CI DB — details pages render shell + API error. */
+const MISSING_ID = '00000000-0000-0000-0000-000000000001';
+
 test.describe('Low-code smoke', () => {
   test('root redirects to workflows', async ({ page }) => {
     await page.goto('/');
@@ -51,5 +54,29 @@ test.describe('Low-code smoke', () => {
     await page.goto('/upgrade');
     // Substring match would also hit "Start upgrade run" / "Upgrade run details" (h3) — use exact.
     await expect(page.getByRole('heading', { name: 'Upgrade', exact: true })).toBeVisible();
+  });
+
+  test('workflow details page renders shell (missing id)', async ({ page }) => {
+    await page.goto(`/lowcode/workflows/${MISSING_ID}`);
+    await expect(page.getByRole('heading', { name: 'Workflow' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '← Workflows' })).toBeVisible();
+  });
+
+  test('workflow run details page renders shell (missing id)', async ({ page }) => {
+    await page.goto(`/lowcode/runs/${MISSING_ID}`);
+    await expect(page.getByRole('heading', { name: 'Workflow run' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '← Workflows' })).toBeVisible();
+  });
+
+  test('entity details page renders shell (missing id)', async ({ page }) => {
+    await page.goto(`/lowcode/entities/${MISSING_ID}`);
+    await expect(page.getByRole('heading', { name: 'Entity' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '← Entities' })).toBeVisible();
+  });
+
+  test('entity records page renders shell (missing entity id)', async ({ page }) => {
+    await page.goto(`/lowcode/entities/${MISSING_ID}/records`);
+    await expect(page.getByRole('heading', { name: 'Entity Records' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '← Entities' })).toBeVisible();
   });
 });
