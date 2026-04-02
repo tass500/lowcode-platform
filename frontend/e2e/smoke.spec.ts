@@ -25,4 +25,10 @@ test.describe('Low-code smoke', () => {
     await expect(page.getByRole('heading', { name: 'Workflow runs (tenant)' })).toBeVisible();
     await expect(page.getByRole('main').getByRole('link', { name: 'Entities' })).toBeVisible();
   });
+
+  /** Dev auth shell (no IdP round-trip — no OIDC login flow). */
+  test('auth page renders shell', async ({ page }) => {
+    await page.goto('/lowcode/auth');
+    await expect(page.getByRole('heading', { name: 'Low-code Auth (dev)' })).toBeVisible();
+  });
 });
