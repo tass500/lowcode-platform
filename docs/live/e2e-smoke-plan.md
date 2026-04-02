@@ -27,10 +27,12 @@ Első futás előtt böngésző motor: `npm run e2e:install-browsers` (a `fronte
 
 **Megjegyzés (Windows):** az `ng serve` gyakran **`http://localhost:4200`**-on válaszol; a **`127.0.0.1:4200`** nem mindig ugyanaz a stacken. A Playwright **`baseURL`** és a CI script **`localhost:4200`**-at használ.
 
-## Első forgatókönyv (MVP) — kész
+## Forgatókönyvek (smoke) — kész
 
-1. Navigálás: `/lowcode/workflows`.
-2. Assert: **„Workflows”** fejléc + **„New”** link látható.
+1. **`/`** → átirányítás **`/lowcode/workflows`**, **Workflows** fejléc.
+2. **`/lowcode/workflows`** — **Workflows** + **New** link.
+3. **`/lowcode/entities`** — **Entities** fejléc + **All runs** link a `main` tartalomban (több „Workflows” link elkerülése: strict mode).
+4. **`/lowcode/workflow-runs`** — **Workflow runs (tenant)** fejléc + **Entities** link a `main` tartalomban.
 
 ## CI
 
@@ -39,7 +41,8 @@ Első futás előtt böngésző motor: `npm run e2e:install-browsers` (a `fronte
 
 ## Következő lépések (backlog)
 
-- További útvonalak (auth / entitás lista), ha a termék prioritást ad.
+- Auth / BFF / OIDC happy path (ha stabil tesztadat és IdP).
+- Részletes oldalak (workflow details, run details) — nagyobb flakiness kockázat.
 - Opcionális: Windowsra dedikált **PowerShell** wrapper a `e2e-smoke-ci.sh` mellé.
 
 ## DoD (E2E iteráció — MVP)
