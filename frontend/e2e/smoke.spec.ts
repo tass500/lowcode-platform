@@ -31,4 +31,24 @@ test.describe('Low-code smoke', () => {
     await page.goto('/lowcode/auth');
     await expect(page.getByRole('heading', { name: 'Low-code Auth (dev)' })).toBeVisible();
   });
+
+  test('new workflow page renders shell', async ({ page }) => {
+    await page.goto('/lowcode/workflows/new');
+    await expect(page.getByRole('heading', { name: 'New workflow' })).toBeVisible();
+  });
+
+  test('new entity page renders shell', async ({ page }) => {
+    await page.goto('/lowcode/entities/new');
+    await expect(page.getByRole('heading', { name: 'New entity' })).toBeVisible();
+  });
+
+  test('admin tenants page renders shell', async ({ page }) => {
+    await page.goto('/lowcode/admin/tenants');
+    await expect(page.getByRole('heading', { name: 'Admin / Tenants' })).toBeVisible();
+  });
+
+  test('upgrade page renders shell', async ({ page }) => {
+    await page.goto('/upgrade');
+    await expect(page.getByRole('heading', { name: 'Upgrade' })).toBeVisible();
+  });
 });

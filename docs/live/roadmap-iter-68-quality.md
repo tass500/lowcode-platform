@@ -117,7 +117,7 @@ Kapcsolódó: [`workflow-import-export.md`](workflow-import-export.md).
 
 ## E2E smoke — Playwright MVP (kész)
 
-- **`frontend/e2e/smoke.spec.ts`** — **`/`** → workflows; **`/lowcode/workflows`**; **`/lowcode/entities`**; **`/lowcode/workflow-runs`**; **`/lowcode/auth`** (fejlécek + toolbar linkek ahol kell; lásd doc).
+- **`frontend/e2e/smoke.spec.ts`** — **`/`** → workflows; lista oldalak; **`/lowcode/auth`**; **New workflow/entity**; **Admin tenants**; **Upgrade** (részletek: [`e2e-smoke-plan.md`](e2e-smoke-plan.md)).
 - **`frontend/playwright.config.ts`** — `baseURL` `http://localhost:4200`; opcionális beépített `webServer`; CI / kézi indításnál **`PW_NO_WEBSERVER=1`**.
 - **`scripts/e2e-smoke-ci.sh`** — backend (`5002`) + `ng serve` (`4200`), majd Playwright; CI ezt hívja.
 - CI job: **`frontend-e2e`** — részletek: [`e2e-smoke-plan.md`](e2e-smoke-plan.md).

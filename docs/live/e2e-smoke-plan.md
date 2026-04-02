@@ -34,6 +34,10 @@ Első futás előtt böngésző motor: `npm run e2e:install-browsers` (a `fronte
 3. **`/lowcode/entities`** — **Entities** fejléc + **All runs** link a `main` tartalomban (több „Workflows” link elkerülése: strict mode).
 4. **`/lowcode/workflow-runs`** — **Workflow runs (tenant)** fejléc + **Entities** link a `main` tartalomban.
 5. **`/lowcode/auth`** — **Low-code Auth (dev)** fejléc (BFF/OIDC gombok nélküli teljes login flow nélkül).
+6. **`/lowcode/workflows/new`** — **New workflow** fejléc.
+7. **`/lowcode/entities/new`** — **New entity** fejléc.
+8. **`/lowcode/admin/tenants`** — **Admin / Tenants** fejléc (API hiba esetén is megjelenik a shell).
+9. **`/upgrade`** — **Upgrade** fejléc.
 
 ## CI
 
