@@ -32,6 +32,7 @@ Tests live in `e2e/`. The **CI smoke** suite is `e2e/smoke.spec.ts` only.
 - `npm run e2e:smoke:ui` / `npm run e2e:smoke:debug` — **UI mode** / **debug** for the smoke file only (same as `e2e:ui` / `e2e:debug` with `e2e/smoke.spec.ts` passed explicitly).
 - `npm run e2e` — all specs under `e2e/` (may spawn servers via `playwright.config.ts` unless `PW_NO_WEBSERVER=1`).
 - `npm run e2e:ui` / `npm run e2e:debug` — Playwright **UI mode** / **debug** for all specs (set `PW_NO_WEBSERVER=1` when servers are already running).
+- `npm run e2e:report` — open the last **HTML** report (written under `playwright-report/` on non-CI runs; gitignored).
 
 Full scenario list and backlog: [`docs/live/e2e-smoke-plan.md`](../docs/live/e2e-smoke-plan.md) (repo root). **CodeQL** (build-mode): [`docs/live/ci-codeql.md`](../docs/live/ci-codeql.md).
 

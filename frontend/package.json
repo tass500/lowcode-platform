@@ -14,7 +14,8 @@
     "e2e:smoke:debug": "playwright test e2e/smoke.spec.ts --debug",
     "e2e:ui": "playwright test --ui",
     "e2e:debug": "playwright test --debug",
-    "e2e:install-browsers": "playwright install chromium"
+    "e2e:install-browsers": "playwright install chromium",
+    "e2e:report": "playwright show-report"
   },
   "private": true,
   "dependencies": {
