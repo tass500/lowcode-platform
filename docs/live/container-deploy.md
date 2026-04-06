@@ -5,8 +5,18 @@
 A repo gyökeréből:
 
 ```bash
-docker compose -f deploy/docker/docker-compose.yml up --build
+docker compose -f deploy/docker/docker-compose.yml up --build -d
 ```
+
+Háttérben futtatáshoz a `-d` (detached) zászló; logok: `docker compose -f deploy/docker/docker-compose.yml logs -f`.
+
+**Windows (Docker Desktop):** indítsd a **Docker Desktop**ot és várd meg, amíg az engine fut (System tray: *Docker Desktop is running*). Ha a `docker compose` parancs nem érhető el (régebbi CLI), használd ugyanígy a **`docker-compose`** binárist (kötőjel):
+
+```bash
+docker-compose -f deploy/docker/docker-compose.yml up --build -d
+```
+
+A `.dockerignore` kizárja a **`frontend/.angular`** cache mappát — nélküle a build context Windows-on könnyen több száz MB, és a `docker build` megbízhatatlan lehet.
 
 - **UI + API proxy:** http://localhost:8080 — az nginx a `/api/*` kéréseket a backend konténernek adja (8080).
 - **Tenant:** `localhost` host esetén a backend a **`default`** tenant slugot használja (`TenantContext`), a compose példa ehhez ad `Tenancy__Secrets__default` connection stringet.
