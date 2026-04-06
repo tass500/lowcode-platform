@@ -35,16 +35,17 @@ Első futás előtt böngésző motor: `npm run e2e:install-browsers` (a `fronte
 3. **`/lowcode/entities`** — **Entities** fejléc + **All runs** link a `main` tartalomban (több „Workflows” link elkerülése: strict mode).
 4. **`/lowcode/workflow-runs`** — **Workflow runs (tenant)** fejléc + **Entities** link a `main` tartalomban.
 5. **`/lowcode/auth`** — **Low-code Auth (dev)** fejléc (BFF/OIDC gombok nélküli teljes login flow nélkül).
-6. **`/lowcode/workflows/new`** — **New workflow** fejléc.
-7. **`/lowcode/entities/new`** — **New entity** fejléc.
-8. **`/lowcode/admin/tenants`** — **Admin / Tenants** fejléc (API hiba esetén is megjelenik a shell).
-9. **`/upgrade`** — **Upgrade** fejléc.
-10. **`/lowcode/workflows/{uuid}`** — **Workflow** fejléc + **← Workflows** (nem létező azonosító: API hiba, shell megmarad).
-11. **`/lowcode/runs/{uuid}`** — **Workflow run** fejléc + **← Workflows** (ugyanígy).
-12. **`/lowcode/entities/{uuid}`** — **Entity** fejléc + **← Entities** (ugyanígy).
-13. **`/lowcode/entities/{uuid}/records`** — **Entity Records** fejléc + **← Entities** (ugyanígy).
+6. **`/lowcode/auth/callback`** — **Vissza az auth oldalra** link (OIDC callback shell; teljes token flow nem része a smoke-nak).
+7. **`/lowcode/workflows/new`** — **New workflow** fejléc.
+8. **`/lowcode/entities/new`** — **New entity** fejléc.
+9. **`/lowcode/admin/tenants`** — **Admin / Tenants** fejléc (API hiba esetén is megjelenik a shell).
+10. **`/upgrade`** — **Upgrade** fejléc.
+11. **`/lowcode/workflows/{uuid}`** — **Workflow** fejléc + **← Workflows** (nem létező azonosító: API hiba, shell megmarad).
+12. **`/lowcode/runs/{uuid}`** — **Workflow run** fejléc + **← Workflows** (ugyanígy).
+13. **`/lowcode/entities/{uuid}`** — **Entity** fejléc + **← Entities** (ugyanígy).
+14. **`/lowcode/entities/{uuid}/records`** — **Entity Records** fejléc + **← Entities** (ugyanígy).
 
-A **10–13** tesztek egy rögzített, üres adatbázisban nem létező UUID-t használnak (`00000000-0000-0000-0000-000000000001`); így nincs szükség seedre, és a részletes útvonalak is lefedettek.
+A **11–14** tesztek egy rögzített, üres adatbázisban nem létező UUID-t használnak (`00000000-0000-0000-0000-000000000001`); így nincs szükség seedre, és a részletes útvonalak is lefedettek.
 
 ## CI
 
