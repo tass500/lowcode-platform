@@ -35,6 +35,12 @@ test.describe('Low-code smoke', () => {
     await expect(page.getByRole('heading', { name: 'Low-code Auth (dev)' })).toBeVisible();
   });
 
+  /** OAuth redirect target; template always exposes back link (loading vs error is async / env-dependent). */
+  test('auth callback page renders shell', async ({ page }) => {
+    await page.goto('/lowcode/auth/callback');
+    await expect(page.getByRole('link', { name: 'Vissza az auth oldalra' })).toBeVisible();
+  });
+
   test('new workflow page renders shell', async ({ page }) => {
     await page.goto('/lowcode/workflows/new');
     await expect(page.getByRole('heading', { name: 'New workflow' })).toBeVisible();
