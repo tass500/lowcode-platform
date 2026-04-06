@@ -160,7 +160,7 @@ Ajánlott a GitHub repo beállításaiban (`Settings → Branches`) a default br
 - **Require a pull request before merging**
 - **Require status checks to pass before merging**
   - `CI` (workflow)
-  - `CodeQL` (workflow)
+  - `CodeQL` (workflow) — details: [`live/ci-codeql.md`](live/ci-codeql.md)
 - **Require conversation resolution before merging**
 
 Ez biztosítja, hogy a dokumentált quality gate-ek ténylegesen ki is legyenek kényszerítve.
