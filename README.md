@@ -35,6 +35,9 @@ Run the **backend** and **Angular dev server** on the same machine; the SPA call
 3. **Optional: BFF + OIDC** (server-side session cookie, `withCredentials` from the SPA)  
    - Configuration and local smoke steps: [`docs/live/auth-bff-httponly.md`](docs/live/auth-bff-httponly.md) (sections on local dev smoke and test IdP registration).
 
+4. **Optional: Docker Compose** (nginx + API + SQLite volume)  
+   - From repo root: [`docs/live/container-deploy.md`](docs/live/container-deploy.md) — UI at **http://localhost:8080**.
+
 Command cheat sheet (details and quality gates): [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Iteration sizing rule

@@ -29,7 +29,7 @@ Thanks for your interest in contributing.
   - First time: `npm run e2e:install-browsers`
   - From **repo root** (starts backend + `ng serve`, runs smoke): `bash scripts/e2e-smoke-ci.sh` or `powershell -File scripts/e2e-smoke-ci.ps1`
   - Or with servers already running: in `frontend/`, set `PW_NO_WEBSERVER=1` and `npm run e2e:smoke` (see [`frontend/README.md`](frontend/README.md) and [`docs/live/e2e-smoke-plan.md`](docs/live/e2e-smoke-plan.md)).
-  - Local debugging: in `frontend/`, `npm run e2e:ui` or `npm run e2e:debug` (often with `PW_NO_WEBSERVER=1` and servers up).
+  - Local debugging: in `frontend/`, `npm run e2e:smoke:ui` / `npm run e2e:smoke:debug` (smoke only) or `npm run e2e:ui` / `npm run e2e:debug` (all specs); often with `PW_NO_WEBSERVER=1` and servers up.
 - Optional **BFF OAuth** (same proxy rules as above): [`docs/live/auth-bff-httponly.md`](docs/live/auth-bff-httponly.md) — **62c+ — helyi dev smoke** (proxy, `redirect_uri`) and **62c+ — teszt IdP regisztráció** (IdP app / PKCE checklist).
 
 ## Pull requests

@@ -60,7 +60,7 @@ A **11–14** tesztek egy rögzített, üres adatbázisban nem létező UUID-t h
 
 ## DoD (E2E iteráció — MVP)
 
-- `package.json` script: `npm run e2e`, `npm run e2e:smoke` (CI / smoke), `npm run e2e:ui` / `npm run e2e:debug` (lokális), `npm run e2e:install-browsers`.
+- `package.json` script: `npm run e2e`, `npm run e2e:smoke` (CI / smoke), `npm run e2e:smoke:ui` / `npm run e2e:smoke:debug` (smoke + UI/debug), `npm run e2e:ui` / `npm run e2e:debug` (összes spec), `npm run e2e:install-browsers`.
 - CI-ben zöld **`frontend-e2e`** job.
 - Új dependency: **`@playwright/test`** — governance szerint dependency review / jóváhagyás; lásd `docs/GOVERNANCE.md`.
 

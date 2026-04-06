@@ -10,6 +10,8 @@
     "test": "ng test",
     "e2e": "playwright test",
     "e2e:smoke": "playwright test e2e/smoke.spec.ts",
+    "e2e:smoke:ui": "playwright test e2e/smoke.spec.ts --ui",
+    "e2e:smoke:debug": "playwright test e2e/smoke.spec.ts --debug",
     "e2e:ui": "playwright test --ui",
     "e2e:debug": "playwright test --debug",
     "e2e:install-browsers": "playwright install chromium"
