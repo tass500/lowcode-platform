@@ -9,6 +9,7 @@
     "lint": "ng lint",
     "test": "ng test",
     "e2e": "playwright test",
+    "e2e:smoke": "playwright test e2e/smoke.spec.ts",
     "e2e:install-browsers": "playwright install chromium"
   },
   "private": true,
