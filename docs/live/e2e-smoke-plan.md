@@ -60,12 +60,13 @@ A **11–14** tesztek egy rögzített, üres adatbázisban nem létező UUID-t h
 
 ## DoD (E2E iteráció — MVP)
 
-- `package.json` script: `npm run e2e`, `npm run e2e:smoke` (CI / smoke), `npm run e2e:install-browsers`.
+- `package.json` script: `npm run e2e`, `npm run e2e:smoke` (CI / smoke), `npm run e2e:ui` / `npm run e2e:debug` (lokális), `npm run e2e:install-browsers`.
 - CI-ben zöld **`frontend-e2e`** job.
 - Új dependency: **`@playwright/test`** — governance szerint dependency review / jóváhagyás; lásd `docs/GOVERNANCE.md`.
 
 ## Kapcsolódó
 
 - Közreműködői parancsok: [`CONTRIBUTING.md`](../../CONTRIBUTING.md) · [`frontend/README.md`](../../frontend/README.md)
+- CodeQL CI: [`ci-codeql.md`](ci-codeql.md)
 - Termék útvonalak: [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md)
 - Minőség 68 (API szerződés): [`roadmap-iter-68-quality.md`](roadmap-iter-68-quality.md)
