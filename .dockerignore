@@ -5,8 +5,11 @@
 **/bin
 **/obj
 **/node_modules
+**/.angular
 **/dist
 **/coverage
+**/test-results
+**/playwright-report
 backend/LowCodePlatform.Backend.Tests/
 **/*.user
 **/*.suo
