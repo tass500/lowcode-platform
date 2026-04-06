@@ -24,9 +24,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language:
-          - csharp
-          - javascript-typescript
+        include:
+          # Explicit build-mode avoids CodeQL warnings about overlay DB / undefined mode when using manual build steps.
+          - language: csharp
+            build-mode: manual
+          - language: javascript-typescript
+            build-mode: none
 
     steps:
       - name: Checkout
@@ -36,6 +39,7 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
           config-file: ./.github/codeql/codeql-config.yml
 
       - name: Setup .NET
