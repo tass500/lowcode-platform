@@ -45,7 +45,7 @@ try {
   Set-Location (Join-Path $Root 'frontend')
   $env:PW_NO_WEBSERVER = '1'
   $env:CI = 'true'
-  & npm run e2e
+  & npm run e2e:smoke
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 finally {

@@ -29,4 +29,4 @@ curl -sf "http://localhost:4200/" >/dev/null
 cd frontend
 export PW_NO_WEBSERVER=1
 export CI=true
-npm run e2e
+npm run e2e:smoke

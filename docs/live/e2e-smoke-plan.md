@@ -21,10 +21,11 @@ Első futás előtt böngésző motor: `npm run e2e:install-browsers` (a `fronte
 
 | Parancs | Mit csinál |
 |---------|------------|
-| `bash scripts/e2e-smoke-ci.sh` | Elindítja a backendet + `ng serve`-et, vár az **health** + **dev szerver** URL-re, majd `PW_NO_WEBSERVER=1 npm run e2e` (ajánlott **Git Bash** / Linux / macOS). |
+| `bash scripts/e2e-smoke-ci.sh` | Elindítja a backendet + `ng serve`-et, vár az **health** + **dev szerver** URL-re, majd `PW_NO_WEBSERVER=1 npm run e2e:smoke` (csak `e2e/smoke.spec.ts`; ajánlott **Git Bash** / Linux / macOS). |
 | `powershell -File scripts/e2e-smoke-ci.ps1` | Ugyanaz, **Windows PowerShell 5.1+** vagy **pwsh** (a repo gyökeréből; `npm` és `dotnet` a PATH-on). |
-| `npm run e2e` | Playwright teszt. Ha **nincs** `PW_NO_WEBSERVER`, a konfig megpróbálja saját `webServer` blokkal indítani a `dotnet run` + `ng serve`-et (lokálisan ez néha kényelmetlen; CI **nem** ezt használja). |
-| `PW_NO_WEBSERVER=1 npm run e2e` | Csak teszt — **előbb** kézzel indítsd a 5002-es backendet és a 4200-as dev szervert két terminálban. |
+| `npm run e2e` | Összes Playwright teszt az `e2e/` alatt. Ha **nincs** `PW_NO_WEBSERVER`, a konfig megpróbálja saját `webServer` blokkal indítani a `dotnet run` + `ng serve`-et (lokálisan ez néha kényelmetlen; CI **nem** ezt használja). |
+| `npm run e2e:smoke` | Csak a **smoke** fájl (`e2e/smoke.spec.ts`) — ezt futtatja a CI script is. |
+| `PW_NO_WEBSERVER=1 npm run e2e:smoke` | Csak smoke — **előbb** kézzel indítsd a 5002-es backendet és a 4200-as dev szervert két terminálban. |
 
 **Megjegyzés (Windows):** az `ng serve` gyakran **`http://localhost:4200`**-on válaszol; a **`127.0.0.1:4200`** nem mindig ugyanaz a stacken. A Playwright **`baseURL`** és a CI script **`localhost:4200`**-at használ.
 
@@ -50,7 +51,7 @@ A **11–14** tesztek egy rögzített, üres adatbázisban nem létező UUID-t h
 ## CI
 
 - Workflow: **`.github/workflows/ci.yml`** — job **`frontend-e2e`** (a **`frontend-quality`** után; a **Docker** job erre is vár).
-- Script: **`scripts/e2e-smoke-ci.sh`** — `npx playwright install --with-deps chromium` a jobban, majd a script. Lokálisan Windowson: **`scripts/e2e-smoke-ci.ps1`** (bash nélkül).
+- Script: **`scripts/e2e-smoke-ci.sh`** — `npx playwright install --with-deps chromium` a jobban, majd a script (`npm run e2e:smoke`). Lokálisan Windowson: **`scripts/e2e-smoke-ci.ps1`** (bash nélkül).
 
 ## Következő lépések (backlog)
 
@@ -59,7 +60,7 @@ A **11–14** tesztek egy rögzített, üres adatbázisban nem létező UUID-t h
 
 ## DoD (E2E iteráció — MVP)
 
-- `package.json` script: `npm run e2e`, `npm run e2e:install-browsers`.
+- `package.json` script: `npm run e2e`, `npm run e2e:smoke` (CI / smoke), `npm run e2e:install-browsers`.
 - CI-ben zöld **`frontend-e2e`** job.
 - Új dependency: **`@playwright/test`** — governance szerint dependency review / jóváhagyás; lásd `docs/GOVERNANCE.md`.
 
