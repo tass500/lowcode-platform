@@ -66,5 +66,6 @@ A **11–14** tesztek egy rögzített, üres adatbázisban nem létező UUID-t h
 
 ## Kapcsolódó
 
+- Közreműködői parancsok: [`CONTRIBUTING.md`](../../CONTRIBUTING.md) · [`frontend/README.md`](../../frontend/README.md)
 - Termék útvonalak: [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md)
 - Minőség 68 (API szerződés): [`roadmap-iter-68-quality.md`](roadmap-iter-68-quality.md)
