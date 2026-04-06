@@ -18,6 +18,7 @@ docker-compose -f deploy/docker/docker-compose.yml up --build -d
 
 A `.dockerignore` kizárja a **`frontend/.angular`** cache mappát — nélküle a build context Windows-on könnyen több száz MB, és a `docker build` megbízhatatlan lehet.
 
+- **Indítási sorrend:** a backend konténerben **`GET /health`** alapú healthcheck fut; a frontend (nginx) **`depends_on: service_healthy`** miatt csak ezután indul — elkerülhető az első kérések 502-je. A runtime image-ben **`curl`** van a healthcheckhez (`Dockerfile.backend`).
 - **UI + API proxy:** http://localhost:8080 — az nginx a `/api/*` kéréseket a backend konténernek adja (8080).
 - **Tenant:** `localhost` host esetén a backend a **`default`** tenant slugot használja (`TenantContext`), a compose példa ehhez ad `Tenancy__Secrets__default` connection stringet.
 - **Adat:** SQLite fájlok a `lowcode-data` Docker volume-ban (`/data` a backend konténerben).
