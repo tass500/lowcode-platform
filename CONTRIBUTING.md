@@ -19,6 +19,7 @@ Thanks for your interest in contributing.
 
 - Install:
   - `cd frontend && npm ci`
+- **Windows — `EPERM` / `unlink` during `npm ci` (often `esbuild.exe`):** stop the dev server first (**Ctrl+C** where `npm start` / `ng serve` is running). Those processes lock files under `node_modules`. If it persists, end stray **Node.js** processes in Task Manager or add a short-lived antivirus exclusion for the repo folder.
 - Dev server — `frontend/proxy.conf.json` proxies **`/api`** → **`http://localhost:5002`** with **`changeOrigin: false`** (keep backend `Host` aligned with the SPA origin for tenant + BFF):
   - `npm start` or `ng serve` (default **http://localhost:4200**)
 - Lint:
