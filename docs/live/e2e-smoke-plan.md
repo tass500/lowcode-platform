@@ -25,6 +25,7 @@ Első futás előtt böngésző motor: `npm run e2e:install-browsers` (a `fronte
 | `powershell -File scripts/e2e-smoke-ci.ps1` | Ugyanaz, **Windows PowerShell 5.1+** vagy **pwsh** (a repo gyökeréből; `npm` és `dotnet` a PATH-on). |
 | `npm run e2e` | Összes Playwright teszt az `e2e/` alatt. Ha **nincs** `PW_NO_WEBSERVER`, a konfig megpróbálja saját `webServer` blokkal indítani a `dotnet run` + `ng serve`-et (lokálisan ez néha kényelmetlen; CI **nem** ezt használja). |
 | `npm run e2e:smoke` | Csak a **smoke** fájl (`e2e/smoke.spec.ts`) — ezt futtatja a CI script is. |
+| `npm run e2e:seeded` | **`workflow-seeded.spec.ts`**: dev-token + `POST /api/workflows`, majd SPA session injektálás → létező workflow részletek (nem része a CI smoke-nak). |
 | `PW_NO_WEBSERVER=1 npm run e2e:smoke` | Csak smoke — **előbb** kézzel indítsd a 5002-es backendet és a 4200-as dev szervert két terminálban. |
 
 **Megjegyzés (Windows):** az `ng serve` gyakran **`http://localhost:4200`**-on válaszol; a **`127.0.0.1:4200`** nem mindig ugyanaz a stacken. A Playwright **`baseURL`** és a CI script **`localhost:4200`**-at használ.
@@ -48,6 +49,10 @@ Első futás előtt böngésző motor: `npm run e2e:install-browsers` (a `fronte
 
 A **11–14** tesztek egy rögzített, üres adatbázisban nem létező UUID-t használnak (`00000000-0000-0000-0000-000000000001`); így nincs szükség seedre, és a részletes útvonalak is lefedettek.
 
+### Seedelt workflow (opcionális, nem CI smoke)
+
+A **`e2e/workflow-seeded.spec.ts`** a backendhez közvetlenül hív (`http://localhost:5002`): `POST /api/auth/dev-token` (tenant: `default`), majd `POST /api/workflows` JWT-vel. A böngészőben `sessionStorage` (`lcp.lowcode.session.v1`) beállítása után megnyitja `/lowcode/workflows/{id}` és ellenőrzi a workflow nevét. **Ne** használj `127.0.0.1`-et az API base URL-hez fejlesztői módban a tenant feloldás miatt; az env **`E2E_API_BASE`** felülírhatja az alapértelmezett `http://localhost:5002`-t.
+
 ## CI
 
 - Workflow: **`.github/workflows/ci.yml`** — job **`frontend-e2e`** (a **`frontend-quality`** után; a **Docker** job erre is vár).
@@ -56,11 +61,11 @@ A **11–14** tesztek egy rögzített, üres adatbázisban nem létező UUID-t h
 ## Következő lépések (backlog)
 
 - BFF / OIDC **happy path** (IdP round-trip, ha van stabil teszt IdP / mock).
-- Részletes oldalak **létező** erőforrással (seed / fixture) — ha kell mélyebb E2E.
+- További részletes oldalak **létező** erőforrással (entity / run) — kiterjeszthető az `e2e:seeded` mintára.
 
 ## DoD (E2E iteráció — MVP)
 
-- `package.json` script: `npm run e2e`, `npm run e2e:smoke` (CI / smoke), `npm run e2e:smoke:ui` / `npm run e2e:smoke:debug` (smoke + UI/debug), `npm run e2e:ui` / `npm run e2e:debug` (összes spec), `npm run e2e:report` (HTML riport böngészőben; lokálisan), `npm run e2e:install-browsers`.
+- `package.json` script: `npm run e2e`, `npm run e2e:smoke` (CI / smoke), `npm run e2e:seeded` (opcionális seedelt workflow E2E), `npm run e2e:smoke:ui` / `npm run e2e:smoke:debug` (smoke + UI/debug), `npm run e2e:ui` / `npm run e2e:debug` (összes spec), `npm run e2e:report` (HTML riport böngészőben; lokálisan), `npm run e2e:install-browsers`.
 - CI-ben zöld **`frontend-e2e`** job.
 - Új dependency: **`@playwright/test`** — governance szerint dependency review / jóváhagyás; lásd `docs/GOVERNANCE.md`.
 
