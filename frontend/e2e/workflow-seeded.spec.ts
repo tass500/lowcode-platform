@@ -1,32 +1,18 @@
 import { test, expect } from '@playwright/test';
-
-/**
- * Uses backend dev-token + POST /api/workflows, then injects SPA session so the browser
- * loads workflow details with a real row. API calls use `localhost` (not 127.0.0.1) so
- * Development tenant resolution matches the default tenant; see TenantResolutionMiddleware.
- */
-const API_BASE = process.env.E2E_API_BASE ?? 'http://localhost:5002';
-
-const SESSION_KEY = 'lcp.lowcode.session.v1';
+import { API_BASE, injectLowCodeSession, mintDevToken } from './seeded-helpers';
 
 const MINIMAL_DEF = '{"steps":[{"type":"noop"}]}';
 
 test.describe('Workflow details (seeded)', () => {
   test('shows name for workflow created via API', async ({ page, request }) => {
-    const wfName = `e2e-seeded-${Date.now()}`;
+    const wfName = `e2e-seeded-wf-${Date.now()}`;
 
-    const tokenResp = await request.post(`${API_BASE}/api/auth/dev-token`, {
-      headers: { 'Content-Type': 'application/json' },
-      data: { subject: 'e2e-workflow-seeded', tenantSlug: 'default', roles: [] },
-    });
-    expect(tokenResp.ok(), await tokenResp.text()).toBeTruthy();
-    const tokenJson = (await tokenResp.json()) as { accessToken: string };
-    expect(tokenJson.accessToken).toBeTruthy();
+    const accessToken = await mintDevToken(request);
 
     const createResp = await request.post(`${API_BASE}/api/workflows`, {
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${tokenJson.accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
       data: { name: wfName, definitionJson: MINIMAL_DEF },
     });
@@ -37,17 +23,7 @@ test.describe('Workflow details (seeded)', () => {
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
     );
 
-    const sessionPayload = JSON.stringify({
-      tenantSlug: 'default',
-      accessToken: tokenJson.accessToken,
-    });
-
-    await page.addInitScript(
-      ({ key, payload }: { key: string; payload: string }) => {
-        sessionStorage.setItem(key, payload);
-      },
-      { key: SESSION_KEY, payload: sessionPayload },
-    );
+    await injectLowCodeSession(page, accessToken);
 
     const getWorkflow = page.waitForResponse(
       (r) =>
