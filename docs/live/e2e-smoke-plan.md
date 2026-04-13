@@ -25,7 +25,7 @@ Első futás előtt böngésző motor: `npm run e2e:install-browsers` (a `fronte
 | `powershell -File scripts/e2e-smoke-ci.ps1` | Ugyanaz, **Windows PowerShell 5.1+** vagy **pwsh** (a repo gyökeréből; `npm` és `dotnet` a PATH-on). |
 | `npm run e2e` | Összes Playwright teszt az `e2e/` alatt. Ha **nincs** `PW_NO_WEBSERVER`, a konfig megpróbálja saját `webServer` blokkal indítani a `dotnet run` + `ng serve`-et (lokálisan ez néha kényelmetlen; CI **nem** ezt használja). |
 | `npm run e2e:smoke` | Csak a **smoke** fájl (`e2e/smoke.spec.ts`) — ezt futtatja a CI script is. |
-| `npm run e2e:seeded` | **`workflow-seeded.spec.ts`** + **`entity-seeded.spec.ts`**: közös **`e2e/seeded-helpers.ts`** (dev-token, session); API seed → létező workflow / entity részletek (nem része a CI smoke-nak). |
+| `npm run e2e:seeded` | **`workflow-seeded`**, **`entity-seeded`**, **`run-seeded`**: közös **`e2e/seeded-helpers.ts`** (dev-token, session); API seed → létező workflow / entity / **workflow run** részletek (nem része a CI smoke-nak). |
 | `PW_NO_WEBSERVER=1 npm run e2e:smoke` | Csak smoke — **előbb** kézzel indítsd a 5002-es backendet és a 4200-as dev szervert két terminálban. |
 
 **Megjegyzés (Windows):** az `ng serve` gyakran **`http://localhost:4200`**-on válaszol; a **`127.0.0.1:4200`** nem mindig ugyanaz a stacken. A Playwright **`baseURL`** és a CI script **`localhost:4200`**-at használ.
@@ -51,7 +51,7 @@ A **11–14** tesztek egy rögzített, üres adatbázisban nem létező UUID-t h
 
 ### Seedelt workflow / entity (opcionális, nem CI smoke)
 
-A **`e2e/seeded-helpers.ts`** adja a dev-token + SPA session injektálást. A **`e2e/workflow-seeded.spec.ts`** `POST /api/workflows`-ot hív; az **`e2e/entity-seeded.spec.ts`** `POST /api/entities`-t; majd `/lowcode/workflows/{id}` illetve `/lowcode/entities/{id}` ellenőrzése (GET 200 + név a `main`-ben). **Ne** használj `127.0.0.1`-et az API base URL-hez fejlesztői módban a tenant feloldás miatt; az env **`E2E_API_BASE`** felülírhatja az alapértelmezett `http://localhost:5002`-t.
+A **`e2e/seeded-helpers.ts`** adja a dev-token + SPA session injektálást. A **`workflow-seeded`** `POST /api/workflows` + részletek; **`entity-seeded`** `POST /api/entities` + részletek; **`run-seeded`** noop workflow létrehozása, majd `POST /api/workflows/{id}/runs` és `/lowcode/runs/{runId}` (GET run details 200, **Run** sor a `main`-ben). **Ne** használj `127.0.0.1`-et az API base URL-hez fejlesztői módban a tenant feloldás miatt; az env **`E2E_API_BASE`** felülírhatja az alapértelmezett `http://localhost:5002`-t.
 
 ## CI
 
@@ -61,11 +61,11 @@ A **`e2e/seeded-helpers.ts`** adja a dev-token + SPA session injektálást. A **
 ## Következő lépések (backlog)
 
 - BFF / OIDC **happy path** (IdP round-trip, ha van stabil teszt IdP / mock).
-- Seedelt **workflow run** részletek — kiterjeszthető az `e2e:seeded` mintára (`POST` futás + `/lowcode/runs/{id}`).
+- Opcionális: seedelt **entity records** lista (`POST` rekord + `/lowcode/entities/{id}/records`).
 
 ## DoD (E2E iteráció — MVP)
 
-- `package.json` script: `npm run e2e`, `npm run e2e:smoke` (CI / smoke), `npm run e2e:seeded` (opcionális seedelt workflow E2E), `npm run e2e:smoke:ui` / `npm run e2e:smoke:debug` (smoke + UI/debug), `npm run e2e:ui` / `npm run e2e:debug` (összes spec), `npm run e2e:report` (HTML riport böngészőben; lokálisan), `npm run e2e:install-browsers`.
+- `package.json` script: `npm run e2e`, `npm run e2e:smoke` (CI / smoke), `npm run e2e:seeded` (opcionális seedelt workflow / entity / run E2E), `npm run e2e:smoke:ui` / `npm run e2e:smoke:debug` (smoke + UI/debug), `npm run e2e:ui` / `npm run e2e:debug` (összes spec), `npm run e2e:report` (HTML riport böngészőben; lokálisan), `npm run e2e:install-browsers`.
 - CI-ben zöld **`frontend-e2e`** job.
 - Új dependency: **`@playwright/test`** — governance szerint dependency review / jóváhagyás; lásd `docs/GOVERNANCE.md`.
 
