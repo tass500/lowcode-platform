@@ -22,9 +22,10 @@ Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.
 
 Tests live in `e2e/`. The **CI smoke** suite is `e2e/smoke.spec.ts` only.
 
-1. Install Chromium (once per machine): `npm run e2e:install-browsers`
-2. **Recommended (repo root):** start backend + dev server via `bash scripts/e2e-smoke-ci.sh` (Unix) or `powershell -File scripts/e2e-smoke-ci.ps1` (Windows), which set `PW_NO_WEBSERVER=1` and run `npm run e2e:smoke` in this directory.
-3. **Manual:** run the backend on **:5002** and `npm start` here on **:4200**, then in this directory:  
+1. Install dependencies: `npm ci` (if **`EPERM`** on Windows, stop **`npm start`** / **`ng serve`** first — see [`CONTRIBUTING.md`](../../CONTRIBUTING.md)).
+2. Install Chromium (once per machine): `npm run e2e:install-browsers`
+3. **Recommended (repo root):** start backend + dev server via `bash scripts/e2e-smoke-ci.sh` (Unix) or `powershell -File scripts/e2e-smoke-ci.ps1` (Windows), which set `PW_NO_WEBSERVER=1` and run `npm run e2e:smoke` in this directory.
+4. **Manual:** run the backend on **:5002** and `npm start` here on **:4200**, then in this directory:  
    - **Unix:** `PW_NO_WEBSERVER=1 npm run e2e:smoke`  
    - **Windows (cmd):** `set PW_NO_WEBSERVER=1&& npm run e2e:smoke`
 
