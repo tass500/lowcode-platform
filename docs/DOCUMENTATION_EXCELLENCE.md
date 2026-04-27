@@ -28,7 +28,7 @@ A merge előtt a **reviewer** (vagy önellenőrzés önálló tulajdonosnál) er
 4. **AI-generált diff:** a szerződés-, auth- és biztonságérzékeny sorok **emberi értelmezést** kaptak (nem csak „zöld a teszt”).
 5. **Titkok:** nincs token, jelszó, PII commit; secret scan / supply-chain jobok figyelése a változás súlyához igazítva.
 
-**Olcsó, de kötelező eszköz:** a [`templates/pr-body.example.md`](templates/pr-body.example.md) kitöltése — összefoglaló + **test plan pontos parancsokkal**.
+**Olcsó, de kötelező eszköz:** a [`templates/pr-body.example.md`](templates/pr-body.example.md) kitöltése — összefoglaló + **test plan pontos parancsokkal**. A GitHub webes űrlap ugyanígy indul: [`.github/PULL_REQUEST_TEMPLATE.md`](../.github/PULL_REQUEST_TEMPLATE.md) — benne az **AI / ügynök + reviewer (gyors)** checklist (merge előtti önellenőrzés / review rögzítés).
 
 ---
 

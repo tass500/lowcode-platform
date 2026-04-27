@@ -33,6 +33,7 @@ Részletes indoklás és régebbi iterációk: [`03_ARCHIVE.md`](03_ARCHIVE.md) 
 ## Minichecklist (kontextusvesztés után)
 
 - **PR / iteráció ritmus:** [`DEVELOPMENT_WORKFLOW.md`](../DEVELOPMENT_WORKFLOW.md) **§5a**
+- **PR sablon:** új PR-nél töltsd ki a GitHub **AI / ügynök + reviewer (gyors)** checklistet — [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md)
 - Branch: `feat/<topic>` a legfrissebb `main`-ről
 - ACTIVE: **E2E MVP** ✅ [`e2e-smoke-plan.md`](e2e-smoke-plan.md) · opcionális bővítés · **minőség 68** (**68a–k**) ✅ [`roadmap-iter-68-quality.md`](roadmap-iter-68-quality.md) · **termék 67 (a–d)** ✅ [`roadmap-iter-67-product.md`](roadmap-iter-67-product.md); **66+** enterprise ✅; integrációs tesztek (fő sor lefedve: admin/*, BFF, …); **65** ✅ (**PR #112–114**); **64** ✅ (**PR #106–110**); **63** ✅ (**PR #102–105**); **E2E smoke MVP** ✅ [`e2e-smoke-plan.md`](e2e-smoke-plan.md); **58c+** touch (**PR #99**); **58c+ CDK** defer — [`workflow-visual-builder.md`](workflow-visual-builder.md); **62c** + **62c+ doksi** (**PR #93**, **PR #95**, **PR #97**); **62b2** mergeelve; **62** / **61** lezárva
 - `git status` → staged / unstaged

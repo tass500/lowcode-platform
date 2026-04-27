@@ -13,6 +13,15 @@
 
 -
 
+## AI / ügynök + reviewer (gyors)
+
+- [ ] **Scope:** egyezik a `docs/live/03` ACTIVE / felhasználói szándékkal; nincs kapcsolódó „drive-by” szerkesztés
+- [ ] **Szerződés / API:** ha változott a nyilvános HTTP, header vagy `errorCode` alak → Summary-ben jelezve (`PROJECT_CONTEXT` ha kell)
+- [ ] **Auth / tenant / titok:** ha érintett → **Risk** medium vagy high; diffben / logban nincs titok és PII
+- [ ] **Live doc:** `docs/live/02` + `03` frissült, ha a milestone tényei vagy a következő lépések változtak
+- [ ] **Teszt / E2E:** lenti gate-ek lefutva (ahogy releváns); jelezd, ha `e2e:seeded` vagy időzítés-érzékeny UI volt
+- [ ] **Emberi review:** merge előtt kötelező, ha a kockázat **medium** vagy **high** — [`GOVERNANCE.md`](../GOVERNANCE.md) §4
+
 ## Quality gates
 
 - [ ] Frontend: `npm run lint`
