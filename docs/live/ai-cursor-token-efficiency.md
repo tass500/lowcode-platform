@@ -19,6 +19,7 @@ A Cursor / „Auto” használat **token-alapon** számolódik. A repó minősé
 4. **Composer** több fájlhoz; **Chat** egy szűk edithez (lásd §10).
 5. **Iteráció végén** `02` + `03` + `pr-body.md` — kevesebb „mi volt a DoD?” kör a chatben.
 6. **Modell** (UI): gyors/Auto a napi kis munkára; erősebb modell csak architektúra / kockázatos domain logikához (részletek §10a).
+7. **PR megnyitásakor** töltsd ki a GitHub sablon **AI / ügynök + reviewer (gyors)** részét — [`.github/PULL_REQUEST_TEMPLATE.md`](../../.github/PULL_REQUEST_TEMPLATE.md) (scope, szerződés, auth, live doc, review-kötelezettség).
 
 ## Mit nem jelent?
 

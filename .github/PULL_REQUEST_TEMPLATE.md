@@ -6,6 +6,15 @@
 
 - 
 
+## AI / agent + reviewer (quick)
+
+- [ ] **Scope:** matches `docs/live/03` ACTIVE / stated intent; no unrelated drive-by edits
+- [ ] **Contract / API:** if public HTTP, headers, or `errorCode` shape changed, called out in Summary (and `PROJECT_CONTEXT` if needed)
+- [ ] **Auth / tenant / secrets:** if touched → set **Risk** to medium or high; no secrets or PII in diff or logs
+- [ ] **Live docs:** `docs/live/02` + `03` updated when milestone facts or next steps changed
+- [ ] **Tests / E2E:** gates below run as applicable; note if `e2e:seeded` or timing-sensitive UI was exercised
+- [ ] **Human review:** required before merge when risk is **medium** or **high** (`docs/GOVERNANCE.md` §4)
+
 ## Quality gates
 
 - [ ] Frontend: `npm run lint`
